@@ -1,7 +1,8 @@
 "use client"
 
 import { useQueryClient, type InfiniteData } from "@tanstack/react-query"
-import { PlusCircleIcon, SmileIcon, XIcon } from "lucide-react"
+import { format } from "date-fns"
+import { ClockIcon, PlusCircleIcon, SmileIcon, XIcon } from "lucide-react"
 import { useRef } from "react"
 import { toast } from "sonner"
 
@@ -53,7 +54,7 @@ function ReplyBar({ messageId, onCancel }: { messageId: string; onCancel: () => 
 export function Composer({ onSent }: { onSent: () => void }) {
   const userId = useUserId()
   const queryClient = useQueryClient()
-  const { channel, canSend } = useChat()
+  const { channel, canSend, timedOutUntil } = useChat()
   const draft = useComposerStore((s) => s.drafts[channel.id] ?? "")
   const replyTo = useComposerStore((s) => s.replyTo[channel.id])
   const { setDraft, setReplyTo, setEditing } = useComposerStore.getState()
@@ -92,8 +93,16 @@ export function Composer({ onSent }: { onSent: () => void }) {
   if (!canSend) {
     return (
       <div className="shrink-0 px-4 pb-6">
-        <div className="flex h-11 items-center rounded-lg bg-composer px-4 text-sm text-muted-foreground">
-          You do not have permission to send messages in this channel.
+        <div className="flex min-h-11 items-center gap-2 rounded-lg bg-composer px-4 py-2 text-sm text-muted-foreground">
+          {timedOutUntil ? (
+            <>
+              <ClockIcon className="size-4 shrink-0 text-mention" />
+              You&apos;re timed out until {format(new Date(timedOutUntil), "MMM d, h:mm a")}. You can
+              read messages, but you can&apos;t send any.
+            </>
+          ) : (
+            "You do not have permission to send messages in this channel."
+          )}
         </div>
       </div>
     )

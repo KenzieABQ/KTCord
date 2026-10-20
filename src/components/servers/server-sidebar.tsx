@@ -37,8 +37,14 @@ export function ServerSidebar({ serverId }: { serverId: string }) {
   const [menuOpen, setMenuOpen] = useState(false)
 
   const can = (bit: number) => hasPermission(permissions, bit)
-  const canOpenSettings =
-    can(Permission.MANAGE_SERVER) || can(Permission.MANAGE_ROLES) || can(Permission.BAN_MEMBERS)
+  // Server Settings opens on the first page the member is allowed to use.
+  const settingsPage = can(Permission.MANAGE_SERVER)
+    ? "overview"
+    : can(Permission.MANAGE_ROLES)
+      ? "roles"
+      : can(Permission.KICK_MEMBERS) || can(Permission.MODERATE_MEMBERS) || can(Permission.BAN_MEMBERS)
+        ? "members"
+        : null
 
   return (
     <>
@@ -66,9 +72,9 @@ export function ServerSidebar({ serverId }: { serverId: string }) {
               Invite People <UserPlusIcon className="ml-auto" />
             </DropdownMenuItem>
           )}
-          {canOpenSettings && (
+          {settingsPage && (
             <DropdownMenuItem asChild>
-              <Link href={`/servers/${serverId}/settings/overview`}>
+              <Link href={`/servers/${serverId}/settings/${settingsPage}`}>
                 Server Settings <SettingsIcon className="ml-auto" />
               </Link>
             </DropdownMenuItem>

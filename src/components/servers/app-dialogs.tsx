@@ -3,6 +3,7 @@
 import { useRouter } from "next/navigation"
 import { toast } from "sonner"
 
+import { BanMemberDialog, KickMemberDialog } from "@/components/members/moderation-dialogs"
 import { Button } from "@/components/ui/button"
 import {
   Dialog,
@@ -83,6 +84,10 @@ function DialogBody({ dialog }: { dialog: AppDialog }) {
       return <InviteDialog serverId={dialog.serverId} />
     case "leave-server":
       return <LeaveServerDialog serverId={dialog.serverId} />
+    case "kick-member":
+      return <KickMemberDialog serverId={dialog.serverId} userId={dialog.userId} />
+    case "ban-member":
+      return <BanMemberDialog serverId={dialog.serverId} userId={dialog.userId} />
   }
 }
 

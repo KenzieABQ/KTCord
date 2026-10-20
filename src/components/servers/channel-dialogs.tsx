@@ -1,6 +1,6 @@
 "use client"
 
-import { HashIcon, Volume2Icon } from "lucide-react"
+import { HashIcon, LockIcon, Volume2Icon } from "lucide-react"
 import { useRouter } from "next/navigation"
 import { useState } from "react"
 import { toast } from "sonner"
@@ -8,13 +8,17 @@ import { toast } from "sonner"
 import { Button } from "@/components/ui/button"
 import { DialogDescription, DialogFooter, DialogHeader, DialogTitle } from "@/components/ui/dialog"
 import { Field, FieldDescription, FieldError, FieldLabel } from "@/components/ui/field"
+import { Checkbox } from "@/components/ui/checkbox"
 import { Input } from "@/components/ui/input"
+import { Switch } from "@/components/ui/switch"
 import { Textarea } from "@/components/ui/textarea"
 import { normalizeTextChannelName } from "@/lib/api/channels"
 import { errorMessage } from "@/lib/api/errors"
+import { useChannelAccess, useSetChannelAccess } from "@/lib/queries/moderation"
 import {
   useChannel,
   useChannels,
+  useRoles,
   useCreateChannel,
   useDeleteChannel,
   useUpdateChannel,
@@ -199,6 +203,73 @@ export function CreateCategoryDialog({ serverId }: { serverId: string }) {
   )
 }
 
+type AccessValue = { isPrivate: boolean; roleIds: string[] }
+
+/** "Private Channel" switch plus the roles that can see it. */
+function PrivateChannelFields({
+  serverId,
+  value,
+  loading,
+  onChange,
+}: {
+  serverId: string
+  value: AccessValue
+  loading: boolean
+  onChange: (value: AccessValue) => void
+}) {
+  const { data: roles } = useRoles(serverId)
+  const choices = (roles ?? []).filter((r) => !r.is_default)
+
+  return (
+    <div className="mt-5 rounded-lg bg-sidebar p-3">
+      <label className="flex items-start gap-3">
+        <LockIcon className="mt-0.5 size-4 shrink-0 text-interactive" />
+        <span className="flex-1">
+          <span className="block text-sm font-medium text-header">Private Channel</span>
+          <span className="block text-xs text-muted-foreground">
+            Only selected roles (and admins) can see it.
+          </span>
+        </span>
+        <Switch
+          checked={value.isPrivate}
+          disabled={loading}
+          onCheckedChange={(isPrivate) => onChange({ ...value, isPrivate })}
+        />
+      </label>
+      {value.isPrivate && (
+        <fieldset className="mt-3 border-t border-border pt-3">
+          <legend className={cn(labelClass, "mb-2")}>Who can access this channel?</legend>
+          {choices.length === 0 ? (
+            <p className="text-sm text-muted-foreground">
+              This server has no roles yet. Create one in Server Settings → Roles.
+            </p>
+          ) : (
+            <div className="flex max-h-40 flex-col gap-1.5 overflow-y-auto">
+              {choices.map((role) => (
+                <label key={role.id} className="flex items-center gap-2 text-sm text-foreground">
+                  <Checkbox
+                    checked={value.roleIds.includes(role.id)}
+                    onCheckedChange={(checked) =>
+                      onChange({
+                        ...value,
+                        roleIds: checked
+                          ? [...value.roleIds, role.id]
+                          : value.roleIds.filter((id) => id !== role.id),
+                      })
+                    }
+                  />
+                  <span className="size-2.5 rounded-full" style={{ backgroundColor: role.color ?? "#99aab5" }} />
+                  {role.name}
+                </label>
+              ))}
+            </div>
+          )}
+        </fieldset>
+      )}
+    </div>
+  )
+}
+
 /** Rename, set the topic, or delete a channel or category. */
 export function EditChannelDialog({ serverId, channelId }: { serverId: string; channelId: string }) {
   const router = useRouter()
@@ -211,9 +282,17 @@ export function EditChannelDialog({ serverId, channelId }: { serverId: string; c
   const [topic, setTopic] = useState(channel?.topic ?? "")
   const [confirmDelete, setConfirmDelete] = useState(false)
   const [error, setError] = useState<string | null>(null)
+  const access = useChannelAccess(channelId, Boolean(channel?.is_private))
+  const setChannelAccess = useSetChannelAccess(serverId)
+  // null = unchanged; otherwise the edited private/roles setting.
+  const [accessDraft, setAccessDraft] = useState<AccessValue | null>(null)
 
   if (!channel) return null
   const isCategory = channel.type === "category"
+  const currentAccess: AccessValue = accessDraft ?? {
+    isPrivate: channel.is_private,
+    roleIds: access.data ?? [],
+  }
   const finalName = channel.type === "text" ? normalizeTextChannelName(name) : name.trim()
   const noun = isCategory ? "Category" : "Channel"
 
@@ -229,6 +308,13 @@ export function EditChannelDialog({ serverId, channelId }: { serverId: string; c
         name: finalName,
         ...(channel!.type === "text" && { topic: topic.trim() || null }),
       })
+      if (accessDraft) {
+        await setChannelAccess.mutateAsync({
+          channelId,
+          isPrivate: accessDraft.isPrivate,
+          roleIds: accessDraft.roleIds,
+        })
+      }
       toast.success(`${noun} saved.`)
       closeDialog()
     } catch (err) {
@@ -315,6 +401,14 @@ export function EditChannelDialog({ serverId, channelId }: { serverId: string; c
           <FieldDescription className="text-right text-xs">{topic.length}/1024</FieldDescription>
         </Field>
       )}
+      {!isCategory && (
+        <PrivateChannelFields
+          serverId={serverId}
+          value={currentAccess}
+          loading={channel.is_private && access.isPending}
+          onChange={setAccessDraft}
+        />
+      )}
       <DialogFooter className={cn(footerClass, "sm:justify-between")}>
         <Button
           type="button"
@@ -328,7 +422,7 @@ export function EditChannelDialog({ serverId, channelId }: { serverId: string; c
           <Button type="button" variant="ghost" onClick={closeDialog}>
             Cancel
           </Button>
-          <Button type="submit" disabled={!finalName || updateChannel.isPending}>
+          <Button type="submit" disabled={!finalName || updateChannel.isPending || setChannelAccess.isPending}>
             Save Changes
           </Button>
         </div>

@@ -49,7 +49,7 @@ export function ServerSettingsShell({ children }: { children: ReactNode }) {
   const router = useRouter()
   const { data: server, isPending } = useServer(serverId)
   const { ready, permissions } = useServerPermissions(serverId)
-  const canManage = hasPermission(permissions, Permission.MANAGE_SERVER)
+  const can = (bit: number) => hasPermission(permissions, bit)
 
   useEffect(() => {
     if (!isPending && !server) router.replace("/channels/me")
@@ -57,21 +57,28 @@ export function ServerSettingsShell({ children }: { children: ReactNode }) {
 
   if (!server || !ready) return <SplashScreen message="Loading settings…" />
 
-  const nav: SettingsNavGroup[] = [
-    {
-      heading: server.name,
-      items: canManage
-        ? [
-            { href: `/servers/${serverId}/settings/overview`, label: "Overview" },
-            { href: `/servers/${serverId}/settings/invites`, label: "Invites" },
-          ]
-        : [],
+  const base = `/servers/${serverId}/settings`
+  const items = [
+    can(Permission.MANAGE_SERVER) && { href: `${base}/overview`, label: "Overview" },
+    can(Permission.MANAGE_ROLES) && { href: `${base}/roles`, label: "Roles" },
+  ].filter(Boolean) as SettingsNavGroup["items"]
+  const managementItems = [
+    [Permission.MANAGE_ROLES, Permission.KICK_MEMBERS, Permission.BAN_MEMBERS, Permission.MODERATE_MEMBERS].some(can) && {
+      href: `${base}/members`,
+      label: "Members",
     },
-  ]
+    can(Permission.MANAGE_SERVER) && { href: `${base}/invites`, label: "Invites" },
+    can(Permission.BAN_MEMBERS) && { href: `${base}/bans`, label: "Bans" },
+  ].filter(Boolean) as SettingsNavGroup["items"]
+
+  const nav: SettingsNavGroup[] = [
+    { heading: server.name, items },
+    { heading: "User Management", items: managementItems },
+  ].filter((group) => group.items.length > 0)
 
   return (
     <SettingsLayout nav={nav} closeHref={`/channels/${serverId}`}>
-      {canManage ? (
+      {nav.length > 0 ? (
         children
       ) : (
         <SettingsSection title="Server Settings">
@@ -80,6 +87,20 @@ export function ServerSettingsShell({ children }: { children: ReactNode }) {
       )}
     </SettingsLayout>
   )
+}
+
+/** Wraps a settings page that needs MANAGE_SERVER. */
+function RequireManageServer({ children }: { children: ReactNode }) {
+  const serverId = useServerIdParam()
+  const { permissions } = useServerPermissions(serverId)
+  if (!hasPermission(permissions, Permission.MANAGE_SERVER)) {
+    return (
+      <SettingsSection title="Server Settings">
+        <p className="text-muted-foreground">You need the Manage Server permission for this page.</p>
+      </SettingsSection>
+    )
+  }
+  return children
 }
 
 function DeleteServerDialog({
@@ -155,6 +176,14 @@ function DeleteServerDialog({
 }
 
 export function ServerOverviewSettings() {
+  return (
+    <RequireManageServer>
+      <ServerOverviewForm />
+    </RequireManageServer>
+  )
+}
+
+function ServerOverviewForm() {
   const serverId = useServerIdParam()
   const { data: server } = useServer(serverId)
   const { isOwner } = useServerPermissions(serverId)
@@ -268,6 +297,14 @@ export function ServerOverviewSettings() {
 }
 
 export function ServerInvitesSettings() {
+  return (
+    <RequireManageServer>
+      <InvitesList />
+    </RequireManageServer>
+  )
+}
+
+function InvitesList() {
   const serverId = useServerIdParam()
   const { data: invites, isPending } = useInvites(serverId)
   const { data: members } = useMembers(serverId)

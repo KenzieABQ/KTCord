@@ -519,8 +519,16 @@ export type Database = {
       [_ in never]: never
     }
     Functions: {
+      ban_member: {
+        Args: { p_delete_seconds?: number; p_reason?: string; p_server: string; p_user: string }
+        Returns: undefined
+      }
       can_send: { Args: { p_channel: string; p_user?: string }; Returns: boolean }
       can_view_channel: { Args: { p_channel: string }; Returns: boolean }
+      channel_row_permissions: {
+        Args: { p_channel: string; p_private: boolean; p_server: string; p_user?: string }
+        Returns: number
+      }
       channel_permissions: {
         Args: { p_channel: string; p_user?: string }
         Returns: number
@@ -529,10 +537,22 @@ export type Database = {
         Args: { p_max_age_seconds?: number; p_max_uses?: number; p_server: string }
         Returns: Database["public"]["Tables"]["invites"]["Row"]
       }
+      create_role: {
+        Args: {
+          p_color?: string
+          p_hoist?: boolean
+          p_mentionable?: boolean
+          p_name: string
+          p_permissions?: number
+          p_server: string
+        }
+        Returns: Database["public"]["Tables"]["roles"]["Row"]
+      }
       create_server: {
         Args: { p_icon_url?: string; p_name: string }
         Returns: string
       }
+      delete_role: { Args: { p_role: string }; Returns: undefined }
       get_invite: {
         Args: { p_code: string }
         Returns: {
@@ -564,17 +584,21 @@ export type Database = {
         Args: { p_server: string; p_user?: string }
         Returns: boolean
       }
+      is_server_owner: { Args: { p_server: string; p_user?: string }; Returns: boolean }
       join_server_by_invite: { Args: { p_code: string }; Returns: string }
+      kick_member: { Args: { p_server: string; p_user: string }; Returns: undefined }
       leave_server: { Args: { p_server: string }; Returns: undefined }
       mark_read: { Args: { p_channel: string; p_message: string }; Returns: string }
       member_top_position: {
         Args: { p_server: string; p_user: string }
         Returns: number
       }
+      outranks: { Args: { p_server: string; p_target: string }; Returns: boolean }
       reorder_channels: {
         Args: { p_items: Json; p_server: string }
         Returns: undefined
       }
+      reorder_roles: { Args: { p_role_ids: string[]; p_server: string }; Returns: undefined }
       send_message: {
         Args: {
           p_attachments?: Json
@@ -589,7 +613,32 @@ export type Database = {
         Args: { p_server: string; p_user?: string }
         Returns: number
       }
+      set_channel_access: {
+        Args: { p_channel: string; p_private: boolean; p_role_ids: string[] }
+        Returns: undefined
+      }
+      set_member_roles: {
+        Args: { p_role_ids: string[]; p_server: string; p_user: string }
+        Returns: undefined
+      }
+      timeout_member: {
+        Args: { p_server: string; p_until: string | null; p_user: string }
+        Returns: undefined
+      }
       try_uuid: { Args: { p: string }; Returns: string }
+      unban_member: { Args: { p_server: string; p_user: string }; Returns: undefined }
+      update_role: {
+        Args: {
+          p_clear_color?: boolean
+          p_color?: string
+          p_hoist?: boolean
+          p_mentionable?: boolean
+          p_name?: string
+          p_permissions?: number
+          p_role: string
+        }
+        Returns: Database["public"]["Tables"]["roles"]["Row"]
+      }
       username_available: { Args: { p_username: string }; Returns: boolean }
     }
     Enums: {

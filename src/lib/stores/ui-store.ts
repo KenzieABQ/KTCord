@@ -10,6 +10,8 @@ export type AppDialog =
   | { kind: "edit-channel"; serverId: string; channelId: string }
   | { kind: "invite"; serverId: string }
   | { kind: "leave-server"; serverId: string }
+  | { kind: "kick-member"; serverId: string; userId: string }
+  | { kind: "ban-member"; serverId: string; userId: string }
 
 type UiState = {
   /** Mobile: the left drawer holding the server rail + channel list. */

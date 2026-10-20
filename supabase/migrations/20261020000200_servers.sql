@@ -217,9 +217,16 @@ as $$
   select (public.server_permissions(p_server) & p_perm) = p_perm;
 $$;
 
--- Effective permissions in one channel: server permissions, zeroed when the channel is
--- private and none of the user's roles has access. Administrators see everything.
-create or replace function public.channel_permissions(p_channel uuid, p_user uuid default auth.uid())
+-- Effective permissions for a channel given its row values: server permissions, zeroed when
+-- the channel is private and none of the user's roles has access. Administrators see
+-- everything. Taking the row's columns (instead of re-reading the channel) lets RLS policies
+-- evaluate rows that aren't visible yet, e.g. INSERT ... RETURNING.
+create or replace function public.channel_row_permissions(
+  p_server uuid,
+  p_channel uuid,
+  p_private boolean,
+  p_user uuid default auth.uid()
+)
 returns bigint
 language plpgsql
 stable
@@ -227,15 +234,13 @@ security definer
 set search_path = ''
 as $$
 declare
-  ch record;
   perms bigint;
 begin
-  select id, server_id, is_private into ch from public.channels where id = p_channel;
-  if not found or ch.server_id is null then
+  if p_server is null then
     return 0;
   end if;
 
-  perms := public.server_permissions(ch.server_id, p_user);
+  perms := public.server_permissions(p_server, p_user);
   if perms = 2147483647 then
     return perms;
   end if;
@@ -243,11 +248,11 @@ begin
     return 0;
   end if;
 
-  if ch.is_private and not exists (
+  if p_private and not exists (
     select 1
     from public.channel_role_access a
     join public.roles r on r.id = a.role_id
-    where a.channel_id = ch.id
+    where a.channel_id = p_channel
       and (
         r.is_default
         or exists (
@@ -261,6 +266,21 @@ begin
 
   return perms;
 end;
+$$;
+
+-- The same, looked up by channel id.
+create or replace function public.channel_permissions(p_channel uuid, p_user uuid default auth.uid())
+returns bigint
+language sql
+stable
+security definer
+set search_path = ''
+as $$
+  select coalesce(
+    (select public.channel_row_permissions(c.server_id, c.id, c.is_private, p_user)
+     from public.channels c where c.id = p_channel),
+    0
+  );
 $$;
 
 create or replace function public.can_view_channel(p_channel uuid)
@@ -402,7 +422,10 @@ create policy "members see role assignments"
 -- Channels: visible per channel_permissions; MANAGE_CHANNELS creates, edits and deletes.
 create policy "members see channels they can view"
   on public.channels for select to authenticated
-  using (server_id is not null and public.can_view_channel(id));
+  using (
+    server_id is not null
+    and public.channel_row_permissions(server_id, id, is_private) & 1 <> 0
+  );
 
 create policy "channel managers create channels"
   on public.channels for insert to authenticated

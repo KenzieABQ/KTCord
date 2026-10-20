@@ -23,6 +23,7 @@ import {
   ChevronDownIcon,
   HashIcon,
   LinkIcon,
+  LockIcon,
   PlusIcon,
   SettingsIcon,
   UserPlusIcon,
@@ -158,7 +159,15 @@ function ChannelRow({
           {unread && (
             <span aria-hidden className="absolute top-1/2 -left-2 h-2 w-1 -translate-y-1/2 rounded-r-full bg-header" />
           )}
-          <Icon className="size-5 shrink-0 opacity-70" />
+          <span className="relative shrink-0">
+            <Icon className="size-5 opacity-70" />
+            {channel.is_private && (
+              <LockIcon
+                aria-label="Private channel"
+                className="absolute -top-1 -right-1 size-2.5 rounded-sm bg-sidebar p-px text-current"
+              />
+            )}
+          </span>
           <span className={cn("min-w-0 flex-1 truncate text-[15px]", unread ? "font-semibold" : "font-medium")}>
             {channel.name}
             {unread && <span className="sr-only"> (unread)</span>}

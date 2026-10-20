@@ -38,10 +38,12 @@ Built with Next.js 16, shadcn/ui and Supabase (Postgres + RLS, Realtime, Storage
 | `npm run build` | Production build |
 | `npm run typecheck` | TypeScript, no emit |
 | `npm run lint` | ESLint |
-| `npm test` | Vitest unit tests |
+| `npm test` | Unit tests, plus every migration applied to PGlite (in-memory Postgres) with RLS scenario tests |
 | `npm run test:db` | RLS/RPC integration tests against the dev project (creates and deletes test users) |
 | `npm run db:migrate` | Apply pending `supabase/migrations` to the project in `.env.local` |
 | `npm run db:types` | Regenerate `src/lib/supabase/database.types.ts` |
+| `npm run seed` | Demo users (`demo_ava`, `demo_ben`, `demo_cy`), the "KTCord Lounge" server and ~500 messages. `-- --join <username>` adds you |
+| `npm run bot -- <channel-id>` | Signs in as a demo user, types and posts on repeat, for testing Realtime by hand |
 
 ## Architecture
 
