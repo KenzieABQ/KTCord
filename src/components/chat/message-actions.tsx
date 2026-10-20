@@ -37,8 +37,9 @@ export type MessageActionHandlers = {
   onDelete: (skipConfirm: boolean) => void
 }
 
-export function messageLink(serverId: string, message: ChatMessage) {
-  return `${window.location.origin}/channels/${serverId}/${message.channel_id}/${message.id}`
+/** basePath is "/channels/<serverId>" or "/channels/me". */
+export function messageLink(basePath: string, message: ChatMessage) {
+  return `${window.location.origin}${basePath}/${message.channel_id}/${message.id}`
 }
 
 function copy(text: string, what: string) {
@@ -79,13 +80,13 @@ function ToolbarButton({
 
 /** The floating toolbar shown on hover (and kept open while its menu is). */
 export function MessageToolbar({
-  serverId,
+  basePath,
   message,
   actions,
   shiftHeld,
   onMenuOpenChange,
 }: {
-  serverId: string
+  basePath: string
   message: ChatMessage
   actions: MessageActionHandlers
   /** Holding Shift swaps in a one-click Delete, as in Discord. */
@@ -122,7 +123,7 @@ export function MessageToolbar({
           <TooltipContent side="top">More</TooltipContent>
         </Tooltip>
         <DropdownMenuContent align="end" className="w-52 bg-floating">
-          <MessageMenuItems kind="dropdown" serverId={serverId} message={message} actions={actions} />
+          <MessageMenuItems kind="dropdown" basePath={basePath} message={message} actions={actions} />
         </DropdownMenuContent>
       </DropdownMenu>
     </div>
@@ -132,12 +133,12 @@ export function MessageToolbar({
 /** Shared menu items for the "More" dropdown and the right-click context menu. */
 function MessageMenuItems({
   kind,
-  serverId,
+  basePath,
   message,
   actions,
 }: {
   kind: "dropdown" | "context"
-  serverId: string
+  basePath: string
   message: ChatMessage
   actions: MessageActionHandlers
 }) {
@@ -161,7 +162,7 @@ function MessageMenuItems({
         Copy Text <CopyIcon className="ml-auto" />
       </Item>
       {sent && (
-        <Item onSelect={() => copy(messageLink(serverId, message), "Message link")}>
+        <Item onSelect={() => copy(messageLink(basePath, message), "Message link")}>
           Copy Message Link <LinkIcon className="ml-auto" />
         </Item>
       )}
@@ -186,7 +187,7 @@ function MessageMenuItems({
 }
 
 export function MessageContextMenuContent(props: {
-  serverId: string
+  basePath: string
   message: ChatMessage
   actions: MessageActionHandlers
 }) {

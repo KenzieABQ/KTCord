@@ -1,6 +1,14 @@
 "use client"
 
-import { ClockIcon, CopyIcon, GavelIcon, ShieldIcon, UserMinusIcon } from "lucide-react"
+import {
+  ClockIcon,
+  CopyIcon,
+  GavelIcon,
+  MessageCircleIcon,
+  ShieldIcon,
+  UserMinusIcon,
+  UserPlusIcon,
+} from "lucide-react"
 import { toast } from "sonner"
 
 import {
@@ -25,6 +33,8 @@ import { errorMessage } from "@/lib/api/errors"
 import { memberDisplayName } from "@/lib/members"
 import { isTimedOut, TIMEOUT_OPTIONS, useModerationAbilities } from "@/lib/moderation"
 import { useSetMemberRoles, useTimeoutMember } from "@/lib/queries/moderation"
+import { useOpenDm, useRelationships, useSendFriendRequest } from "@/lib/queries/social"
+import { useUserId } from "@/lib/stores/auth-store"
 import { useUiStore } from "@/lib/stores/ui-store"
 
 const PARTS = {
@@ -71,9 +81,35 @@ export function MemberActionItems({
   const onError = (error: unknown) => toast.error(errorMessage(error))
 
   const anyModeration = abilities.canKick || abilities.canBan || abilities.canTimeout
+  const selfId = useUserId()
+  const openDm = useOpenDm()
+  const addFriend = useSendFriendRequest()
+  const { data: relationships } = useRelationships()
+  const relationship = relationships?.find((r) => r.user.id === userId)
+  const isSelf = userId === selfId
 
   return (
     <>
+      {!isSelf && (
+        <>
+          <P.Item onSelect={() => openDm.mutate(userId, { onError })}>
+            <MessageCircleIcon /> Message
+          </P.Item>
+          {!relationship && target && (
+            <P.Item
+              onSelect={() =>
+                addFriend.mutate(target.profile.username, {
+                  onSuccess: () => toast.success(`Friend request sent to ${name}.`),
+                  onError,
+                })
+              }
+            >
+              <UserPlusIcon /> Add Friend
+            </P.Item>
+          )}
+          <P.Separator />
+        </>
+      )}
       {abilities.assignableRoles.length > 0 && target && (
         <P.Sub>
           <P.SubTrigger>

@@ -57,7 +57,7 @@ function ReplyBar({ messageId, onCancel }: { messageId: string; onCancel: () => 
 export function Composer({ onSent }: { onSent: () => void }) {
   const userId = useUserId()
   const queryClient = useQueryClient()
-  const { channel, canSend, timedOutUntil, mentionSources } = useChat()
+  const { channel, channelLabel, canSend, timedOutUntil, mentionSources } = useChat()
   const draft = useComposerStore((s) => s.drafts[channel.id] ?? "")
   const replyTo = useComposerStore((s) => s.replyTo[channel.id])
   const { setDraft, setReplyTo, setEditing } = useComposerStore.getState()
@@ -143,8 +143,8 @@ export function Composer({ onSent }: { onSent: () => void }) {
           ref={inputRef}
           rows={1}
           value={draft}
-          placeholder={`Message #${channel.name}`}
-          aria-label={`Message #${channel.name}`}
+          placeholder={`Message ${channelLabel}`}
+          aria-label={`Message ${channelLabel}`}
           onChange={(e) => {
             setDraft(channel.id, e.target.value)
             mentions.updateTrigger()

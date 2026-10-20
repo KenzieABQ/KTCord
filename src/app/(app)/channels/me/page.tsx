@@ -1,9 +1,9 @@
 import type { Metadata } from "next"
 
-import { HomeView } from "@/components/home/home-view"
+import { FriendsView } from "@/components/friends/friends-view"
 
 export const metadata: Metadata = { title: "Friends" }
 
 export default function HomePage() {
-  return <HomeView />
+  return <FriendsView />
 }

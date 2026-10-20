@@ -49,7 +49,7 @@ function RoleMention({ id }: { id: string }) {
 }
 
 function ChannelMention({ id }: { id: string }) {
-  const { channelsById, serverId } = useChat()
+  const { channelsById, basePath } = useChat()
   const channel = channelsById.get(id)
   if (!channel) {
     return (
@@ -61,7 +61,7 @@ function ChannelMention({ id }: { id: string }) {
   }
   return (
     <Link
-      href={`/channels/${serverId}/${channel.id}`}
+      href={`${basePath}/${channel.id}`}
       className={cn(mentionClass, "inline-flex items-center gap-0.5 align-bottom")}
     >
       <HashIcon className="size-3.5" />

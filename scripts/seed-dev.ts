@@ -45,6 +45,24 @@ async function ensureUser(u: (typeof DEMO_USERS)[number]): Promise<string> {
   return data.user.id
 }
 
+/** Inserts a friendship unless the pair already has one (the pair is unique in either order). */
+async function ensureFriendship(requester: string, addressee: string, status: "pending" | "accepted") {
+  const { data } = await admin
+    .from("friendships")
+    .select("id")
+    .or(
+      `and(requester_id.eq.${requester},addressee_id.eq.${addressee}),and(requester_id.eq.${addressee},addressee_id.eq.${requester})`
+    )
+  if (data?.length) return
+  const { error } = await admin.from("friendships").insert({
+    requester_id: requester,
+    addressee_id: addressee,
+    status,
+    accepted_at: status === "accepted" ? new Date().toISOString() : null,
+  })
+  if (error) throw error
+}
+
 const LINES = [
   "good morning everyone ☀️",
   "has anyone tried the new **dark theme** yet?",
@@ -159,6 +177,33 @@ async function main() {
     console.log(`Inserted ${rows.length} messages into #general.`)
   }
 
+  // Friends: Ava ↔ Ben are friends; Cy has a pending request to Ava.
+  await ensureFriendship(ava, ben, "accepted")
+  await ensureFriendship(cy, ava, "pending")
+
+  // A DM between Ava and Ben with a little history.
+  const dmKey = [ava, ben].sort().join(":")
+  let { data: dm } = await admin.from("channels").select("id").eq("dm_key", dmKey).maybeSingle()
+  if (!dm) {
+    const { data, error } = await admin.from("channels").insert({ type: "dm", dm_key: dmKey, position: 0 }).select("id").single()
+    if (error) throw error
+    dm = data
+    await admin.from("channel_recipients").insert([
+      { channel_id: dm.id, user_id: ava },
+      { channel_id: dm.id, user_id: ben },
+    ])
+    const now = Date.now()
+    await admin.from("messages").insert(
+      ["did you see the new server?", "yes!! the dark theme is so good", "voice chat when?", "soon™"].map((content, i) => ({
+        id: randomUUID(),
+        channel_id: dm!.id,
+        author_id: i % 2 === 0 ? ava : ben,
+        content,
+        created_at: new Date(now - (4 - i) * 90_000).toISOString(),
+      }))
+    )
+  }
+
   const joinIndex = process.argv.indexOf("--join")
   if (joinIndex !== -1) {
     const username = process.argv[joinIndex + 1]
@@ -167,7 +212,9 @@ async function main() {
     await admin
       .from("server_members")
       .upsert({ server_id: serverId, user_id: me.id }, { onConflict: "server_id,user_id", ignoreDuplicates: true })
-    console.log(`Added ${username} to ${SERVER_NAME}.`)
+    // Ava also sends you a friend request, so Friends → Pending has something in it.
+    if (me.id !== ava) await ensureFriendship(ava, me.id, "pending")
+    console.log(`Added ${username} to ${SERVER_NAME}, with a friend request from demo_ava.`)
   }
 
   console.log(`Seeded ${SERVER_NAME} (${serverId}). Demo users: ${DEMO_USERS.map((u) => u.username).join(", ")}.`)

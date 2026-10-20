@@ -12,6 +12,8 @@ export type AppDialog =
   | { kind: "leave-server"; serverId: string }
   | { kind: "kick-member"; serverId: string; userId: string }
   | { kind: "ban-member"; serverId: string; userId: string }
+  | { kind: "create-dm"; addToChannelId?: string; preselect?: string[] }
+  | { kind: "find-conversation" }
 
 type UiState = {
   /** Mobile: the left drawer holding the server rail + channel list. */

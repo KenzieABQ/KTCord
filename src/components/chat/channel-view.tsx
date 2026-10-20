@@ -10,6 +10,7 @@ import { useSwipe } from "@/hooks/use-swipe"
 import type { Channel } from "@/lib/api/channels"
 import { useUiStore } from "@/lib/stores/ui-store"
 
+import { ChannelWelcome } from "./channel-welcome"
 import { ChatProvider } from "./chat-context"
 import { Composer } from "./composer"
 import { HeaderButton } from "./header-button"
@@ -78,7 +79,12 @@ function TextChannelBody({
 
   return (
     <ChatProvider serverId={serverId} channel={channel} jumpToMessage={jumpToMessage}>
-      <MessageFeed ref={feed} channel={channel} initialJumpId={initialJumpId} />
+      <MessageFeed
+        ref={feed}
+        channel={channel}
+        welcome={<ChannelWelcome channel={channel} />}
+        initialJumpId={initialJumpId}
+      />
       <Composer onSent={() => feed.current?.scrollToBottom()} />
     </ChatProvider>
   )

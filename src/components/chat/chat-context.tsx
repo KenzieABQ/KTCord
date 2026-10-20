@@ -3,17 +3,23 @@
 import { createContext, useContext, useEffect, useMemo, useState, type ReactNode } from "react"
 
 import type { Channel } from "@/lib/api/channels"
+import { dmTitle, type DmChannel } from "@/lib/api/dms"
 import type { Member, Role } from "@/lib/api/members"
 import type { MentionSources } from "@/lib/mentions"
 import { memberDisplayName } from "@/lib/members"
-import { hasPermission, Permission } from "@/lib/permissions"
 import { isTimedOut } from "@/lib/moderation"
+import { hasPermission, Permission } from "@/lib/permissions"
 import { useChannels, useMembers, useRoles, useServerPermissions } from "@/lib/queries/servers"
 import { useUserId } from "@/lib/stores/auth-store"
 
 export type ChatContextValue = {
-  serverId: string
+  /** null in DMs. */
+  serverId: string | null
+  /** "/channels/<serverId>" or "/channels/me", for links to channels and messages. */
+  basePath: string
   channel: Channel
+  /** "#general", "@Ava" or a group DM's name: for the composer placeholder and the welcome header. */
+  channelLabel: string
   membersById: Map<string, Member>
   rolesById: Map<string, Role>
   channelsById: Map<string, Channel>
@@ -33,11 +39,15 @@ const ChatContext = createContext<ChatContextValue | null>(null)
 
 export function useChat(): ChatContextValue {
   const value = useContext(ChatContext)
-  if (!value) throw new Error("useChat() must be used inside <ChatProvider>")
+  if (!value) throw new Error("useChat() must be used inside a chat provider")
   return value
 }
 
-/** Lookup tables and permissions shared by every message, the composer and the typing indicator. */
+function mentionUsers(members: Iterable<Member>) {
+  return [...members].map((m) => ({ id: m.user_id, username: m.profile.username, name: memberDisplayName(m) }))
+}
+
+/** Lookup tables and permissions for a server channel. */
 export function ChatProvider({
   serverId,
   channel,
@@ -70,7 +80,9 @@ export function ChatProvider({
     const timedOutUntil = me && isTimedOut(me) ? me.timeout_until : null
     return {
       serverId,
+      basePath: `/channels/${serverId}`,
       channel,
+      channelLabel: `#${channel.name}`,
       membersById: new Map((members ?? []).map((m) => [m.user_id, m])),
       rolesById: new Map((roles ?? []).map((r) => [r.id, r])),
       channelsById: new Map((channels ?? []).map((c) => [c.id, c])),
@@ -80,7 +92,7 @@ export function ChatProvider({
       canManageMessages: hasPermission(permissions, Permission.MANAGE_MESSAGES),
       canMentionEveryone: hasPermission(permissions, Permission.MENTION_EVERYONE),
       mentionSources: {
-        users: (members ?? []).map((m) => ({ id: m.user_id, username: m.profile.username, name: memberDisplayName(m) })),
+        users: mentionUsers(members ?? []),
         roles: (roles ?? []).filter((r) => !r.is_default).map((r) => ({ id: r.id, name: r.name })),
         channels: (channels ?? []).filter((c) => c.type === "text").map((c) => ({ id: c.id, name: c.name ?? "" })),
       },
@@ -89,6 +101,55 @@ export function ChatProvider({
     // `clock` only forces a recompute when a timeout expires.
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [serverId, channel, members, roles, channels, permissions, jumpToMessage, userId, clock])
+
+  return <ChatContext value={value}>{children}</ChatContext>
+}
+
+const DM_PERMISSIONS =
+  Permission.VIEW_CHANNEL | Permission.SEND_MESSAGES | Permission.ATTACH_FILES | Permission.ADD_REACTIONS
+
+/** The same context for a DM or group DM: recipients stand in for members; no roles or moderation. */
+export function DmChatProvider({
+  dm,
+  jumpToMessage,
+  children,
+}: {
+  dm: DmChannel
+  jumpToMessage: (id: string) => void
+  children: ReactNode
+}) {
+  const userId = useUserId()
+
+  const value = useMemo<ChatContextValue>(() => {
+    const members: Member[] = dm.recipients.map((r) => ({
+      id: `${dm.id}:${r.user_id}`,
+      server_id: "",
+      user_id: r.user_id,
+      nickname: null,
+      joined_at: r.joined_at,
+      timeout_until: null,
+      profile: r.profile,
+      role_ids: [],
+    }))
+    const label =
+      dm.type === "dm" ? `@${dmTitle(dm, userId)}` : dmTitle(dm, userId)
+    return {
+      serverId: null,
+      basePath: "/channels/me",
+      channel: dm,
+      channelLabel: label,
+      membersById: new Map(members.map((m) => [m.user_id, m])),
+      rolesById: new Map(),
+      channelsById: new Map(),
+      permissions: DM_PERMISSIONS,
+      canSend: dm.recipients.some((r) => r.user_id === userId),
+      timedOutUntil: null,
+      canManageMessages: false,
+      canMentionEveryone: false,
+      mentionSources: { users: mentionUsers(members), roles: [], channels: [] },
+      jumpToMessage,
+    }
+  }, [dm, userId, jumpToMessage])
 
   return <ChatContext value={value}>{children}</ChatContext>
 }

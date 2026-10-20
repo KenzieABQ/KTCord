@@ -135,7 +135,12 @@ export function onChannelChange(ctx: DbContext, change: Change<Channel>) {
     return
   }
   const channel = change.new
-  if (!channel.server_id || !["text", "voice", "category"].includes(channel.type)) return
+  if (!channel.server_id) {
+    // DM/group DM changes (renames, new owner): refresh the DM list.
+    void ctx.queryClient.invalidateQueries({ queryKey: qk.dms(ctx.userId) })
+    return
+  }
+  if (!["text", "voice", "category"].includes(channel.type)) return
   ctx.queryClient.setQueryData<Channel[]>(qk.channels(channel.server_id), (list) => {
     if (!list) return list
     return list.some((c) => c.id === channel.id)

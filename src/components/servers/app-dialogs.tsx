@@ -3,6 +3,7 @@
 import { useRouter } from "next/navigation"
 import { toast } from "sonner"
 
+import { FindConversationDialog, SelectFriendsDialog } from "@/components/dms/dm-dialogs"
 import { BanMemberDialog, KickMemberDialog } from "@/components/members/moderation-dialogs"
 import { Button } from "@/components/ui/button"
 import {
@@ -88,6 +89,10 @@ function DialogBody({ dialog }: { dialog: AppDialog }) {
       return <KickMemberDialog serverId={dialog.serverId} userId={dialog.userId} />
     case "ban-member":
       return <BanMemberDialog serverId={dialog.serverId} userId={dialog.userId} />
+    case "create-dm":
+      return <SelectFriendsDialog addToChannelId={dialog.addToChannelId} preselect={dialog.preselect} />
+    case "find-conversation":
+      return <FindConversationDialog />
   }
 }
 

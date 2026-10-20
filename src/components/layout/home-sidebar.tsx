@@ -4,20 +4,27 @@ import { PlusIcon, UsersIcon } from "lucide-react"
 import Link from "next/link"
 import { usePathname } from "next/navigation"
 
+import { DmList } from "@/components/dms/dm-list"
 import { Tooltip, TooltipContent, TooltipTrigger } from "@/components/ui/tooltip"
+import { useRelationships } from "@/lib/queries/social"
+import { useUiStore } from "@/lib/stores/ui-store"
 import { cn } from "@/lib/utils"
 
 /** Channel-sidebar content for the Home view: search, Friends, and the DM list. */
 export function HomeSidebar() {
   const pathname = usePathname()
+  const openDialog = useUiStore((s) => s.openDialog)
+  const { data: relationships } = useRelationships()
   const friendsActive = pathname === "/channels/me"
+  const incoming = relationships?.filter((r) => r.kind === "incoming").length ?? 0
 
   return (
     <>
       <div className="flex h-12 shrink-0 items-center px-2.5 shadow-[0_1px_0_rgb(0_0_0/0.2)]">
         <button
           type="button"
-          className="h-7 w-full truncate rounded-md bg-rail px-2 text-left text-sm text-muted-foreground"
+          onClick={() => openDialog({ kind: "find-conversation" })}
+          className="h-7 w-full truncate rounded-md bg-rail px-2 text-left text-sm text-muted-foreground hover:text-interactive-hover"
         >
           Find or start a conversation
         </button>
@@ -34,7 +41,12 @@ export function HomeSidebar() {
           )}
         >
           <UsersIcon className="size-5" />
-          Friends
+          <span className="flex-1">Friends</span>
+          {incoming > 0 && (
+            <span className="flex h-4 min-w-4 items-center justify-center rounded-full bg-mention px-1 text-[11px] font-bold text-white">
+              {incoming}
+            </span>
+          )}
         </Link>
 
         <div className="mt-4 mb-1 flex items-center justify-between pr-1 pl-2.5">
@@ -46,6 +58,7 @@ export function HomeSidebar() {
               <button
                 type="button"
                 aria-label="Create DM"
+                onClick={() => openDialog({ kind: "create-dm" })}
                 className="text-interactive hover:text-interactive-hover"
               >
                 <PlusIcon className="size-4" />
@@ -55,10 +68,7 @@ export function HomeSidebar() {
           </Tooltip>
         </div>
 
-        {/* Direct messages render here (Milestone 6). */}
-        <p className="px-2.5 py-2 text-sm text-muted-foreground">
-          No conversations yet.
-        </p>
+        <DmList />
       </div>
     </>
   )

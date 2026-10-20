@@ -51,11 +51,11 @@ import {
   type ChannelTree,
 } from "@/lib/channels/tree"
 import { hasPermission, Permission } from "@/lib/permissions"
+import { isChannelMuted } from "@/lib/notifications"
 import { useReorderChannels } from "@/lib/queries/servers"
+import { useNotificationPrefs } from "@/lib/queries/settings"
 import { useUiStore } from "@/lib/stores/ui-store"
 import { useChannelUnread } from "@/lib/stores/unread-store"
-import { isChannelMuted } from "@/lib/notifications"
-import { useNotificationPrefs } from "@/lib/queries/settings"
 
 import { ChannelNotificationItems } from "./notification-menu-items"
 import { cn } from "@/lib/utils"

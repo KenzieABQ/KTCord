@@ -124,7 +124,7 @@ export const MessageItem = memo(function MessageItem({
   onDeleteRequest: (message: ChatMessage, skipConfirm: boolean) => void
 }) {
   const userId = useUserId()
-  const { serverId, channel, membersById, canSend, canManageMessages, mentionSources } = useChat()
+  const { serverId, basePath, channel, membersById, canSend, canManageMessages, mentionSources } = useChat()
   const author = useAuthor(message.author_id)
   const shiftHeld = useShiftHeld()
   const editing = useComposerStore((s) => s.editingId === message.id)
@@ -273,7 +273,7 @@ export const MessageItem = memo(function MessageItem({
               )}
             >
               <MessageToolbar
-                serverId={serverId}
+                basePath={basePath}
                 message={message}
                 actions={actions}
                 shiftHeld={shiftHeld}
@@ -283,7 +283,7 @@ export const MessageItem = memo(function MessageItem({
           )}
         </article>
       </ContextMenuTrigger>
-      <MessageContextMenuContent serverId={serverId} message={message} actions={actions} />
+      <MessageContextMenuContent basePath={basePath} message={message} actions={actions} />
     </ContextMenu>
   )
 })

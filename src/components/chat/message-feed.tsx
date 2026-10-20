@@ -2,7 +2,16 @@
 
 import { format } from "date-fns"
 import { ArrowDownIcon } from "lucide-react"
-import { useCallback, useEffect, useImperativeHandle, useMemo, useRef, useState, type Ref } from "react"
+import {
+  useCallback,
+  useEffect,
+  useImperativeHandle,
+  useMemo,
+  useRef,
+  useState,
+  type ReactNode,
+  type Ref,
+} from "react"
 import { Virtuoso, type VirtuosoHandle } from "react-virtuoso"
 import { toast } from "sonner"
 
@@ -27,7 +36,6 @@ import { useDeleteMessage, useMessages } from "@/lib/queries/messages"
 import { useUserId } from "@/lib/stores/auth-store"
 import { isChannelUnread, useUnreadStore } from "@/lib/stores/unread-store"
 
-import { ChannelWelcome } from "./channel-welcome"
 import { DayDivider, MessageItem, NewMessagesDivider } from "./message-item"
 
 /** Virtuoso needs a large positive base index so older pages can be prepended above it. */
@@ -39,11 +47,11 @@ export type MessageFeedHandle = {
   scrollToBottom: () => void
 }
 
-type FeedContext = { channel: Channel; hasMore: boolean }
+type FeedContext = { welcome: ReactNode; hasMore: boolean }
 
 function FeedHeader({ context }: { context?: FeedContext }) {
   if (!context) return null
-  return context.hasMore ? <MessageFeedSkeleton rows={3} /> : <ChannelWelcome channel={context.channel} />
+  return context.hasMore ? <MessageFeedSkeleton rows={3} /> : context.welcome
 }
 
 function FeedFooter() {
@@ -75,10 +83,13 @@ function useWindowFocused() {
  */
 export function MessageFeed({
   channel,
+  welcome,
   initialJumpId,
   ref,
 }: {
   channel: Channel
+  /** Shown above the oldest message ("This is the beginning of …"). */
+  welcome: ReactNode
   initialJumpId?: string
   ref?: Ref<MessageFeedHandle>
 }) {
@@ -245,7 +256,7 @@ export function MessageFeed({
         ref={virtuoso}
         className="scrollbar-thin flex-1"
         data={messages}
-        context={{ channel, hasMore: Boolean(hasNextPage) }}
+        context={{ welcome, hasMore: Boolean(hasNextPage) }}
         firstItemIndex={firstItemIndex}
         initialTopMostItemIndex={Math.max(0, messages.length - 1)}
         alignToBottom

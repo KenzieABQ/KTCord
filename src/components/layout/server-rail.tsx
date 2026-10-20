@@ -4,6 +4,7 @@ import { CompassIcon, LogOutIcon, PlusIcon, UserPlusIcon } from "lucide-react"
 import { useParams, usePathname } from "next/navigation"
 
 import { KtcordMark } from "@/components/brand/logo"
+import { DmAvatar } from "@/components/dms/dm-avatar"
 import { ServerNotificationItems } from "@/components/servers/notification-menu-items"
 import { ServerIcon } from "@/components/servers/server-icon"
 import {
@@ -14,19 +15,23 @@ import {
   ContextMenuTrigger,
 } from "@/components/ui/context-menu"
 import { Skeleton } from "@/components/ui/skeleton"
-import { useMyServers } from "@/lib/queries/servers"
+import { dmTitle } from "@/lib/api/dms"
 import type { JoinedServer } from "@/lib/api/servers"
-import { useUiStore } from "@/lib/stores/ui-store"
-import { useServerUnread } from "@/lib/stores/unread-store"
 import { isServerMuted } from "@/lib/notifications"
+import { useMyServers } from "@/lib/queries/servers"
 import { useNotificationPrefs } from "@/lib/queries/settings"
+import { useRelationships, useVisibleDms } from "@/lib/queries/social"
 import { useUserId } from "@/lib/stores/auth-store"
+import { useUiStore } from "@/lib/stores/ui-store"
+import { isChannelUnread, useServerUnread, useUnreadStore } from "@/lib/stores/unread-store"
 
 import { RailItem } from "./rail-item"
 
 export function ServerRail() {
   const pathname = usePathname()
-  const params = useParams<{ serverId?: string }>()
+  const params = useParams<{ serverId?: string; channelId?: string }>()
+  const { data: relationships } = useRelationships()
+  const incomingRequests = relationships?.filter((r) => r.kind === "incoming").length ?? 0
   const openDialog = useUiStore((s) => s.openDialog)
   const lastChannelByServer = useUiStore((s) => s.lastChannelByServer)
   const { data: servers, isPending } = useMyServers()
@@ -37,9 +42,17 @@ export function ServerRail() {
       aria-label="Servers"
       className="scrollbar-none flex w-[72px] shrink-0 flex-col items-center gap-2 overflow-y-auto bg-rail pt-3 pb-3"
     >
-      <RailItem label="Direct Messages" href="/channels/me" active={homeActive} variant="brand">
+      <RailItem
+        label="Direct Messages"
+        href="/channels/me"
+        active={homeActive}
+        variant="brand"
+        mentions={incomingRequests}
+      >
         <KtcordMark className="size-7" />
       </RailItem>
+
+      <UnreadDms activeChannelId={homeActive ? params.channelId : undefined} />
 
       <div className="mx-auto h-0.5 w-8 shrink-0 rounded-full bg-item-selected" role="separator" />
 
@@ -113,5 +126,29 @@ function ServerRailItem({
         )}
       </ContextMenuContent>
     </ContextMenu>
+  )
+}
+
+/** DMs with unread messages, shown as avatars under the Home button (like Discord). */
+function UnreadDms({ activeChannelId }: { activeChannelId?: string }) {
+  const userId = useUserId()
+  const { data: dms } = useVisibleDms()
+  const unread = useUnreadStore((s) => s.channels)
+  const items = (dms ?? []).filter((dm) => dm.id !== activeChannelId && isChannelUnread(unread[dm.id]))
+  if (items.length === 0) return null
+  return (
+    <>
+      {items.map((dm) => (
+        <RailItem
+          key={dm.id}
+          label={dmTitle(dm, userId)}
+          href={`/channels/me/${dm.id}`}
+          unread
+          mentions={unread[dm.id]?.mentions ?? 0}
+        >
+          <DmAvatar dm={dm} className="size-12" showStatus={false} />
+        </RailItem>
+      ))}
+    </>
   )
 }
