@@ -1,0 +1,91 @@
+"use client"
+
+import type { RealtimePostgresChangesPayload } from "@supabase/supabase-js"
+import { useQueryClient } from "@tanstack/react-query"
+import { useRouter } from "next/navigation"
+import { useEffect } from "react"
+import { toast } from "sonner"
+
+import { useUnreadHydration } from "@/lib/queries/messages"
+import { useUserId } from "@/lib/stores/auth-store"
+import { getSupabase } from "@/lib/supabase/client"
+
+import {
+  onChannelAccessChange,
+  onChannelChange,
+  onMemberChange,
+  onMemberRoleChange,
+  onMessageChange,
+  onReadStateChange,
+  onProfileChange,
+  onRoleChange,
+  onServerChange,
+  type DbContext,
+} from "./db-handlers"
+
+// supabase-js types the payload loosely; the handlers narrow it per table.
+// eslint-disable-next-line @typescript-eslint/no-explicit-any
+type Handler = (ctx: DbContext, change: any) => void
+
+const TABLES: Record<string, Handler> = {
+  servers: onServerChange,
+  server_members: onMemberChange,
+  roles: onRoleChange,
+  member_roles: onMemberRoleChange,
+  channels: onChannelChange,
+  channel_role_access: onChannelAccessChange,
+  profiles: onProfileChange,
+  messages: onMessageChange,
+  read_states: onReadStateChange,
+}
+
+/**
+ * One Realtime channel carrying Postgres Changes for every structural table.
+ * RLS filters events per subscriber, so this receives exactly what the user may see.
+ * After a reconnect, cached data is refetched to cover anything missed while offline.
+ */
+export function useRealtimeSync() {
+  const userId = useUserId()
+  const queryClient = useQueryClient()
+  const router = useRouter()
+
+  useEffect(() => {
+    const supabase = getSupabase()
+    const ctx: DbContext = {
+      queryClient,
+      userId,
+      onServerLost: (server) => {
+        if (window.location.pathname.startsWith(`/channels/${server.id}`)) {
+          router.replace("/channels/me")
+        }
+        toast(`You no longer have access to ${server.name}.`)
+      },
+    }
+
+    let channel = supabase.channel(`db-changes:${userId}`)
+    for (const [table, handle] of Object.entries(TABLES)) {
+      channel = channel.on(
+        "postgres_changes",
+        { event: "*", schema: "public", table },
+        (payload: RealtimePostgresChangesPayload<Record<string, unknown>>) => handle(ctx, payload)
+      )
+    }
+
+    let subscribedOnce = false
+    channel.subscribe((status) => {
+      if (status !== "SUBSCRIBED") return
+      if (subscribedOnce) void queryClient.invalidateQueries()
+      subscribedOnce = true
+    })
+
+    return () => {
+      void supabase.removeChannel(channel)
+    }
+  }, [queryClient, router, userId])
+}
+
+export function RealtimeSync() {
+  useRealtimeSync()
+  useUnreadHydration()
+  return null
+}

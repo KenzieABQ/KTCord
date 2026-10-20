@@ -1,36 +1,58 @@
-This is a [Next.js](https://nextjs.org) project bootstrapped with [`create-next-app`](https://nextjs.org/docs/app/api-reference/cli/create-next-app).
+# KTCord
 
-## Getting Started
+Real-time community chat inspired by Discord: servers, channels, roles, DMs, threads and voice.
+Built with Next.js 16, shadcn/ui and Supabase (Postgres + RLS, Realtime, Storage, Auth).
 
-First, run the development server:
+## Set up
 
-```bash
-npm run dev
-# or
-yarn dev
-# or
-pnpm dev
-# or
-bun dev
-```
+1. **Create a Supabase project** (the free tier is fine).
+2. **Environment:** copy `.env.example` to `.env.local` and fill in the project URL and the
+   publishable (or anon) key from *Project Settings → API*. `SUPABASE_SECRET_KEY` is only used
+   by the dev seed script and DB tests.
+3. **Auth settings** (*Authentication → URL Configuration*): set the Site URL to
+   `http://localhost:3000`. For local development, turning off *Confirm email* under
+   *Authentication → Sign In / Providers → Email* saves waiting on the rate-limited mailer.
+4. **Apply migrations.** Log the CLI in once (it opens a browser), then apply and regenerate types.
+   `db:migrate` goes through the Management API, so it doesn't need the database password:
 
-Open [http://localhost:3000](http://localhost:3000) with your browser to see the result.
+   ```bash
+   npx supabase login
+   npm run db:migrate
+   npm run db:types
+   ```
 
-You can start editing the page by modifying `app/page.tsx`. The page auto-updates as you edit the file.
+5. **Run it:**
 
-This project uses [`next/font`](https://nextjs.org/docs/app/building-your-application/optimizing/fonts) to automatically optimize and load [Geist](https://vercel.com/font), a new font family for Vercel.
+   ```bash
+   npm install
+   npm run dev
+   ```
 
-## Learn More
+   Open http://localhost:3000.
 
-To learn more about Next.js, take a look at the following resources:
+## Scripts
 
-- [Next.js Documentation](https://nextjs.org/docs) - learn about Next.js features and API.
-- [Learn Next.js](https://nextjs.org/learn) - an interactive Next.js tutorial.
+| Script | What it does |
+| --- | --- |
+| `npm run dev` | Dev server |
+| `npm run build` | Production build |
+| `npm run typecheck` | TypeScript, no emit |
+| `npm run lint` | ESLint |
+| `npm test` | Vitest unit tests |
+| `npm run test:db` | RLS/RPC integration tests against the dev project (creates and deletes test users) |
+| `npm run db:migrate` | Apply pending `supabase/migrations` to the project in `.env.local` |
+| `npm run db:types` | Regenerate `src/lib/supabase/database.types.ts` |
 
-You can check out [the Next.js GitHub repository](https://github.com/vercel/next.js) - your feedback and contributions are welcome!
+## Architecture
 
-## Deploy on Vercel
+| Layer | Where | Notes |
+| --- | --- | --- |
+| Database | `supabase/migrations` | Tables, RLS policies, permission helpers and RPCs. All authorization lives here. |
+| Data access | `src/lib/api` | Typed wrappers over Supabase queries and RPCs. Throw `ApiError` with user-facing messages. |
+| Server cache | `src/lib/queries` | TanStack Query hooks and keys (`qk`). |
+| Client state | `src/lib/stores` | Zustand stores for auth, UI panels, voice controls and (later) unread, typing and presence. |
+| Real-time | `src/lib/realtime` | Subscriptions that patch the query cache and stores (Milestone 3). |
+| Views | `src/components`, `src/app` | `proxy.ts` refreshes the session and keeps signed-out users on `/login`. |
 
-The easiest way to deploy your Next.js app is to use the [Vercel Platform](https://vercel.com/new?utm_medium=default-template&filter=next.js&utm_source=create-next-app&utm_campaign=create-next-app-readme) from the creators of Next.js.
-
-Check out our [Next.js deployment documentation](https://nextjs.org/docs/app/building-your-application/deploying) for more details.
+Next 16 has Cache Components on, so components that read the URL render inside a
+`<Suspense>` boundary. The chat shell's fallback is the skeleton layout.
