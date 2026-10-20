@@ -15,6 +15,7 @@ export type MemberProfile = Pick<
   | "bio"
   | "custom_status_text"
   | "custom_status_emoji"
+  | "custom_status_expires_at"
   | "created_at"
 >
 
@@ -28,7 +29,7 @@ export type Member = Pick<
 
 const MEMBER_SELECT =
   "id, server_id, user_id, nickname, joined_at, timeout_until, " +
-  "profile:profiles!inner(id, username, display_name, avatar_url, banner_color, bio, custom_status_text, custom_status_emoji, created_at), " +
+  "profile:profiles!inner(id, username, display_name, avatar_url, banner_color, bio, custom_status_text, custom_status_emoji, custom_status_expires_at, created_at), " +
   "member_roles(role_id)"
 
 type MemberRow = Omit<Member, "role_ids"> & { member_roles: { role_id: string }[] }

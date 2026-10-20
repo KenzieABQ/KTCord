@@ -55,7 +55,7 @@ create table realtime.messages (
   payload jsonb
 );
 alter table realtime.messages enable row level security;
-grant all on realtime.messages to authenticated;
+grant all on realtime.messages to anon, authenticated;
 
 create function realtime.topic() returns text
 language sql stable

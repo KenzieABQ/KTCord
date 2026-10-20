@@ -4,6 +4,8 @@ import { createContext, useContext, useEffect, useMemo, useState, type ReactNode
 
 import type { Channel } from "@/lib/api/channels"
 import type { Member, Role } from "@/lib/api/members"
+import type { MentionSources } from "@/lib/mentions"
+import { memberDisplayName } from "@/lib/members"
 import { hasPermission, Permission } from "@/lib/permissions"
 import { isTimedOut } from "@/lib/moderation"
 import { useChannels, useMembers, useRoles, useServerPermissions } from "@/lib/queries/servers"
@@ -20,6 +22,9 @@ export type ChatContextValue = {
   /** Set while the signed-in member is timed out (they can read but not post). */
   timedOutUntil: string | null
   canManageMessages: boolean
+  canMentionEveryone: boolean
+  /** Names for converting readable mentions to tokens and back. */
+  mentionSources: MentionSources
   /** Scrolls the feed to a message, loading older history if needed. */
   jumpToMessage: (id: string) => void
 }
@@ -73,6 +78,12 @@ export function ChatProvider({
       canSend: hasPermission(permissions, Permission.SEND_MESSAGES) && !timedOutUntil,
       timedOutUntil,
       canManageMessages: hasPermission(permissions, Permission.MANAGE_MESSAGES),
+      canMentionEveryone: hasPermission(permissions, Permission.MENTION_EVERYONE),
+      mentionSources: {
+        users: (members ?? []).map((m) => ({ id: m.user_id, username: m.profile.username, name: memberDisplayName(m) })),
+        roles: (roles ?? []).filter((r) => !r.is_default).map((r) => ({ id: r.id, name: r.name })),
+        channels: (channels ?? []).filter((c) => c.type === "text").map((c) => ({ id: c.id, name: c.name ?? "" })),
+      },
       jumpToMessage,
     }
     // `clock` only forces a recompute when a timeout expires.

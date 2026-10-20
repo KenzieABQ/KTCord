@@ -27,6 +27,7 @@ import { useUiStore } from "@/lib/stores/ui-store"
 import { cn } from "@/lib/utils"
 
 import { ChannelList } from "./channel-list"
+import { ServerNotificationItems } from "./notification-menu-items"
 
 /** Channel-sidebar content for a server: the name header with its menu, then the channel tree. */
 export function ServerSidebar({ serverId }: { serverId: string }) {
@@ -91,6 +92,8 @@ export function ServerSidebar({ serverId }: { serverId: string }) {
               </DropdownMenuItem>
             </>
           )}
+          <DropdownMenuSeparator />
+          <ServerNotificationItems kind="dropdown" serverId={serverId} />
           {!isOwner && (
             <>
               <DropdownMenuSeparator />

@@ -11,7 +11,6 @@ export type ProfileUpdate = Pick<
   | "avatar_url"
   | "banner_color"
   | "bio"
-  | "status"
   | "custom_status_text"
   | "custom_status_emoji"
   | "custom_status_expires_at"

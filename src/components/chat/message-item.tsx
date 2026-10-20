@@ -6,12 +6,14 @@ import { memo, useMemo, useState } from "react"
 import { toast } from "sonner"
 
 import { UserAvatar } from "@/components/profile/user-avatar"
+import { UserPopover } from "@/components/profile/user-popover"
 import { ContextMenu, ContextMenuTrigger } from "@/components/ui/context-menu"
 import { Tooltip, TooltipContent, TooltipTrigger } from "@/components/ui/tooltip"
 import { useShiftHeld } from "@/hooks/use-shift-held"
 import { errorMessage } from "@/lib/api/errors"
 import { parseMarkdown, toPlainText } from "@/lib/markdown/parse"
 import { memberDisplayName } from "@/lib/members"
+import { decodeMentions, encodeMentions } from "@/lib/mentions"
 import { formatDayDivider, formatMessageTime } from "@/lib/messages/feed"
 import type { ChatMessage } from "@/lib/messages/types"
 import { useEditMessage, useReferencedMessage, useSendMessage } from "@/lib/queries/messages"
@@ -122,7 +124,7 @@ export const MessageItem = memo(function MessageItem({
   onDeleteRequest: (message: ChatMessage, skipConfirm: boolean) => void
 }) {
   const userId = useUserId()
-  const { serverId, channel, membersById, canSend, canManageMessages } = useChat()
+  const { serverId, channel, membersById, canSend, canManageMessages, mentionSources } = useChat()
   const author = useAuthor(message.author_id)
   const shiftHeld = useShiftHeld()
   const editing = useComposerStore((s) => s.editingId === message.id)
@@ -155,7 +157,7 @@ export const MessageItem = memo(function MessageItem({
   function save(content: string) {
     setEditing(null)
     editMessage.mutate(
-      { id: message.id, content },
+      { id: message.id, content: encodeMentions(content, mentionSources) },
       { onError: (error) => toast.error(errorMessage(error)) }
     )
   }
@@ -182,22 +184,31 @@ export const MessageItem = memo(function MessageItem({
           <div className="relative min-h-[1.375rem] pl-[72px]">
             {showHeader ? (
               <>
-                <div className="absolute top-0.5 left-4">
-                  <UserAvatar
-                    userId={message.author_id ?? "deleted"}
-                    name={author.name}
-                    src={author.avatarUrl}
-                    className="size-10"
-                  />
-                </div>
-                <h3 className="flex items-baseline gap-2 leading-[1.375rem]">
-                  <span
-                    id={`message-${message.id}-author`}
-                    className="cursor-pointer truncate font-medium text-header hover:underline"
-                    style={author.color ? { color: author.color } : undefined}
+                <UserPopover userId={message.author_id} serverId={serverId}>
+                  <button
+                    type="button"
+                    aria-label={`${author.name}'s profile`}
+                    className="absolute top-0.5 left-4 rounded-full active:translate-y-px"
                   >
-                    {author.name}
-                  </span>
+                    <UserAvatar
+                      userId={message.author_id ?? "deleted"}
+                      name={author.name}
+                      src={author.avatarUrl}
+                      className="size-10"
+                    />
+                  </button>
+                </UserPopover>
+                <h3 className="flex items-baseline gap-2 leading-[1.375rem]">
+                  <UserPopover userId={message.author_id} serverId={serverId}>
+                    <button
+                      type="button"
+                      id={`message-${message.id}-author`}
+                      className="truncate font-medium text-header hover:underline"
+                      style={author.color ? { color: author.color } : undefined}
+                    >
+                      {author.name}
+                    </button>
+                  </UserPopover>
                   <Timestamp iso={message.created_at} />
                 </h3>
               </>
@@ -209,7 +220,7 @@ export const MessageItem = memo(function MessageItem({
 
             {editing ? (
               <MessageEditor
-                initial={message.content}
+                initial={decodeMentions(message.content, mentionSources)}
                 onSave={save}
                 onCancel={() => setEditing(null)}
                 onEmpty={() => {

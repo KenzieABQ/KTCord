@@ -8,6 +8,7 @@ import { toast } from "sonner"
 
 import { Tooltip, TooltipContent, TooltipTrigger } from "@/components/ui/tooltip"
 import { useAutosize } from "@/hooks/use-autosize"
+import { encodeMentions } from "@/lib/mentions"
 import { flattenPages } from "@/lib/messages/feed"
 import { newLocalMessage, type MessagePage } from "@/lib/messages/types"
 import { qk } from "@/lib/queries/keys"
@@ -18,7 +19,9 @@ import { useComposerStore } from "@/lib/stores/composer-store"
 import { cn } from "@/lib/utils"
 
 import { useChat } from "./chat-context"
+import { MentionPopup } from "./mention-popup"
 import { TypingIndicator } from "./typing-indicator"
+import { useMentionAutocomplete } from "./use-mention-autocomplete"
 import { useAuthor } from "./use-author"
 
 const MAX_LENGTH = 2000
@@ -54,7 +57,7 @@ function ReplyBar({ messageId, onCancel }: { messageId: string; onCancel: () => 
 export function Composer({ onSent }: { onSent: () => void }) {
   const userId = useUserId()
   const queryClient = useQueryClient()
-  const { channel, canSend, timedOutUntil } = useChat()
+  const { channel, canSend, timedOutUntil, mentionSources } = useChat()
   const draft = useComposerStore((s) => s.drafts[channel.id] ?? "")
   const replyTo = useComposerStore((s) => s.replyTo[channel.id])
   const { setDraft, setReplyTo, setEditing } = useComposerStore.getState()
@@ -62,9 +65,10 @@ export function Composer({ onSent }: { onSent: () => void }) {
   const { notifyTyping, notifyStopped } = useTypingChannel(channel.id)
   const inputRef = useRef<HTMLTextAreaElement>(null)
   useAutosize(inputRef, draft)
+  const mentions = useMentionAutocomplete(inputRef, draft, (next) => setDraft(channel.id, next))
 
   function send() {
-    const content = draft.trim()
+    const content = encodeMentions(draft.trim(), mentionSources)
     if (!content) return
     if (content.length > MAX_LENGTH) {
       toast.error(`Messages can be up to ${MAX_LENGTH} characters. Yours is ${content.length}.`)
@@ -120,6 +124,7 @@ export function Composer({ onSent }: { onSent: () => void }) {
         }}
         className={cn("relative flex items-start gap-1 rounded-lg bg-composer pr-2", replyTo && "rounded-t-none")}
       >
+        {mentions.popup && <MentionPopup {...mentions.popup} />}
         <Tooltip>
           <TooltipTrigger asChild>
             <button
@@ -142,11 +147,15 @@ export function Composer({ onSent }: { onSent: () => void }) {
           aria-label={`Message #${channel.name}`}
           onChange={(e) => {
             setDraft(channel.id, e.target.value)
+            mentions.updateTrigger()
             if (e.target.value.trim()) notifyTyping()
             else notifyStopped()
           }}
+          onSelect={mentions.updateTrigger}
+          onBlur={() => setTimeout(mentions.updateTrigger, 0)}
           onKeyDown={(e) => {
             if (e.nativeEvent.isComposing) return
+            if (mentions.onKeyDown(e)) return
             if (e.key === "Enter" && !e.shiftKey) {
               e.preventDefault()
               send()

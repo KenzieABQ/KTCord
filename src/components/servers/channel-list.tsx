@@ -54,6 +54,10 @@ import { hasPermission, Permission } from "@/lib/permissions"
 import { useReorderChannels } from "@/lib/queries/servers"
 import { useUiStore } from "@/lib/stores/ui-store"
 import { useChannelUnread } from "@/lib/stores/unread-store"
+import { isChannelMuted } from "@/lib/notifications"
+import { useNotificationPrefs } from "@/lib/queries/settings"
+
+import { ChannelNotificationItems } from "./notification-menu-items"
 import { cn } from "@/lib/utils"
 
 function HoverIcon({
@@ -136,7 +140,9 @@ function ChannelRow({
 }) {
   const openDialog = useUiStore((s) => s.openDialog)
   const { unread: rawUnread, mentions } = useChannelUnread(channel.id)
-  const unread = rawUnread && !active
+  const prefs = useNotificationPrefs()
+  const muted = isChannelMuted(prefs, channel.id)
+  const unread = rawUnread && !active && !muted
   const Icon = channel.type === "voice" ? Volume2Icon : HashIcon
   const href = `/channels/${serverId}/${channel.id}`
 
@@ -149,6 +155,7 @@ function ChannelRow({
           className={cn(
             "group relative mx-2 flex h-8 items-center gap-1.5 rounded-md px-2 transition-colors",
             nested ? "ml-2" : "",
+            muted && !active && "opacity-40",
             active
               ? "bg-item-selected text-interactive-active"
               : unread
@@ -203,6 +210,12 @@ function ChannelRow({
         </Link>
       </ContextMenuTrigger>
       <ContextMenuContent className="w-52 bg-floating">
+        {channel.type === "text" && (
+          <>
+            <ChannelNotificationItems kind="context" channelId={channel.id} />
+            <ContextMenuSeparator />
+          </>
+        )}
         {canInvite && (
           <ContextMenuItem onSelect={() => openDialog({ kind: "invite", serverId })}>
             <UserPlusIcon /> Invite People

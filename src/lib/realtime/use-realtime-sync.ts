@@ -6,7 +6,11 @@ import { useRouter } from "next/navigation"
 import { useEffect } from "react"
 import { toast } from "sonner"
 
+import { notifyMessage } from "@/lib/realtime/notify"
 import { useUnreadHydration } from "@/lib/queries/messages"
+import { useMySettings, useNotificationSettings } from "@/lib/queries/settings"
+import { useDms } from "@/lib/queries/social"
+import { usePresenceSync } from "@/lib/realtime/use-presence"
 import { useUserId } from "@/lib/stores/auth-store"
 import { getSupabase } from "@/lib/supabase/client"
 
@@ -15,8 +19,12 @@ import {
   onChannelChange,
   onMemberChange,
   onMemberRoleChange,
+  onFriendshipChange,
   onMessageChange,
+  onNotificationSettingsChange,
   onReadStateChange,
+  onRecipientChange,
+  onUserSettingsChange,
   onProfileChange,
   onRoleChange,
   onServerChange,
@@ -37,6 +45,10 @@ const TABLES: Record<string, Handler> = {
   profiles: onProfileChange,
   messages: onMessageChange,
   read_states: onReadStateChange,
+  user_settings: onUserSettingsChange,
+  notification_settings: onNotificationSettingsChange,
+  friendships: onFriendshipChange,
+  channel_recipients: onRecipientChange,
 }
 
 /**
@@ -60,6 +72,7 @@ export function useRealtimeSync() {
         }
         toast(`You no longer have access to ${server.name}.`)
       },
+      onNotify: (message, where) => notifyMessage(queryClient, router, userId, message, where),
     }
 
     let channel = supabase.channel(`db-changes:${userId}`)
@@ -87,5 +100,10 @@ export function useRealtimeSync() {
 export function RealtimeSync() {
   useRealtimeSync()
   useUnreadHydration()
+  usePresenceSync()
+  // Loaded up front so incoming messages can decide on notifications from any view.
+  useMySettings()
+  useNotificationSettings()
+  useDms()
   return null
 }

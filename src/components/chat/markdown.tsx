@@ -4,6 +4,7 @@ import { HashIcon } from "lucide-react"
 import Link from "next/link"
 import { Fragment, memo, useMemo, useState, type ReactNode } from "react"
 
+import { UserPopover } from "@/components/profile/user-popover"
 import { memberDisplayName } from "@/lib/members"
 import { isEmojiOnly, parseMarkdown, type MdNode } from "@/lib/markdown/parse"
 import { displayNameOf } from "@/lib/profile-display"
@@ -16,11 +17,17 @@ const mentionClass =
   "rounded-[3px] bg-primary/30 px-0.5 font-medium text-[#c9cdfb] transition-colors hover:bg-primary hover:text-white"
 
 function UserMention({ id }: { id: string }) {
-  const { membersById } = useChat()
+  const { membersById, serverId } = useChat()
   const member = membersById.get(id)
   const { data: profile } = useProfile(member ? null : id)
   const name = member ? memberDisplayName(member) : profile ? displayNameOf(profile) : "unknown-user"
-  return <span className={mentionClass}>@{name}</span>
+  return (
+    <UserPopover userId={id} serverId={serverId}>
+      <button type="button" className={mentionClass}>
+        @{name}
+      </button>
+    </UserPopover>
+  )
 }
 
 function RoleMention({ id }: { id: string }) {

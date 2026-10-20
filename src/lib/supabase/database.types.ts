@@ -75,6 +75,27 @@ export type Database = {
         }
         Relationships: []
       }
+      channel_recipients: {
+        Row: { channel_id: string; hidden: boolean; id: string; joined_at: string; user_id: string }
+        Insert: { channel_id: string; hidden?: boolean; id?: string; joined_at?: string; user_id: string }
+        Update: { channel_id?: string; hidden?: boolean; id?: string; joined_at?: string; user_id?: string }
+        Relationships: [
+          {
+            foreignKeyName: "channel_recipients_channel_id_fkey"
+            columns: ["channel_id"]
+            isOneToOne: false
+            referencedRelation: "channels"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "channel_recipients_user_id_fkey"
+            columns: ["user_id"]
+            isOneToOne: false
+            referencedRelation: "profiles"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       channel_role_access: {
         Row: {
           channel_id: string
@@ -111,6 +132,7 @@ export type Database = {
       channels: {
         Row: {
           created_at: string
+          dm_key: string | null
           id: string
           is_private: boolean
           name: string | null
@@ -123,6 +145,7 @@ export type Database = {
         }
         Insert: {
           created_at?: string
+          dm_key?: string | null
           id?: string
           is_private?: boolean
           name?: string | null
@@ -135,6 +158,7 @@ export type Database = {
         }
         Update: {
           created_at?: string
+          dm_key?: string | null
           id?: string
           is_private?: boolean
           name?: string | null
@@ -158,6 +182,48 @@ export type Database = {
             columns: ["server_id"]
             isOneToOne: false
             referencedRelation: "servers"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      friendships: {
+        Row: {
+          accepted_at: string | null
+          addressee_id: string
+          created_at: string
+          id: string
+          requester_id: string
+          status: Database["public"]["Enums"]["friendship_status"]
+        }
+        Insert: {
+          accepted_at?: string | null
+          addressee_id: string
+          created_at?: string
+          id?: string
+          requester_id: string
+          status?: Database["public"]["Enums"]["friendship_status"]
+        }
+        Update: {
+          accepted_at?: string | null
+          addressee_id?: string
+          created_at?: string
+          id?: string
+          requester_id?: string
+          status?: Database["public"]["Enums"]["friendship_status"]
+        }
+        Relationships: [
+          {
+            foreignKeyName: "friendships_addressee_id_fkey"
+            columns: ["addressee_id"]
+            isOneToOne: false
+            referencedRelation: "profiles"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "friendships_requester_id_fkey"
+            columns: ["requester_id"]
+            isOneToOne: false
+            referencedRelation: "profiles"
             referencedColumns: ["id"]
           },
         ]
@@ -318,6 +384,33 @@ export type Database = {
           },
         ]
       }
+      notification_settings: {
+        Row: {
+          channel_id: string | null
+          id: string
+          level: Database["public"]["Enums"]["notification_level"] | null
+          muted_until: string | null
+          server_id: string | null
+          user_id: string
+        }
+        Insert: {
+          channel_id?: string | null
+          id?: string
+          level?: Database["public"]["Enums"]["notification_level"] | null
+          muted_until?: string | null
+          server_id?: string | null
+          user_id?: string
+        }
+        Update: {
+          channel_id?: string | null
+          id?: string
+          level?: Database["public"]["Enums"]["notification_level"] | null
+          muted_until?: string | null
+          server_id?: string | null
+          user_id?: string
+        }
+        Relationships: []
+      }
       profiles: {
         Row: {
           avatar_url: string | null
@@ -330,7 +423,6 @@ export type Database = {
           display_name: string | null
           id: string
           onboarded_at: string | null
-          status: Database["public"]["Enums"]["user_status"]
           updated_at: string
           username: string
         }
@@ -345,7 +437,6 @@ export type Database = {
           display_name?: string | null
           id: string
           onboarded_at?: string | null
-          status?: Database["public"]["Enums"]["user_status"]
           updated_at?: string
           username: string
         }
@@ -360,7 +451,6 @@ export type Database = {
           display_name?: string | null
           id?: string
           onboarded_at?: string | null
-          status?: Database["public"]["Enums"]["user_status"]
           updated_at?: string
           username?: string
         }
@@ -514,11 +604,57 @@ export type Database = {
           },
         ]
       }
+      user_settings: {
+        Row: {
+          status: Database["public"]["Enums"]["user_status"]
+          updated_at: string
+          user_id: string
+        }
+        Insert: {
+          status?: Database["public"]["Enums"]["user_status"]
+          updated_at?: string
+          user_id?: string
+        }
+        Update: {
+          status?: Database["public"]["Enums"]["user_status"]
+          updated_at?: string
+          user_id?: string
+        }
+        Relationships: []
+      }
     }
     Views: {
       [_ in never]: never
     }
     Functions: {
+      add_group_dm_recipients: { Args: { p_channel: string; p_users: string[] }; Returns: undefined }
+      are_friends: { Args: { p_a: string; p_b: string }; Returns: boolean }
+      close_dm: { Args: { p_channel: string }; Returns: undefined }
+      create_group_dm: { Args: { p_users: string[] }; Returns: string }
+      is_channel_recipient: { Args: { p_channel: string; p_user?: string }; Returns: boolean }
+      leave_group_dm: { Args: { p_channel: string }; Returns: undefined }
+      mark_channel_read: { Args: { p_channel: string }; Returns: undefined }
+      mark_server_read: { Args: { p_server: string }; Returns: undefined }
+      open_dm: { Args: { p_user: string }; Returns: string }
+      remove_friend: { Args: { p_user: string }; Returns: undefined }
+      rename_group_dm: { Args: { p_channel: string; p_name: string }; Returns: undefined }
+      respond_friend_request: { Args: { p_accept: boolean; p_request: string }; Returns: undefined }
+      send_friend_request: {
+        Args: { p_username: string }
+        Returns: Database["public"]["Tables"]["friendships"]["Row"]
+      }
+      set_notification_settings: {
+        Args: {
+          p_channel?: string
+          p_clear_level?: boolean
+          p_clear_mute?: boolean
+          p_level?: Database["public"]["Enums"]["notification_level"]
+          p_muted_until?: string
+          p_server?: string
+        }
+        Returns: Database["public"]["Tables"]["notification_settings"]["Row"]
+      }
+      shares_server: { Args: { p_a: string; p_b: string }; Returns: boolean }
       ban_member: {
         Args: { p_delete_seconds?: number; p_reason?: string; p_server: string; p_user: string }
         Returns: undefined
@@ -643,6 +779,8 @@ export type Database = {
     }
     Enums: {
       channel_type: "text" | "voice" | "category" | "thread" | "dm" | "group_dm"
+      friendship_status: "pending" | "accepted"
+      notification_level: "all" | "mentions" | "nothing"
       message_type: "default" | "reply" | "system" | "thread_created" | "pin"
       user_status: "online" | "idle" | "dnd" | "invisible"
     }

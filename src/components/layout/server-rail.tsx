@@ -1,15 +1,26 @@
 "use client"
 
-import { CompassIcon, PlusIcon } from "lucide-react"
+import { CompassIcon, LogOutIcon, PlusIcon, UserPlusIcon } from "lucide-react"
 import { useParams, usePathname } from "next/navigation"
 
 import { KtcordMark } from "@/components/brand/logo"
+import { ServerNotificationItems } from "@/components/servers/notification-menu-items"
 import { ServerIcon } from "@/components/servers/server-icon"
+import {
+  ContextMenu,
+  ContextMenuContent,
+  ContextMenuItem,
+  ContextMenuSeparator,
+  ContextMenuTrigger,
+} from "@/components/ui/context-menu"
 import { Skeleton } from "@/components/ui/skeleton"
 import { useMyServers } from "@/lib/queries/servers"
 import type { JoinedServer } from "@/lib/api/servers"
 import { useUiStore } from "@/lib/stores/ui-store"
 import { useServerUnread } from "@/lib/stores/unread-store"
+import { isServerMuted } from "@/lib/notifications"
+import { useNotificationPrefs } from "@/lib/queries/settings"
+import { useUserId } from "@/lib/stores/auth-store"
 
 import { RailItem } from "./rail-item"
 
@@ -70,15 +81,37 @@ function ServerRailItem({
   active: boolean
 }) {
   const { unread, mentions } = useServerUnread(server.id)
+  const prefs = useNotificationPrefs()
+  const openDialog = useUiStore((s) => s.openDialog)
+  const userId = useUserId()
+  const muted = isServerMuted(prefs, server.id)
   return (
-    <RailItem
-      label={server.name}
-      href={lastChannelId ? `/channels/${server.id}/${lastChannelId}` : `/channels/${server.id}`}
-      active={active}
-      unread={unread}
-      mentions={mentions}
-    >
-      <ServerIcon name={server.name} iconUrl={server.icon_url} />
-    </RailItem>
+    <ContextMenu>
+      <ContextMenuTrigger asChild>
+        <div className="w-full">
+          <RailItem
+            label={server.name}
+            href={lastChannelId ? `/channels/${server.id}/${lastChannelId}` : `/channels/${server.id}`}
+            active={active}
+            unread={unread && !muted}
+            mentions={mentions}
+          >
+            <ServerIcon name={server.name} iconUrl={server.icon_url} />
+          </RailItem>
+        </div>
+      </ContextMenuTrigger>
+      <ContextMenuContent className="w-56 bg-floating">
+        <ServerNotificationItems kind="context" serverId={server.id} />
+        <ContextMenuSeparator />
+        <ContextMenuItem onSelect={() => openDialog({ kind: "invite", serverId: server.id })}>
+          <UserPlusIcon /> Invite People
+        </ContextMenuItem>
+        {server.owner_id !== userId && (
+          <ContextMenuItem variant="destructive" onSelect={() => openDialog({ kind: "leave-server", serverId: server.id })}>
+            <LogOutIcon /> Leave Server
+          </ContextMenuItem>
+        )}
+      </ContextMenuContent>
+    </ContextMenu>
   )
 }

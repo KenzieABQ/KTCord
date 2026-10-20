@@ -2,10 +2,13 @@ import type { QueryClient } from "@tanstack/react-query"
 
 import type { Channel } from "@/lib/api/channels"
 import type { Member } from "@/lib/api/members"
+import type { DmChannel } from "@/lib/api/dms"
 import { getProfile, type Profile } from "@/lib/api/profiles"
+import type { NotificationSetting, UserSettings } from "@/lib/api/settings"
 import type { JoinedServer, Server } from "@/lib/api/servers"
 import { toChatMessage, type ChatMessage, type MessagePage } from "@/lib/messages/types"
 import { removeFromPages, upsertIntoPages } from "@/lib/messages/feed"
+import { indexPrefs, shouldNotify } from "@/lib/notifications"
 import { qk } from "@/lib/queries/keys"
 import { useTypingStore } from "@/lib/stores/typing-store"
 import { useUnreadStore } from "@/lib/stores/unread-store"
@@ -27,6 +30,8 @@ export type DbContext = {
   userId: string
   /** Called when the user loses access to a server (kicked, banned, server deleted). */
   onServerLost: (server: Pick<Server, "id" | "name">) => void
+  /** Called for an incoming message that should pop a notification. */
+  onNotify: (message: ChatMessage, where: { serverId: string | null; isDm: boolean }) => void
 }
 
 function servers(ctx: DbContext) {
@@ -174,6 +179,16 @@ function updatePages(ctx: DbContext, channelId: string, fn: (pages: MessagePage[
   )
 }
 
+/** True when the channel is one of the user's DMs (or an unknown non-server channel). */
+function isDmChannel(ctx: DbContext, channelId: string): boolean {
+  if (ctx.queryClient.getQueryData<DmChannel[]>(qk.dms(ctx.userId))?.some((dm) => dm.id === channelId)) return true
+  for (const [, list] of entries<Channel>(ctx, "channels")) {
+    if (list.some((c) => c.id === channelId)) return false
+  }
+  const entry = useUnreadStore.getState().channels[channelId]
+  return entry ? entry.serverId === null : false
+}
+
 /** The server a channel belongs to, from whatever the cache knows. */
 function serverOfChannel(ctx: DbContext, channelId: string): string | null {
   for (const [, list] of entries<Channel>(ctx, "channels")) {
@@ -212,15 +227,46 @@ export function onMessageChange(ctx: DbContext, change: Change<Tables<"messages"
   }
 
   if (change.eventType === "INSERT") {
-    const serverId = serverOfChannel(ctx, message.channel_id)
+    const isDm = isDmChannel(ctx, message.channel_id)
+    const serverId = isDm ? null : serverOfChannel(ctx, message.channel_id)
+    const mine = message.author_id === ctx.userId
+    // Every DM message counts toward the DM's badge, like a mention.
+    const mentionsMe = isDm || mentionsUser(ctx, message, serverId)
     if (message.author_id) useTypingStore.getState().stop(message.channel_id, message.author_id)
+    const { active } = useUnreadStore.getState()
+    const watching =
+      active?.channelId === message.channel_id &&
+      typeof document !== "undefined" &&
+      document.visibilityState === "visible" &&
+      document.hasFocus()
     useUnreadStore.getState().onMessage({
       channelId: message.channel_id,
       serverId,
       createdAt: message.created_at,
-      mine: message.author_id === ctx.userId,
-      mentionsMe: mentionsUser(ctx, message, serverId),
+      mine,
+      mentionsMe,
     })
+    if (!mine && !watching) {
+      const prefs = indexPrefs(ctx.queryClient.getQueryData<NotificationSetting[]>(qk.notificationSettings(ctx.userId)))
+      const dnd = ctx.queryClient.getQueryData<UserSettings>(qk.mySettings(ctx.userId))?.status === "dnd"
+      if (shouldNotify({ prefs, serverId, channelId: message.channel_id, mentionsMe, isDm, dnd })) {
+        ctx.onNotify(message, { serverId, isDm })
+      }
+    }
+    if (isDm) {
+      // A new DM (or one reopened by this message) may not be in the list yet.
+      const dms = ctx.queryClient.getQueryData<DmChannel[]>(qk.dms(ctx.userId))
+      const known = dms?.find((dm) => dm.id === message.channel_id)
+      if (!known || known.recipients.find((r) => r.user_id === ctx.userId)?.hidden) {
+        void ctx.queryClient.invalidateQueries({ queryKey: qk.dms(ctx.userId) })
+      } else {
+        ctx.queryClient.setQueryData<DmChannel[]>(qk.dms(ctx.userId), (list) =>
+          list
+            ?.map((dm) => (dm.id === message.channel_id ? { ...dm, last_message_at: message.created_at } : dm))
+            .sort((a, b) => (b.last_message_at ?? b.created_at).localeCompare(a.last_message_at ?? a.created_at))
+        )
+      }
+    }
     // Unknown authors (e.g. someone who just joined) are fetched for the feed.
     if (message.author_id && !ctx.queryClient.getQueryData(qk.profile(message.author_id))) {
       void ctx.queryClient.prefetchQuery({
@@ -235,4 +281,26 @@ export function onMessageChange(ctx: DbContext, change: Change<Tables<"messages"
 export function onReadStateChange(ctx: DbContext, change: Change<Tables<"read_states">>) {
   if (change.eventType === "DELETE" || change.new.user_id !== ctx.userId) return
   useUnreadStore.getState().markRead(change.new.channel_id, change.new.last_read_at)
+}
+
+// ---------------------------------------------------------------------------
+// Settings, friends and DMs (own rows only, per RLS)
+// ---------------------------------------------------------------------------
+
+export function onUserSettingsChange(ctx: DbContext, change: Change<Tables<"user_settings">>) {
+  if (change.eventType === "DELETE" || change.new.user_id !== ctx.userId) return
+  ctx.queryClient.setQueryData(qk.mySettings(ctx.userId), change.new)
+}
+
+export function onNotificationSettingsChange(ctx: DbContext) {
+  void ctx.queryClient.invalidateQueries({ queryKey: qk.notificationSettings(ctx.userId) })
+}
+
+export function onFriendshipChange(ctx: DbContext) {
+  void ctx.queryClient.invalidateQueries({ queryKey: qk.friendships(ctx.userId) })
+}
+
+export function onRecipientChange(ctx: DbContext) {
+  void ctx.queryClient.invalidateQueries({ queryKey: qk.dms(ctx.userId) })
+  void ctx.queryClient.invalidateQueries({ queryKey: qk.unreadState(ctx.userId) })
 }
