@@ -6,6 +6,12 @@ import type { VoiceMember } from "@/lib/voice/roster"
 
 export type VoiceStatus = "connecting" | "connected" | "reconnecting"
 
+/**
+ * Where this connection's audio stands: waiting for a token, live through LiveKit, or
+ * unavailable because no voice server is configured (presence-only voice).
+ */
+export type VoiceAudio = "pending" | "livekit" | "unavailable"
+
 /** The voice channel this tab is connected to. Not remembered: a reload leaves voice, as in Discord. */
 export type VoiceConnection = {
   serverId: string
@@ -13,6 +19,9 @@ export type VoiceConnection = {
   status: VoiceStatus
   /** When this tab joined; announced in presence so rosters list people in join order. */
   joinedAt: string
+  audio: VoiceAudio
+  /** False without the SPEAK permission: listen-only. */
+  canSpeak: boolean
 }
 
 type VoiceState = {
@@ -21,14 +30,20 @@ type VoiceState = {
   connection: VoiceConnection | null
   /** Whether this user's microphone is picking up speech right now. */
   speaking: boolean
+  /** Push-to-talk key held down. */
+  pushToTalkHeld: boolean
 
   toggleMute: () => void
   toggleDeaf: () => void
   /** Joins a voice channel, leaving any other one first. */
   join: (serverId: string, channelId: string) => void
   leave: () => void
+  /** Starts the current connection over (new token and room), e.g. after losing the voice server. */
+  rejoin: () => void
   setStatus: (status: VoiceStatus) => void
+  setAudio: (audio: VoiceAudio, canSpeak: boolean) => void
   setSpeaking: (speaking: boolean) => void
+  setPushToTalkHeld: (held: boolean) => void
 }
 
 export const useVoiceStore = create<VoiceState>()(
@@ -38,6 +53,7 @@ export const useVoiceStore = create<VoiceState>()(
       selfDeaf: false,
       connection: null,
       speaking: false,
+      pushToTalkHeld: false,
 
       // Unmuting while deafened also undeafens, as in Discord.
       toggleMute: () =>
@@ -58,14 +74,45 @@ export const useVoiceStore = create<VoiceState>()(
           s.connection?.channelId === channelId
             ? s
             : {
-                connection: { serverId, channelId, status: "connecting", joinedAt: new Date().toISOString() },
+                connection: {
+                  serverId,
+                  channelId,
+                  status: "connecting",
+                  joinedAt: new Date().toISOString(),
+                  audio: "pending",
+                  canSpeak: true,
+                },
                 speaking: false,
               }
         ),
-      leave: () => set({ connection: null, speaking: false }),
+      leave: () => set({ connection: null, speaking: false, pushToTalkHeld: false }),
+      rejoin: () =>
+        set((s) =>
+          s.connection
+            ? {
+                connection: { ...s.connection, status: "reconnecting", audio: "pending", joinedAt: new Date().toISOString() },
+                speaking: false,
+              }
+            : s
+        ),
       setStatus: (status) =>
         set((s) => (s.connection && s.connection.status !== status ? { connection: { ...s.connection, status } } : s)),
+      // Without a voice server there's nothing more to wait for once presence is announced.
+      setAudio: (audio, canSpeak) =>
+        set((s) =>
+          s.connection
+            ? {
+                connection: {
+                  ...s.connection,
+                  audio,
+                  canSpeak,
+                  status: audio === "unavailable" ? "connected" : s.connection.status,
+                },
+              }
+            : s
+        ),
       setSpeaking: (speaking) => set((s) => (s.speaking === speaking ? s : { speaking })),
+      setPushToTalkHeld: (pushToTalkHeld) => set((s) => (s.pushToTalkHeld === pushToTalkHeld ? s : { pushToTalkHeld })),
     }),
     {
       name: "ktcord-voice",

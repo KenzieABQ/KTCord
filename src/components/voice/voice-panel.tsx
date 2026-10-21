@@ -5,8 +5,10 @@ import Link from "next/link"
 
 import { Tooltip, TooltipContent, TooltipTrigger } from "@/components/ui/tooltip"
 import { useChannels, useServer } from "@/lib/queries/servers"
+import { usePrefsStore } from "@/lib/stores/prefs-store"
 import { useVoiceStore, type VoiceStatus } from "@/lib/stores/voice-store"
 import { cn } from "@/lib/utils"
+import { formatKeyCode } from "@/lib/voice/keys"
 
 const STATUS: Record<VoiceStatus, { label: string; className: string }> = {
   connecting: { label: "Connecting…", className: "text-status-idle" },
@@ -18,6 +20,9 @@ const STATUS: Record<VoiceStatus, { label: string; className: string }> = {
 export function VoicePanel() {
   const connection = useVoiceStore((s) => s.connection)
   const leave = useVoiceStore((s) => s.leave)
+  const pushToTalkHeld = useVoiceStore((s) => s.pushToTalkHeld)
+  const inputMode = usePrefsStore((s) => s.inputMode)
+  const pushToTalkKey = usePrefsStore((s) => s.pushToTalkKey)
   const { data: server } = useServer(connection?.serverId)
   const { data: channels } = useChannels(connection?.serverId)
   if (!connection) return null
@@ -38,6 +43,15 @@ export function VoicePanel() {
         >
           {channel?.name ?? "Voice"} / {server?.name ?? "Server"}
         </Link>
+        {connection.audio === "unavailable" ? (
+          <p className="truncate text-[11px] text-muted-foreground">Presence only: no voice server set up</p>
+        ) : !connection.canSpeak ? (
+          <p className="truncate text-[11px] text-muted-foreground">Listening only</p>
+        ) : inputMode === "push-to-talk" && connection.audio === "livekit" ? (
+          <p className="truncate text-[11px] text-muted-foreground">
+            {pushToTalkHeld ? "Talking…" : `Hold ${formatKeyCode(pushToTalkKey)} to talk`}
+          </p>
+        ) : null}
       </div>
       <Tooltip>
         <TooltipTrigger asChild>

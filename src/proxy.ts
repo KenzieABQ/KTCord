@@ -27,7 +27,8 @@ export async function proxy(request: NextRequest) {
     return redirectWithCookies(new URL(target, request.url), response)
   }
 
-  if (!userId && !isAuthPage && !isPublic) {
+  // API routes check the session themselves and answer 401, which fetch() can handle.
+  if (!userId && !isAuthPage && !isPublic && !pathname.startsWith("/api/")) {
     const login = new URL("/login", request.url)
     login.searchParams.set("next", pathname + search)
     return redirectWithCookies(login, response)

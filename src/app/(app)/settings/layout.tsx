@@ -14,6 +14,7 @@ const NAV: SettingsNavGroup[] = [
     heading: "App Settings",
     items: [
       { href: "/settings/appearance", label: "Appearance" },
+      { href: "/settings/voice", label: "Voice & Audio" },
       { href: "/settings/notifications", label: "Notifications" },
       { href: "/settings/keybinds", label: "Keybinds" },
     ],

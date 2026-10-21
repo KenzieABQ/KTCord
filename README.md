@@ -30,6 +30,14 @@ Built with Next.js 16, shadcn/ui and Supabase (Postgres + RLS, Realtime, Storage
 
    Open http://localhost:3000.
 
+6. **Voice audio (optional).** Without a voice server, voice channels still work as presence:
+   people can join, and everyone sees who's in each channel, muted or deafened. For real audio,
+   create a [LiveKit Cloud](https://cloud.livekit.io) project (the free tier is fine), and from
+   *Settings → Keys* fill in `NEXT_PUBLIC_LIVEKIT_URL` (the `wss://…` URL), `LIVEKIT_API_KEY`
+   and `LIVEKIT_API_SECRET` in `.env.local`, then restart the dev server. The secret only ever
+   runs on the server, in `/api/livekit/token`, which issues a token after the database
+   confirms you may connect.
+
 ## Scripts
 
 | Script | What it does |
@@ -44,6 +52,7 @@ Built with Next.js 16, shadcn/ui and Supabase (Postgres + RLS, Realtime, Storage
 | `npm run db:types` | Regenerate `src/lib/supabase/database.types.ts` |
 | `npm run seed` | Demo users (`demo_ava`, `demo_ben`, `demo_cy`), the "KTCord Lounge" server and ~500 messages. `-- --join <username>` adds you |
 | `npm run bot -- <channel-id>` | Signs in as a demo user, types and posts on repeat, for testing Realtime by hand |
+| `npm run voice-bot -- <voice-channel-id>` | Signs in as a demo user and sits in a voice channel, "talking" on and off (presence only, no audio) |
 
 ## Architecture
 
@@ -52,9 +61,14 @@ Built with Next.js 16, shadcn/ui and Supabase (Postgres + RLS, Realtime, Storage
 | Database | `supabase/migrations` | Tables, RLS policies, permission helpers and RPCs. All authorization lives here. |
 | Data access | `src/lib/api` | Typed wrappers over Supabase queries and RPCs. Throw `ApiError` with user-facing messages. |
 | Server cache | `src/lib/queries` | TanStack Query hooks and keys (`qk`). |
-| Client state | `src/lib/stores` | Zustand stores for auth, UI panels, voice controls and (later) unread, typing and presence. |
-| Real-time | `src/lib/realtime` | Subscriptions that patch the query cache and stores (Milestone 3). |
+| Client state | `src/lib/stores` | Zustand stores for auth, UI panels, unread, typing, presence, voice and per-device preferences. |
+| Real-time | `src/lib/realtime` | One Postgres Changes subscription per user that patches the query cache, plus Broadcast (typing) and Presence (online status). |
+| Voice | `src/components/voice` | `<VoiceSync />` owns the private `voice:<channel>` Presence topics (who's connected, muted, deafened) and Broadcast speaking events, and joins the LiveKit room for audio. |
 | Views | `src/components`, `src/app` | `proxy.ts` refreshes the session and keeps signed-out users on `/login`. |
 
 Next 16 has Cache Components on, so components that read the URL render inside a
 `<Suspense>` boundary. The chat shell's fallback is the skeleton layout.
+
+With Cache Components, Next also keeps up to three visited routes mounted but hidden, so an
+element id can appear twice in the document. Look elements up with `visibleElementById`
+(`src/lib/dom.ts`).

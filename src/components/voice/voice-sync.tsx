@@ -17,6 +17,8 @@ import {
   type VoicePresenceMeta,
 } from "@/lib/voice/roster"
 
+import { useVoiceAudio } from "./use-voice-audio"
+
 /**
  * Owns every `voice:<channel>` presence topic: subscribes to the channels views are
  * watching plus the one we're connected to, keeps their rosters in the store, and
@@ -69,7 +71,8 @@ function useVoicePresence() {
     const { connection, setStatus, leave } = useVoiceStore.getState()
     if (connection?.channelId !== target) return
     if (result === "ok") {
-      setStatus("connected")
+      // With LiveKit the room decides when we're connected; presence-only voice is done here.
+      if (connection.audio === "unavailable") setStatus("connected")
     } else if (connection.status === "connecting") {
       leave()
       toast.error("Couldn't join voice. You may not have permission to connect to this channel.")
@@ -246,9 +249,10 @@ function useVoiceSounds() {
   }, [roster, connected, channelId, userId, selfDeaf])
 }
 
-/** Voice presence, guards and sounds for the signed-in app. Renders nothing. */
+/** Voice presence, audio, guards and sounds for the signed-in app. Renders nothing. */
 export function VoiceSync() {
   useVoicePresence()
+  useVoiceAudio()
   useVoiceGuards()
   useVoiceSounds()
   return null

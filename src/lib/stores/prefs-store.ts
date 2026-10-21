@@ -6,6 +6,7 @@ export const CHAT_FONT_SIZES = [12, 14, 15, 16, 18, 20, 24] as const
 export const DEFAULT_CHAT_FONT_SIZE = 16
 
 export type MessageDisplay = "cozy" | "compact"
+export type InputMode = "voice-activity" | "push-to-talk"
 
 /** Per-device preferences (this browser only), like Discord's App Settings. */
 type PrefsState = {
@@ -17,6 +18,14 @@ type PrefsState = {
   /** Show an in-app toast for new messages while KTCord is open. */
   inAppToasts: boolean
   notificationSound: boolean
+  /** Microphone and speaker device ids ("" for the system default). */
+  inputDeviceId: string
+  outputDeviceId: string
+  inputMode: InputMode
+  /** KeyboardEvent.code held to transmit in push-to-talk mode. */
+  pushToTalkKey: string
+  noiseSuppression: boolean
+  echoCancellation: boolean
 
   set: (patch: Partial<Omit<PrefsState, "set">>) => void
 }
@@ -30,6 +39,12 @@ export const usePrefsStore = create<PrefsState>()(
       desktopNotifications: true,
       inAppToasts: true,
       notificationSound: true,
+      inputDeviceId: "",
+      outputDeviceId: "",
+      inputMode: "voice-activity",
+      pushToTalkKey: "Backquote",
+      noiseSuppression: true,
+      echoCancellation: true,
       set: (patch) => set(patch),
     }),
     {
@@ -41,6 +56,12 @@ export const usePrefsStore = create<PrefsState>()(
         desktopNotifications: s.desktopNotifications,
         inAppToasts: s.inAppToasts,
         notificationSound: s.notificationSound,
+        inputDeviceId: s.inputDeviceId,
+        outputDeviceId: s.outputDeviceId,
+        inputMode: s.inputMode,
+        pushToTalkKey: s.pushToTalkKey,
+        noiseSuppression: s.noiseSuppression,
+        echoCancellation: s.echoCancellation,
       }),
     }
   )

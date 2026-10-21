@@ -45,12 +45,14 @@ function ControlButton({
   onClick,
   active,
   danger,
+  disabled,
   children,
 }: {
   label: string
   onClick: () => void
   active?: boolean
   danger?: boolean
+  disabled?: boolean
   children: React.ReactNode
 }) {
   return (
@@ -60,9 +62,10 @@ function ControlButton({
           type="button"
           aria-label={label}
           aria-pressed={danger ? undefined : Boolean(active)}
-          onClick={onClick}
+          aria-disabled={disabled || undefined}
+          onClick={disabled ? undefined : onClick}
           className={cn(
-            "flex size-12 items-center justify-center rounded-full transition-colors",
+            "flex size-12 items-center justify-center rounded-full transition-colors aria-disabled:cursor-not-allowed aria-disabled:opacity-50",
             danger
               ? "bg-destructive text-white hover:bg-destructive/80"
               : active
@@ -84,10 +87,15 @@ export function VoiceChannelView({ serverId, channel }: { serverId: string; chan
   const roster = useVoiceRoster(channel.id)
   const { connection, selfMute, selfDeaf, toggleMute, toggleDeaf, leave } = useVoiceStore()
   const { ready, canConnect, join } = useJoinVoice(serverId)
-  const here = connection?.channelId === channel.id
+  const here = connection?.channelId === channel.id ? connection : null
 
   return (
     <div className="flex min-h-0 flex-1 flex-col bg-rail">
+      {here?.audio === "unavailable" && (
+        <p role="note" className="shrink-0 bg-status-idle/15 px-4 py-2 text-center text-sm text-header">
+          Audio is off: no voice server is set up for this KTCord yet. You can still see who&apos;s here.
+        </p>
+      )}
       <div className="scrollbar-thin min-h-0 flex-1 overflow-y-auto p-4">
         {roster.length > 0 ? (
           <ul
@@ -114,8 +122,23 @@ export function VoiceChannelView({ serverId, channel }: { serverId: string; chan
       <div className="flex shrink-0 items-center justify-center gap-3 px-4 pt-2 pb-5">
         {here ? (
           <>
-            <ControlButton label={selfMute ? "Unmute" : "Mute"} active={selfMute} onClick={toggleMute}>
-              {selfMute ? <MicOffIcon className="size-5" /> : <MicIcon className="size-5" />}
+            <ControlButton
+              label={
+                here.canSpeak === false
+                  ? "You don't have permission to speak here"
+                  : selfMute
+                    ? "Unmute"
+                    : "Mute"
+              }
+              active={selfMute || here.canSpeak === false}
+              disabled={here.canSpeak === false}
+              onClick={toggleMute}
+            >
+              {selfMute || here.canSpeak === false ? (
+                <MicOffIcon className="size-5" />
+              ) : (
+                <MicIcon className="size-5" />
+              )}
             </ControlButton>
             <ControlButton label={selfDeaf ? "Undeafen" : "Deafen"} active={selfDeaf} onClick={toggleDeaf}>
               {selfDeaf ? <HeadphoneOffIcon className="size-5" /> : <HeadphonesIcon className="size-5" />}
