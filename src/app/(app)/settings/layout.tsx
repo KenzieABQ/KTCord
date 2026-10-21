@@ -12,7 +12,11 @@ const NAV: SettingsNavGroup[] = [
   },
   {
     heading: "App Settings",
-    items: [{ href: "/settings/appearance", label: "Appearance" }],
+    items: [
+      { href: "/settings/appearance", label: "Appearance" },
+      { href: "/settings/notifications", label: "Notifications" },
+      { href: "/settings/keybinds", label: "Keybinds" },
+    ],
   },
 ]
 

@@ -140,7 +140,7 @@ function FriendRow({
                 <TooltipTrigger asChild>
                   <DropdownMenuTrigger
                     aria-label="More"
-                    className="flex size-9 items-center justify-center rounded-full bg-sidebar text-interactive outline-none hover:text-interactive-hover"
+                    className="flex size-9 items-center justify-center rounded-full bg-sidebar text-interactive outline-none focus-visible:ring-2 focus-visible:ring-ring hover:text-interactive-hover"
                   >
                     <MoreVerticalIcon className="size-4" />
                   </DropdownMenuTrigger>

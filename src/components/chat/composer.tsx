@@ -15,6 +15,7 @@ import {
   type Attachment,
 } from "@/lib/api/attachments"
 import { errorMessage } from "@/lib/api/errors"
+import { visibleElementById } from "@/lib/dom"
 import { encodeMentions } from "@/lib/mentions"
 import { flattenPages } from "@/lib/messages/feed"
 import { newLocalMessage, type MessagePage } from "@/lib/messages/types"
@@ -71,7 +72,15 @@ export const composerInputId = (channelId: string) => `composer-input-${channelI
 
 /** Moves focus to a channel's composer, e.g. after picking Reply or dropping files. */
 export function focusComposer(channelId: string) {
-  document.getElementById(composerInputId(channelId))?.focus()
+  visibleElementById(composerInputId(channelId))?.focus()
+}
+
+/** Opens the file picker of a channel's composer, if the user can attach files there. */
+export function pickComposerFiles(channelId: string) {
+  // The file input itself is always hidden, so find it through the visible message box.
+  visibleElementById<HTMLTextAreaElement>(composerInputId(channelId))
+    ?.form?.querySelector<HTMLInputElement>("input[type=file]")
+    ?.click()
 }
 
 export function Composer({ onSent }: { onSent: () => void }) {
@@ -202,6 +211,7 @@ export function Composer({ onSent }: { onSent: () => void }) {
           type="file"
           multiple
           hidden
+          disabled={!canAttach}
           onChange={(e) => {
             addFiles([...(e.target.files ?? [])])
             e.target.value = ""

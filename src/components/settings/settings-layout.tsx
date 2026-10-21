@@ -5,6 +5,7 @@ import Link from "next/link"
 import { usePathname, useRouter } from "next/navigation"
 import { useCallback, useEffect, type ReactNode } from "react"
 
+import { Switch } from "@/components/ui/switch"
 import { signOut } from "@/lib/api/auth"
 import { cn } from "@/lib/utils"
 
@@ -151,5 +152,45 @@ export function SettingsSection({
       {description && <p className="mt-1 text-sm text-muted-foreground">{description}</p>}
       <div className="mt-5">{children}</div>
     </section>
+  )
+}
+
+/** A labelled on/off setting with an optional explanation, Discord-style. */
+export function SettingsToggle({
+  id,
+  label,
+  description,
+  checked,
+  disabled,
+  onCheckedChange,
+}: {
+  id: string
+  label: string
+  description?: ReactNode
+  checked: boolean
+  disabled?: boolean
+  onCheckedChange: (checked: boolean) => void
+}) {
+  return (
+    <div className="flex items-start justify-between gap-6 border-b border-border py-4 last:border-b-0">
+      <div className="min-w-0">
+        <label htmlFor={id} className="font-medium text-header">
+          {label}
+        </label>
+        {description && (
+          <p id={`${id}-description`} className="mt-1 text-sm text-muted-foreground">
+            {description}
+          </p>
+        )}
+      </div>
+      <Switch
+        id={id}
+        checked={checked}
+        disabled={disabled}
+        onCheckedChange={onCheckedChange}
+        aria-describedby={description ? `${id}-description` : undefined}
+        className="mt-0.5"
+      />
+    </div>
   )
 }

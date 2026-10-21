@@ -23,7 +23,7 @@ export function HomeSidebar() {
       <div className="flex h-12 shrink-0 items-center px-2.5 shadow-[0_1px_0_rgb(0_0_0/0.2)]">
         <button
           type="button"
-          onClick={() => openDialog({ kind: "find-conversation" })}
+          onClick={() => openDialog({ kind: "quick-switcher" })}
           className="h-7 w-full truncate rounded-md bg-rail px-2 text-left text-sm text-muted-foreground hover:text-interactive-hover"
         >
           Find or start a conversation

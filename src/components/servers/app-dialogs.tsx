@@ -4,7 +4,9 @@ import { useRouter } from "next/navigation"
 import { toast } from "sonner"
 
 import { CreateThreadDialog } from "@/components/chat/create-thread-dialog"
-import { FindConversationDialog, SelectFriendsDialog } from "@/components/dms/dm-dialogs"
+import { SelectFriendsDialog } from "@/components/dms/dm-dialogs"
+import { QuickSwitcher } from "@/components/layout/quick-switcher"
+import { ShortcutsDialog } from "@/components/layout/shortcuts-dialog"
 import { BanMemberDialog, KickMemberDialog } from "@/components/members/moderation-dialogs"
 import { Button } from "@/components/ui/button"
 import {
@@ -92,10 +94,12 @@ function DialogBody({ dialog }: { dialog: AppDialog }) {
       return <BanMemberDialog serverId={dialog.serverId} userId={dialog.userId} />
     case "create-dm":
       return <SelectFriendsDialog addToChannelId={dialog.addToChannelId} preselect={dialog.preselect} />
-    case "find-conversation":
-      return <FindConversationDialog />
     case "create-thread":
       return <CreateThreadDialog channelId={dialog.channelId} messageId={dialog.messageId} defaultName={dialog.defaultName} />
+    case "quick-switcher":
+    case "shortcuts":
+      // These bring their own dialog shells (below).
+      return null
   }
 }
 
@@ -103,13 +107,19 @@ function DialogBody({ dialog }: { dialog: AppDialog }) {
 export function AppDialogs() {
   const dialog = useUiStore((s) => s.dialog)
   const closeDialog = useUiStore((s) => s.closeDialog)
+  const onOpenChange = (open: boolean) => !open && closeDialog()
+  const ownShell = dialog?.kind === "quick-switcher" || dialog?.kind === "shortcuts"
 
   return (
-    <Dialog open={dialog !== null} onOpenChange={(open) => !open && closeDialog()}>
-      <DialogContent className="max-h-[90dvh] overflow-y-auto bg-chat p-6 sm:max-w-md">
-        {/* Keyed so each dialog starts with fresh state. */}
-        {dialog && <DialogBody key={JSON.stringify(dialog)} dialog={dialog} />}
-      </DialogContent>
-    </Dialog>
+    <>
+      <Dialog open={dialog !== null && !ownShell} onOpenChange={onOpenChange}>
+        <DialogContent className="max-h-[90dvh] overflow-y-auto bg-chat p-6 sm:max-w-md">
+          {/* Keyed so each dialog starts with fresh state. */}
+          {dialog && !ownShell && <DialogBody key={JSON.stringify(dialog)} dialog={dialog} />}
+        </DialogContent>
+      </Dialog>
+      <QuickSwitcher open={dialog?.kind === "quick-switcher"} onOpenChange={onOpenChange} />
+      <ShortcutsDialog open={dialog?.kind === "shortcuts"} onOpenChange={onOpenChange} />
+    </>
   )
 }

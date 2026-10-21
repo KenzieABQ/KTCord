@@ -1,7 +1,10 @@
 "use client"
 
+import { useRef } from "react"
+
 import { Sheet, SheetContent, SheetTitle } from "@/components/ui/sheet"
 import { useBreakpoint } from "@/hooks/use-breakpoint"
+import { useSwipe } from "@/hooks/use-swipe"
 import { useUiStore } from "@/lib/stores/ui-store"
 
 import { MemberList } from "./member-list"
@@ -15,11 +18,13 @@ export function MemberPanel({ serverId }: { serverId: string }) {
   const visible = useUiStore((s) => s.memberListVisible)
   const sheetOpen = useUiStore((s) => s.memberSheetOpen)
   const setSheetOpen = useUiStore((s) => s.setMemberSheetOpen)
+  const sheetRef = useRef<HTMLDivElement>(null)
+  useSwipe(sheetRef, { onSwipeRight: () => setSheetOpen(false) }, breakpoint !== "desktop" && sheetOpen)
 
   if (breakpoint === "desktop") {
     if (!visible) return null
     return (
-      <aside className="w-60 shrink-0 bg-sidebar">
+      <aside aria-label="Members" className="w-60 shrink-0 bg-sidebar">
         <MemberList serverId={serverId} />
       </aside>
     )
@@ -27,7 +32,7 @@ export function MemberPanel({ serverId }: { serverId: string }) {
 
   return (
     <Sheet open={sheetOpen} onOpenChange={setSheetOpen}>
-      <SheetContent side="right" className="w-72 max-w-[85vw] gap-0 border-0 bg-sidebar p-0 sm:max-w-72">
+      <SheetContent ref={sheetRef} side="right" className="w-72 max-w-[85vw] gap-0 border-0 bg-sidebar p-0 sm:max-w-72">
         <SheetTitle className="px-4 pt-4 text-base text-header">Members</SheetTitle>
         <MemberList serverId={serverId} />
       </SheetContent>

@@ -143,7 +143,7 @@ export function MessageToolbar({
           <TooltipTrigger asChild>
             <DropdownMenuTrigger
               aria-label="More"
-              className="flex size-8 items-center justify-center text-interactive outline-none hover:bg-item-hover hover:text-interactive-hover"
+              className="flex size-8 items-center justify-center text-interactive outline-none focus-visible:ring-2 focus-visible:ring-ring hover:bg-item-hover hover:text-interactive-hover"
             >
               <MoreHorizontalIcon className="size-5" />
             </DropdownMenuTrigger>

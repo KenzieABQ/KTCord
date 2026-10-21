@@ -171,8 +171,8 @@ export const Markdown = memo(function Markdown({
   return (
     <div
       className={cn(
-        "leading-[1.375rem] break-words whitespace-pre-wrap text-foreground",
-        jumbo && "text-[2.75rem] leading-[3.25rem]",
+        "leading-[1.375em] break-words whitespace-pre-wrap text-foreground",
+        jumbo && "text-[2.75em] leading-[1.2]",
         className
       )}
     >

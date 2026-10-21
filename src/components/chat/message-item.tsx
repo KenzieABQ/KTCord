@@ -26,6 +26,7 @@ import {
 } from "@/lib/queries/messages"
 import { useUserId } from "@/lib/stores/auth-store"
 import { useComposerStore } from "@/lib/stores/composer-store"
+import { usePrefsStore } from "@/lib/stores/prefs-store"
 import { useUiStore } from "@/lib/stores/ui-store"
 import { cn } from "@/lib/utils"
 
@@ -159,6 +160,7 @@ export const MessageItem = memo(function MessageItem({
   const pin = usePinMessage(channel.id)
   const openDialog = useUiStore((s) => s.openDialog)
   const openSidePanel = useUiStore((s) => s.openSidePanel)
+  const compact = usePrefsStore((s) => s.messageDisplay === "compact")
   const [menuOpen, setMenuOpen] = useState(false)
 
   const mine = message.author_id === userId
@@ -214,6 +216,18 @@ export const MessageItem = memo(function MessageItem({
 
   const showHeader = !grouped || message.type === "reply"
 
+  /** ↑/↓ move between messages while one has keyboard focus. */
+  function onArticleKeyDown(e: React.KeyboardEvent<HTMLElement>) {
+    if (e.target !== e.currentTarget || e.altKey || e.metaKey || e.ctrlKey) return
+    if (e.key !== "ArrowUp" && e.key !== "ArrowDown") return
+    const all = [...(e.currentTarget.closest("[data-message-feed]")?.querySelectorAll("article") ?? [])]
+    const next = all[all.indexOf(e.currentTarget as HTMLElement) + (e.key === "ArrowUp" ? -1 : 1)]
+    if (!next) return
+    e.preventDefault()
+    next.focus({ preventScroll: true })
+    next.scrollIntoView({ block: "nearest" })
+  }
+
   return (
     <ContextMenu onOpenChange={setMenuOpen}>
       <ContextMenuTrigger asChild>
@@ -221,9 +235,11 @@ export const MessageItem = memo(function MessageItem({
           id={`message-${message.id}`}
           aria-labelledby={`message-${message.id}-author`}
           data-highlighted={highlighted || undefined}
+          tabIndex={0}
+          onKeyDown={onArticleKeyDown}
           className={cn(
-            "group relative py-0.5 pr-12 transition-colors hover:bg-message-hover",
-            showHeader && "mt-[17px]",
+            "group relative py-0.5 pr-12 transition-colors outline-none hover:bg-message-hover focus-visible:bg-message-hover focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-inset",
+            showHeader && (compact ? "mt-1.5" : "mt-[17px]"),
             (menuOpen || editing) && "bg-message-hover",
             mentionsMe && "bg-mention-bg before:absolute before:inset-y-0 before:left-0 before:w-0.5 before:bg-status-idle hover:bg-[rgb(250_168_26/0.08)]",
             highlighted && "bg-primary/10"
@@ -231,8 +247,32 @@ export const MessageItem = memo(function MessageItem({
         >
           {message.type === "reply" && <ReplyPreview messageId={message.reply_to_id} />}
 
-          <div className="relative min-h-[1.375rem] pl-[72px]">
-            {showHeader ? (
+          <div className="relative min-h-[1.375em] pl-[72px]">
+            {compact ? (
+              // Compact: no avatars; the time sits in the gutter and the name leads the text.
+              <>
+                <span
+                  className={cn(
+                    "absolute top-0 left-0 w-[72px] pr-1 text-center leading-[1.375em]",
+                    !showHeader && "hidden group-hover:block group-focus-within:block"
+                  )}
+                >
+                  <Timestamp iso={message.created_at} compact />
+                </span>
+                {showHeader && (
+                  <UserPopover userId={message.author_id} serverId={serverId}>
+                    <button
+                      type="button"
+                      id={`message-${message.id}-author`}
+                      className="float-left mr-1.5 leading-[1.375em] font-medium text-header hover:underline"
+                      style={author.color ? { color: author.color } : undefined}
+                    >
+                      {author.name}
+                    </button>
+                  </UserPopover>
+                )}
+              </>
+            ) : showHeader ? (
               <>
                 <UserPopover userId={message.author_id} serverId={serverId}>
                   <button
@@ -248,7 +288,7 @@ export const MessageItem = memo(function MessageItem({
                     />
                   </button>
                 </UserPopover>
-                <h3 className="flex items-baseline gap-2 leading-[1.375rem]">
+                <h3 className="flex items-baseline gap-2 leading-[1.375em]">
                   <UserPopover userId={message.author_id} serverId={serverId}>
                     <button
                       type="button"
@@ -263,7 +303,7 @@ export const MessageItem = memo(function MessageItem({
                 </h3>
               </>
             ) : (
-              <span className="absolute top-0.5 left-0 hidden w-[72px] pr-1 text-center group-hover:block">
+              <span className="absolute top-0.5 left-0 hidden w-[72px] pr-1 text-center group-hover:block group-focus-within:block">
                 <Timestamp iso={message.created_at} compact />
               </span>
             )}
@@ -329,7 +369,7 @@ export const MessageItem = memo(function MessageItem({
           {!editing && (
             <div
               className={cn(
-                "absolute -top-4 right-4 z-10 hidden group-hover:flex",
+                "absolute -top-4 right-4 z-10 hidden group-hover:flex group-focus-within:flex",
                 menuOpen && "flex"
               )}
             >

@@ -25,7 +25,7 @@ function HeaderPopoverButton({ id, label, open, children }: { id: string; label:
           id={id}
           aria-label={label}
           className={cn(
-            "flex size-8 items-center justify-center rounded-md text-interactive outline-none hover:text-interactive-hover",
+            "flex size-8 items-center justify-center rounded-md text-interactive outline-none focus-visible:ring-2 focus-visible:ring-ring hover:text-interactive-hover",
             open && "text-interactive-active"
           )}
         >

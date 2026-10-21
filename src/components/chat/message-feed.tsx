@@ -27,15 +27,18 @@ import {
   AlertDialogTitle,
 } from "@/components/ui/alert-dialog"
 import { Button } from "@/components/ui/button"
+import { useReducedMotion } from "@/hooks/use-reduced-motion"
 import type { Channel } from "@/lib/api/channels"
 import { errorMessage } from "@/lib/api/errors"
 import { markRead } from "@/lib/api/messages"
 import { firstUnreadIndex, flattenPages, isGroupedWith, startsNewDay } from "@/lib/messages/feed"
 import type { ChatMessage } from "@/lib/messages/types"
 import { useDeleteMessage, useMessages } from "@/lib/queries/messages"
+import { MARK_READ_EVENT } from "@/lib/shortcuts"
 import { useUserId } from "@/lib/stores/auth-store"
 import { isChannelUnread, useUnreadStore } from "@/lib/stores/unread-store"
 
+import { useChat } from "./chat-context"
 import { DayDivider, MessageItem, NewMessagesDivider } from "./message-item"
 
 /** Virtuoso needs a large positive base index so older pages can be prepended above it. */
@@ -94,6 +97,8 @@ export function MessageFeed({
   ref?: Ref<MessageFeedHandle>
 }) {
   const userId = useUserId()
+  const { channelLabel } = useChat()
+  const reducedMotion = useReducedMotion()
   const query = useMessages(channel.id)
   const { fetchNextPage, hasNextPage, isFetchingNextPage } = query
   const virtuoso = useRef<VirtuosoHandle>(null)
@@ -120,6 +125,15 @@ export function MessageFeed({
   const dividerIndex = firstUnreadIndex(messages, dividerAt, userId)
   const [unreadBarDismissed, setUnreadBarDismissed] = useState(false)
   const [dividerVisible, setDividerVisible] = useState(false)
+
+  // Escape marks the channel read, which also dismisses the "new messages" bar.
+  useEffect(() => {
+    function onMarkRead(e: Event) {
+      if ((e as CustomEvent<string>).detail === channel.id) setUnreadBarDismissed(true)
+    }
+    window.addEventListener(MARK_READ_EVENT, onMarkRead)
+    return () => window.removeEventListener(MARK_READ_EVENT, onMarkRead)
+  }, [channel.id])
 
   const [atBottom, setAtBottom] = useState(true)
   const [highlightId, setHighlightId] = useState<string | null>(null)
@@ -238,7 +252,7 @@ export function MessageFeed({
             type="button"
             className="truncate hover:underline"
             onClick={() =>
-              virtuoso.current?.scrollToIndex({ index: dividerIndex, align: "start", behavior: "smooth" })
+              virtuoso.current?.scrollToIndex({ index: dividerIndex, align: "start", behavior: reducedMotion ? "auto" : "smooth" })
             }
           >
             {unreadCount}
@@ -254,7 +268,10 @@ export function MessageFeed({
 
       <Virtuoso<ChatMessage, FeedContext>
         ref={virtuoso}
-        className="scrollbar-thin flex-1"
+        className="scrollbar-thin chat-text flex-1"
+        role="log"
+        aria-label={`Messages in ${channelLabel}`}
+        data-message-feed=""
         data={messages}
         context={{ welcome, hasMore: Boolean(hasNextPage) }}
         firstItemIndex={firstItemIndex}
@@ -270,7 +287,7 @@ export function MessageFeed({
         followOutput={(isAtBottom) => {
           const last = messagesRef.current.at(-1)
           if (last?.author_id === userId && last.status === "sending") return "auto"
-          return isAtBottom ? "smooth" : false
+          return isAtBottom ? (reducedMotion ? "auto" : "smooth") : false
         }}
         rangeChanged={({ startIndex, endIndex }) => {
           if (dividerIndex === -1) return

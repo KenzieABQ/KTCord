@@ -13,8 +13,9 @@ export type AppDialog =
   | { kind: "kick-member"; serverId: string; userId: string }
   | { kind: "ban-member"; serverId: string; userId: string }
   | { kind: "create-dm"; addToChannelId?: string; preselect?: string[] }
-  | { kind: "find-conversation" }
   | { kind: "create-thread"; serverId: string; channelId: string; messageId: string; defaultName: string }
+  | { kind: "quick-switcher" }
+  | { kind: "shortcuts" }
 
 /** What's in the right-hand panel instead of the member list. */
 export type SidePanel =
@@ -34,6 +35,8 @@ type UiState = {
   collapsedCategories: Record<string, true>
   /** The channel last opened in each server, so returning to a server lands there (remembered). */
   lastChannelByServer: Record<string, string>
+  /** Recently opened channels and DMs, newest first, for the quick switcher (remembered). */
+  recentChannelIds: string[]
 
   setNavDrawerOpen: (open: boolean) => void
   toggleMemberList: () => void
@@ -44,6 +47,7 @@ type UiState = {
   closeSidePanel: () => void
   toggleCategory: (categoryId: string) => void
   rememberChannel: (serverId: string, channelId: string) => void
+  visitChannel: (channelId: string) => void
 }
 
 export const useUiStore = create<UiState>()(
@@ -56,6 +60,7 @@ export const useUiStore = create<UiState>()(
       sidePanel: null,
       collapsedCategories: {},
       lastChannelByServer: {},
+      recentChannelIds: [],
 
       setNavDrawerOpen: (navDrawerOpen) => set({ navDrawerOpen }),
       toggleMemberList: () => set((s) => ({ memberListVisible: !s.memberListVisible })),
@@ -77,6 +82,12 @@ export const useUiStore = create<UiState>()(
             ? s
             : { lastChannelByServer: { ...s.lastChannelByServer, [serverId]: channelId } }
         ),
+      visitChannel: (channelId) =>
+        set((s) =>
+          s.recentChannelIds[0] === channelId
+            ? s
+            : { recentChannelIds: [channelId, ...s.recentChannelIds.filter((id) => id !== channelId)].slice(0, 20) }
+        ),
     }),
     {
       name: "ktcord-ui",
@@ -84,6 +95,7 @@ export const useUiStore = create<UiState>()(
         memberListVisible: s.memberListVisible,
         collapsedCategories: s.collapsedCategories,
         lastChannelByServer: s.lastChannelByServer,
+        recentChannelIds: s.recentChannelIds,
       }),
     }
   )

@@ -196,10 +196,26 @@
   }
   html {
     @apply font-sans;
+    /* Settings → Appearance → Chat font scaling. */
+    --chat-font-size: 16px;
   }
 }
 
+/* Settings → Appearance → Reduced motion (the OS setting is honored too). */
+:root[data-reduced-motion] *,
+:root[data-reduced-motion] *::before,
+:root[data-reduced-motion] *::after {
+  animation-duration: 0.01ms !important;
+  animation-iteration-count: 1 !important;
+  transition-duration: 0.01ms !important;
+  scroll-behavior: auto !important;
+}
+
 @layer utilities {
+  /* Message text; line heights inside are in em so they follow the chosen size. */
+  .chat-text {
+    font-size: var(--chat-font-size);
+  }
   /* Thin, Discord-style scrollbars that only appear on hover. */
   .scrollbar-thin {
     scrollbar-width: thin;

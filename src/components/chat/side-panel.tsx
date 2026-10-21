@@ -1,10 +1,11 @@
 "use client"
 
 import { SearchIcon, XIcon } from "lucide-react"
-import { useState, type ReactNode } from "react"
+import { useRef, useState, type ReactNode } from "react"
 
 import { Sheet, SheetContent, SheetTitle } from "@/components/ui/sheet"
 import { useBreakpoint } from "@/hooks/use-breakpoint"
+import { useSwipe } from "@/hooks/use-swipe"
 import { useUiStore } from "@/lib/stores/ui-store"
 import { cn } from "@/lib/utils"
 
@@ -22,12 +23,15 @@ export function ChannelSidePanel({ fallback }: { fallback?: ReactNode }) {
   const breakpoint = useBreakpoint()
   const panel = useUiStore((s) => s.sidePanel)
   const close = useUiStore((s) => s.closeSidePanel)
+  const sheetRef = useRef<HTMLDivElement>(null)
 
   const scopeKey = serverId ?? channel.id
   const mine =
     panel &&
     ((panel.kind === "thread" && panel.channelId === channel.id && serverId) ||
       (panel.kind === "search" && panel.scopeKey === scopeKey))
+  // Called before the early return so the hook order stays fixed; only active for the sheet.
+  useSwipe(sheetRef, { onSwipeRight: close }, Boolean(mine) && breakpoint === "mobile")
   if (!mine || !panel) return <>{fallback}</>
 
   const content =
@@ -38,11 +42,11 @@ export function ChannelSidePanel({ fallback }: { fallback?: ReactNode }) {
     )
 
   if (breakpoint === "desktop") {
-    return <aside className="w-[420px] shrink-0 border-l border-border">{content}</aside>
+    return <aside aria-label={panel.kind === "thread" ? "Thread" : "Search results"} className="w-[420px] shrink-0 border-l border-border">{content}</aside>
   }
   return (
     <Sheet open onOpenChange={(open) => !open && close()}>
-      <SheetContent side="right" showCloseButton={false} className="w-full max-w-full gap-0 border-0 p-0 sm:max-w-[480px]">
+      <SheetContent ref={sheetRef} side="right" showCloseButton={false} className="w-full max-w-full gap-0 border-0 p-0 sm:max-w-[480px]">
         <SheetTitle className="sr-only">{panel.kind === "thread" ? "Thread" : "Search"}</SheetTitle>
         {content}
       </SheetContent>

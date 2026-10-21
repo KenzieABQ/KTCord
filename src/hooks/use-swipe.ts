@@ -25,10 +25,19 @@ export function useSwipe(
 
     let start: { x: number; y: number; t: number } | null = null
 
+    /** A horizontally scrollable box between the touch and `el` should get the swipe instead. */
+    function insideHorizontalScroller(target: HTMLElement) {
+      for (let node: HTMLElement | null = target; node && node !== el; node = node.parentElement) {
+        const { overflowX } = getComputedStyle(node)
+        if ((overflowX === "auto" || overflowX === "scroll") && node.scrollWidth > node.clientWidth) return true
+      }
+      return false
+    }
+
     function onStart(e: TouchEvent) {
       if (e.touches.length !== 1) return
       const target = e.target as HTMLElement
-      if (target.closest("[data-no-swipe], input, textarea, [contenteditable=true]")) {
+      if (target.closest("[data-no-swipe], input, textarea, [contenteditable=true]") || insideHorizontalScroller(target)) {
         start = null
         return
       }

@@ -1,8 +1,7 @@
 "use client"
 
-import { SearchIcon, UsersIcon } from "lucide-react"
-import { useRouter } from "next/navigation"
-import { useMemo, useState } from "react"
+import { SearchIcon } from "lucide-react"
+import { useState } from "react"
 import { toast } from "sonner"
 
 import { UserAvatar } from "@/components/profile/user-avatar"
@@ -10,7 +9,6 @@ import { Button } from "@/components/ui/button"
 import { Checkbox } from "@/components/ui/checkbox"
 import { DialogDescription, DialogFooter, DialogHeader, DialogTitle } from "@/components/ui/dialog"
 import { Input } from "@/components/ui/input"
-import { dmTitle } from "@/lib/api/dms"
 import { errorMessage } from "@/lib/api/errors"
 import { rankMatches } from "@/lib/mentions"
 import { displayNameOf } from "@/lib/profile-display"
@@ -20,12 +18,8 @@ import {
   useDm,
   useOpenDm,
   useRelationships,
-  useVisibleDms,
 } from "@/lib/queries/social"
-import { useUserId } from "@/lib/stores/auth-store"
 import { useUiStore } from "@/lib/stores/ui-store"
-
-import { DmAvatar } from "./dm-avatar"
 
 const MAX_GROUP = 10
 
@@ -124,78 +118,6 @@ export function SelectFriendsDialog({
           {existing ? "Add" : picked.length > 1 ? "Create Group DM" : "Create DM"}
         </Button>
       </DialogFooter>
-    </div>
-  )
-}
-
-/** "Find or start a conversation": jump to a DM or message a friend. */
-export function FindConversationDialog() {
-  const router = useRouter()
-  const userId = useUserId()
-  const closeDialog = useUiStore((s) => s.closeDialog)
-  const { data: dms } = useVisibleDms()
-  const { data: relationships } = useRelationships()
-  const openDm = useOpenDm()
-  const [query, setQuery] = useState("")
-
-  const results = useMemo(() => {
-    const dmItems = (dms ?? []).map((dm) => ({ key: `dm:${dm.id}`, label: dmTitle(dm, userId), dm, friend: undefined }))
-    const dmUsers = new Set(
-      (dms ?? []).filter((dm) => dm.type === "dm").flatMap((dm) => dm.recipients.map((r) => r.user_id))
-    )
-    const friendItems = (relationships ?? [])
-      .filter((r) => r.kind === "friend" && !dmUsers.has(r.user.id))
-      .map((r) => ({ key: `friend:${r.user.id}`, label: displayNameOf(r.user), dm: undefined, friend: r.user }))
-    return rankMatches([...dmItems, ...friendItems], query, (item) => [item.label, item.friend?.username ?? ""], 12)
-  }, [dms, relationships, query, userId])
-
-  return (
-    <div>
-      <DialogHeader>
-        <DialogTitle>Find or start a conversation</DialogTitle>
-      </DialogHeader>
-      <Input
-        autoFocus
-        className="mt-4 h-11 text-base"
-        placeholder="Where would you like to go?"
-        value={query}
-        onChange={(e) => setQuery(e.target.value)}
-        aria-label="Search conversations"
-      />
-      <ul className="mt-3 max-h-80 overflow-y-auto">
-        {results.map((item) => (
-          <li key={item.key}>
-            <button
-              type="button"
-              className="flex w-full items-center gap-3 rounded-md px-2 py-1.5 text-left hover:bg-item-hover"
-              onClick={async () => {
-                if (item.dm) {
-                  router.push(`/channels/me/${item.dm.id}`)
-                  closeDialog()
-                } else if (item.friend) {
-                  try {
-                    await openDm.mutateAsync(item.friend.id)
-                    closeDialog()
-                  } catch (error) {
-                    toast.error(errorMessage(error))
-                  }
-                }
-              }}
-            >
-              {item.dm ? (
-                <DmAvatar dm={item.dm} />
-              ) : (
-                <UserAvatar userId={item.friend!.id} name={item.label} src={item.friend!.avatar_url} className="size-8" />
-              )}
-              <span className="min-w-0 flex-1 truncate text-sm font-medium text-header">{item.label}</span>
-              {item.dm?.type === "group_dm" && <UsersIcon className="size-4 text-muted-foreground" />}
-            </button>
-          </li>
-        ))}
-        {results.length === 0 && (
-          <li className="py-6 text-center text-sm text-muted-foreground">No friends or conversations match.</li>
-        )}
-      </ul>
     </div>
   )
 }

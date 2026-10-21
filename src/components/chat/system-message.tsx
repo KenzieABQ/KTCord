@@ -3,7 +3,10 @@
 import { formatDistanceToNowStrict } from "date-fns"
 import { ChevronRightIcon, MessagesSquareIcon, PinIcon } from "lucide-react"
 
+import { visibleElementById } from "@/lib/dom"
 import type { ChatMessage, ThreadSummary } from "@/lib/messages/types"
+import { usePrefsStore } from "@/lib/stores/prefs-store"
+import { cn } from "@/lib/utils"
 
 import { useChat } from "./chat-context"
 
@@ -18,6 +21,7 @@ export function SystemMessage({
   authorColor?: string
 }) {
   const { jumpToMessage } = useChat()
+  const compact = usePrefsStore((s) => s.messageDisplay === "compact")
   const name = (
     <span className="font-medium text-header" style={authorColor ? { color: authorColor } : undefined}>
       {authorName}
@@ -25,7 +29,12 @@ export function SystemMessage({
   )
 
   return (
-    <div className="group relative mt-[17px] flex items-center gap-4 py-0.5 pr-12 pl-[72px] text-[15px] text-muted-foreground hover:bg-message-hover">
+    <div
+      className={cn(
+        "group relative flex items-center gap-4 py-0.5 pr-12 pl-[72px] text-[0.9375em] text-muted-foreground hover:bg-message-hover",
+        compact ? "mt-1.5" : "mt-[17px]"
+      )}
+    >
       {message.type === "pin" ? (
         <>
           <PinIcon className="absolute left-7 size-4 text-interactive" />
@@ -42,7 +51,7 @@ export function SystemMessage({
             <button
               type="button"
               className="font-medium text-header hover:underline"
-              onClick={() => document.getElementById("pins-button")?.click()}
+              onClick={() => visibleElementById("pins-button")?.click()}
             >
               pinned messages
             </button>
@@ -65,7 +74,7 @@ export function SystemMessage({
             <button
               type="button"
               className="font-medium text-header hover:underline"
-              onClick={() => document.getElementById("threads-button")?.click()}
+              onClick={() => visibleElementById("threads-button")?.click()}
             >
               threads
             </button>

@@ -11,10 +11,16 @@ import { memberDisplayName } from "@/lib/members"
 import type { ChatMessage } from "@/lib/messages/types"
 import { displayNameOf } from "@/lib/profile-display"
 import { qk } from "@/lib/queries/keys"
+import { playNotificationSound } from "@/lib/sound"
+import { usePrefsStore } from "@/lib/stores/prefs-store"
 
 type Router = { push: (href: string) => void }
 
-/** Shows a toast for an incoming message (and a desktop notification if the tab is hidden and allowed). */
+/**
+ * Notifies about an incoming message the way this device's settings ask: a desktop
+ * notification while the tab is in the background (if allowed), otherwise an in-app toast,
+ * plus an optional chime.
+ */
 export function notifyMessage(
   queryClient: QueryClient,
   router: Router,
@@ -52,7 +58,16 @@ export function notifyMessage(
     ? `/channels/me/${message.channel_id}`
     : `/channels/${where.serverId}/${message.channel_id}/${message.id}`
 
-  if (typeof document !== "undefined" && document.visibilityState === "hidden" && "Notification" in window && Notification.permission === "granted") {
+  const prefs = usePrefsStore.getState()
+  if (prefs.notificationSound) playNotificationSound()
+
+  if (
+    prefs.desktopNotifications &&
+    typeof document !== "undefined" &&
+    document.visibilityState === "hidden" &&
+    "Notification" in window &&
+    Notification.permission === "granted"
+  ) {
     const notification = new Notification(`${author} (${place})`, { body: preview, tag: message.id })
     notification.onclick = () => {
       window.focus()
@@ -61,6 +76,7 @@ export function notifyMessage(
     return
   }
 
+  if (!prefs.inAppToasts) return
   toast(`${author} · ${place}`, {
     description: preview,
     action: { label: "View", onClick: () => router.push(href) },

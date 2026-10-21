@@ -197,7 +197,7 @@ function DmView({ dm, initialJumpId }: { dm: DmChannel; initialJumpId?: string }
 
   const profilePanel = desktop ? (
     panelVisible && (
-      <aside className="w-[340px] shrink-0 border-l border-border bg-sidebar">
+      <aside aria-label="Conversation details" className="w-[340px] shrink-0 border-l border-border bg-sidebar">
         <DmSidePanel dm={dm} />
       </aside>
     )
