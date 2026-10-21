@@ -21,7 +21,7 @@ const projectRef = new URL(url).hostname.split(".")[0]
 const dir = "supabase/migrations"
 
 function query(sqlOrFile, { file = false } = {}) {
-  const args = ["supabase", "db", "query", "--project-ref", projectRef, "-o", "json"]
+  const args = ["supabase", "db", "query", "--linked", "--project-ref", projectRef, "-o", "json"]
   args.push(...(file ? ["-f", sqlOrFile] : [sqlOrFile]))
   const out = execFileSync("npx", args, { encoding: "utf8", stdio: ["ignore", "pipe", "inherit"] })
   try {
@@ -41,9 +41,24 @@ query(`
 `)
 
 const appliedRows = query("select version from supabase_migrations.schema_migrations")
-const applied = new Set(
-  (Array.isArray(appliedRows) ? appliedRows : (appliedRows?.rows ?? [])).map((r) => r.version)
-)
+const applied = new Set((Array.isArray(appliedRows) ? appliedRows : (appliedRows?.rows ?? [])).map((r) => r.version))
+
+// Databases set up by pasting migrations into the SQL editor have the tables but no history.
+// `--baseline v1,v2,...` records exactly those versions as already applied.
+const baselineAt = process.argv.indexOf("--baseline")
+if (baselineAt !== -1) {
+  const versions = new Set((process.argv[baselineAt + 1] ?? "").split(",").filter(Boolean))
+  for (const file of readdirSync(dir).filter((f) => /^\d+_.+\.sql$/.test(f)).sort()) {
+    const [version, ...rest] = file.replace(/\.sql$/, "").split("_")
+    if (!versions.has(version) || applied.has(version)) continue
+    query(
+      `insert into supabase_migrations.schema_migrations (version, name, statements)
+       values ('${version}', '${rest.join("_")}', '{}') on conflict do nothing`
+    )
+    applied.add(version)
+    console.log(`Recorded ${file} as already applied.`)
+  }
+}
 
 const pending = readdirSync(dir)
   .filter((f) => /^\d+_.+\.sql$/.test(f))

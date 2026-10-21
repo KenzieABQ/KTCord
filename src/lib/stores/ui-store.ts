@@ -14,6 +14,12 @@ export type AppDialog =
   | { kind: "ban-member"; serverId: string; userId: string }
   | { kind: "create-dm"; addToChannelId?: string; preselect?: string[] }
   | { kind: "find-conversation" }
+  | { kind: "create-thread"; serverId: string; channelId: string; messageId: string; defaultName: string }
+
+/** What's in the right-hand panel instead of the member list. */
+export type SidePanel =
+  | { kind: "thread"; channelId: string; threadId: string }
+  | { kind: "search"; scopeKey: string; query: string }
 
 type UiState = {
   /** Mobile: the left drawer holding the server rail + channel list. */
@@ -23,6 +29,7 @@ type UiState = {
   /** Tablet/mobile: the member list slide-over. */
   memberSheetOpen: boolean
   dialog: AppDialog | null
+  sidePanel: SidePanel | null
   /** Collapsed categories, by category id (remembered). */
   collapsedCategories: Record<string, true>
   /** The channel last opened in each server, so returning to a server lands there (remembered). */
@@ -33,6 +40,8 @@ type UiState = {
   setMemberSheetOpen: (open: boolean) => void
   openDialog: (dialog: AppDialog) => void
   closeDialog: () => void
+  openSidePanel: (panel: SidePanel) => void
+  closeSidePanel: () => void
   toggleCategory: (categoryId: string) => void
   rememberChannel: (serverId: string, channelId: string) => void
 }
@@ -44,6 +53,7 @@ export const useUiStore = create<UiState>()(
       memberListVisible: true,
       memberSheetOpen: false,
       dialog: null,
+      sidePanel: null,
       collapsedCategories: {},
       lastChannelByServer: {},
 
@@ -52,6 +62,8 @@ export const useUiStore = create<UiState>()(
       setMemberSheetOpen: (memberSheetOpen) => set({ memberSheetOpen }),
       openDialog: (dialog) => set({ dialog, navDrawerOpen: false }),
       closeDialog: () => set({ dialog: null }),
+      openSidePanel: (sidePanel) => set({ sidePanel }),
+      closeSidePanel: () => set({ sidePanel: null }),
       toggleCategory: (id) =>
         set((s) => {
           const next = { ...s.collapsedCategories }

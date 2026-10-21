@@ -29,6 +29,7 @@ function ch(
     is_private: false,
     owner_id: null,
     dm_key: null,
+    source_message_id: null,
     created_at: `2026-01-01T00:00:${String(n++).padStart(2, "0")}Z`,
   }
 }

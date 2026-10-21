@@ -16,15 +16,27 @@ import { memberDisplayName } from "@/lib/members"
 import { decodeMentions, encodeMentions } from "@/lib/mentions"
 import { formatDayDivider, formatMessageTime } from "@/lib/messages/feed"
 import type { ChatMessage } from "@/lib/messages/types"
-import { useEditMessage, useReferencedMessage, useSendMessage } from "@/lib/queries/messages"
+import type { Attachment } from "@/lib/api/attachments"
+import {
+  useEditMessage,
+  usePinMessage,
+  useReferencedMessage,
+  useSendMessage,
+  useToggleReaction,
+} from "@/lib/queries/messages"
 import { useUserId } from "@/lib/stores/auth-store"
 import { useComposerStore } from "@/lib/stores/composer-store"
+import { useUiStore } from "@/lib/stores/ui-store"
 import { cn } from "@/lib/utils"
 
 import { useChat } from "./chat-context"
+import { focusComposer } from "./composer"
 import { Markdown } from "./markdown"
 import { MessageContextMenuContent, MessageToolbar, type MessageActionHandlers } from "./message-actions"
+import { MessageAttachments } from "./message-attachments"
 import { MessageEditor } from "./message-editor"
+import { ReactionBar } from "./reaction-bar"
+import { SystemMessage, ThreadChip } from "./system-message"
 import { useAuthor } from "./use-author"
 
 export function DayDivider({ iso }: { iso: string }) {
@@ -124,7 +136,18 @@ export const MessageItem = memo(function MessageItem({
   onDeleteRequest: (message: ChatMessage, skipConfirm: boolean) => void
 }) {
   const userId = useUserId()
-  const { serverId, basePath, channel, membersById, canSend, canManageMessages, mentionSources } = useChat()
+  const {
+    serverId,
+    basePath,
+    channel,
+    membersById,
+    canSend,
+    canManageMessages,
+    canAddReactions,
+    canPin,
+    canStartThreads,
+    mentionSources,
+  } = useChat()
   const author = useAuthor(message.author_id)
   const shiftHeld = useShiftHeld()
   const editing = useComposerStore((s) => s.editingId === message.id)
@@ -132,6 +155,10 @@ export const MessageItem = memo(function MessageItem({
   const setReplyTo = useComposerStore((s) => s.setReplyTo)
   const editMessage = useEditMessage(channel.id)
   const sendMessage = useSendMessage(channel.id)
+  const toggleReaction = useToggleReaction(channel.id)
+  const pin = usePinMessage(channel.id)
+  const openDialog = useUiStore((s) => s.openDialog)
+  const openSidePanel = useUiStore((s) => s.openSidePanel)
   const [menuOpen, setMenuOpen] = useState(false)
 
   const mine = message.author_id === userId
@@ -142,17 +169,40 @@ export const MessageItem = memo(function MessageItem({
       message.mention_everyone ||
       message.mention_roles.some((id) => myRoles.includes(id)))
 
+  const sent = !message.status
+  const onError = (error: unknown) => toast.error(errorMessage(error))
   const actions: MessageActionHandlers = {
-    canEdit: mine && !message.status,
+    canEdit: mine && sent,
     canDelete: mine || canManageMessages,
-    canReply: canSend && !message.status,
+    canReply: canSend && sent,
+    canReact: canAddReactions && sent,
+    canPin: canPin && sent,
+    canThread: sent && (Boolean(message.thread) || canStartThreads),
     onReply: () => {
       setReplyTo(channel.id, message.id)
-      document.getElementById("composer-input")?.focus()
+      focusComposer(channel.id)
     },
     onEdit: () => setEditing(message.id),
     onDelete: (skipConfirm) => onDeleteRequest(message, skipConfirm),
+    onReact: (emoji) => toggleReaction.mutate({ message, emoji }, { onError }),
+    onTogglePin: () => pin.mutate({ messageId: message.id, pinned: !message.pinned_at }, { onError }),
+    onCreateThread: () =>
+      message.thread
+        ? openSidePanel({ kind: "thread", channelId: channel.id, threadId: message.thread.id })
+        : openDialog({
+            kind: "create-thread",
+            serverId: serverId ?? "",
+            channelId: channel.id,
+            messageId: message.id,
+            defaultName: message.content.replace(/\s+/g, " ").slice(0, 40),
+          }),
   }
+
+  if (message.type === "pin" || message.type === "thread_created") {
+    return <SystemMessage message={message} authorName={author.name} authorColor={author.color} />
+  }
+
+  const attachments = (message.attachments ?? []) as unknown as Attachment[]
 
   function save(content: string) {
     setEditing(null)
@@ -230,7 +280,7 @@ export const MessageItem = memo(function MessageItem({
               />
             ) : (
               <div className={cn(message.status === "sending" && "opacity-60", message.status === "failed" && "[&_*]:text-mention")}>
-                <Markdown content={message.content} />
+                {message.content && <Markdown content={message.content} />}
                 {message.edited_at && (
                   <Tooltip>
                     <TooltipTrigger asChild>
@@ -242,6 +292,17 @@ export const MessageItem = memo(function MessageItem({
                   </Tooltip>
                 )}
               </div>
+            )}
+
+            {attachments.length > 0 && <MessageAttachments attachments={attachments} />}
+            <ReactionBar message={message} />
+            {message.thread && (
+              <ThreadChip
+                thread={message.thread}
+                onOpen={() =>
+                  openSidePanel({ kind: "thread", channelId: channel.id, threadId: message.thread!.id })
+                }
+              />
             )}
 
             {message.status === "failed" && (

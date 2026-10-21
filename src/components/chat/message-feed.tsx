@@ -258,7 +258,8 @@ export function MessageFeed({
         data={messages}
         context={{ welcome, hasMore: Boolean(hasNextPage) }}
         firstItemIndex={firstItemIndex}
-        initialTopMostItemIndex={Math.max(0, messages.length - 1)}
+        // Open at the newest message, aligned to the bottom edge even in short windows.
+        initialTopMostItemIndex={{ index: Math.max(0, messages.length - 1), align: "end" }}
         alignToBottom
         computeItemKey={(_, message) => message.id}
         components={components}

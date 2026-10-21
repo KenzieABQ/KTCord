@@ -8,6 +8,13 @@ import { toast } from "sonner"
 
 import { Tooltip, TooltipContent, TooltipTrigger } from "@/components/ui/tooltip"
 import { useAutosize } from "@/hooks/use-autosize"
+import {
+  attachmentKind,
+  attachmentPath,
+  imageSize,
+  type Attachment,
+} from "@/lib/api/attachments"
+import { errorMessage } from "@/lib/api/errors"
 import { encodeMentions } from "@/lib/mentions"
 import { flattenPages } from "@/lib/messages/feed"
 import { newLocalMessage, type MessagePage } from "@/lib/messages/types"
@@ -16,15 +23,20 @@ import { findCachedMessage, useSendMessage } from "@/lib/queries/messages"
 import { useTypingChannel } from "@/lib/realtime/use-typing-channel"
 import { useUserId } from "@/lib/stores/auth-store"
 import { useComposerStore } from "@/lib/stores/composer-store"
+import { useUploadStore, type PendingFile } from "@/lib/stores/upload-store"
+import type { Json } from "@/lib/supabase/database.types"
 import { cn } from "@/lib/utils"
 
+import { AttachmentTray, stageFiles } from "./attachment-tray"
 import { useChat } from "./chat-context"
+import { EmojiPickerPopover } from "./emoji-picker"
 import { MentionPopup } from "./mention-popup"
 import { TypingIndicator } from "./typing-indicator"
 import { useMentionAutocomplete } from "./use-mention-autocomplete"
 import { useAuthor } from "./use-author"
 
 const MAX_LENGTH = 2000
+const EMPTY: PendingFile[] = []
 
 function ReplyBar({ messageId, onCancel }: { messageId: string; onCancel: () => void }) {
   const queryClient = useQueryClient()
@@ -54,10 +66,20 @@ function ReplyBar({ messageId, onCancel }: { messageId: string; onCancel: () => 
  * The message box: Enter sends, Shift+Enter adds a line, Escape drops a reply,
  * and Up Arrow in an empty box edits your last message. Sends optimistically.
  */
+/** Element id of a channel's composer textarea; a thread panel can sit beside its parent's. */
+export const composerInputId = (channelId: string) => `composer-input-${channelId}`
+
+/** Moves focus to a channel's composer, e.g. after picking Reply or dropping files. */
+export function focusComposer(channelId: string) {
+  document.getElementById(composerInputId(channelId))?.focus()
+}
+
 export function Composer({ onSent }: { onSent: () => void }) {
   const userId = useUserId()
   const queryClient = useQueryClient()
-  const { channel, channelLabel, canSend, timedOutUntil, mentionSources } = useChat()
+  const { channel, channelLabel, canSend, canAttach, timedOutUntil, mentionSources } = useChat()
+  const staged = useUploadStore((s) => s.staged[channel.id] ?? EMPTY)
+  const fileInputRef = useRef<HTMLInputElement>(null)
   const draft = useComposerStore((s) => s.drafts[channel.id] ?? "")
   const replyTo = useComposerStore((s) => s.replyTo[channel.id])
   const { setDraft, setReplyTo, setEditing } = useComposerStore.getState()
@@ -67,25 +89,57 @@ export function Composer({ onSent }: { onSent: () => void }) {
   useAutosize(inputRef, draft)
   const mentions = useMentionAutocomplete(inputRef, draft, (next) => setDraft(channel.id, next))
 
-  function send() {
+  async function send() {
     const content = encodeMentions(draft.trim(), mentionSources)
-    if (!content) return
+    if (!content && staged.length === 0) return
     if (content.length > MAX_LENGTH) {
       toast.error(`Messages can be up to ${MAX_LENGTH} characters. Yours is ${content.length}.`)
       return
     }
+    const id = crypto.randomUUID()
+    // Files upload before the message is posted; the message shows local previews meanwhile.
+    const files = await Promise.all(
+      staged.map(async (item, index) => ({
+        item,
+        path: attachmentPath(channel.id, id, index, item.file.name),
+        size: await imageSize(item.file),
+      }))
+    )
+    const attachments: Attachment[] = files.map(({ item, path, size }) => ({
+      path,
+      name: item.file.name,
+      size: item.file.size,
+      mime: item.file.type || "application/octet-stream",
+      kind: attachmentKind(item.file.type),
+      ...size,
+      ...(item.spoiler && { spoiler: true }),
+    }))
+    useUploadStore.getState().track(
+      id,
+      files.map(({ item, path }) => ({ path, file: item.file, previewUrl: item.previewUrl }))
+    )
     const message = newLocalMessage({
-      id: crypto.randomUUID(),
+      id,
       channelId: channel.id,
       authorId: userId,
       content,
       replyToId: replyTo ?? null,
+      attachments: attachments as unknown as Json,
     })
     setDraft(channel.id, "")
     setReplyTo(channel.id, undefined)
+    useUploadStore.getState().clearStaged(channel.id)
     notifyStopped()
-    sendMessage.mutate(message)
+    sendMessage.mutate(message, { onError: (e) => toast.error(errorMessage(e)) })
     onSent()
+  }
+
+  function addFiles(files: File[]) {
+    if (!canAttach) {
+      toast.error("You don't have permission to attach files here.")
+      return
+    }
+    stageFiles(channel.id, files)
   }
 
   function editLastMessage() {
@@ -117,12 +171,16 @@ export function Composer({ onSent }: { onSent: () => void }) {
   return (
     <div className="shrink-0 px-4">
       {replyTo && <ReplyBar messageId={replyTo} onCancel={() => setReplyTo(channel.id, undefined)} />}
+      {staged.length > 0 && <AttachmentTray channelId={channel.id} items={staged} rounded={!replyTo} />}
       <form
         onSubmit={(e) => {
           e.preventDefault()
-          send()
+          void send()
         }}
-        className={cn("relative flex items-start gap-1 rounded-lg bg-composer pr-2", replyTo && "rounded-t-none")}
+        className={cn(
+          "relative flex items-start gap-1 rounded-lg bg-composer pr-2",
+          (replyTo || staged.length > 0) && "rounded-t-none"
+        )}
       >
         {mentions.popup && <MentionPopup {...mentions.popup} />}
         <Tooltip>
@@ -130,16 +188,27 @@ export function Composer({ onSent }: { onSent: () => void }) {
             <button
               type="button"
               aria-label="Upload a file"
-              disabled
+              disabled={!canAttach}
+              onClick={() => fileInputRef.current?.click()}
               className="flex size-11 shrink-0 items-center justify-center text-interactive hover:text-interactive-hover disabled:opacity-50"
             >
               <PlusCircleIcon className="size-6" />
             </button>
           </TooltipTrigger>
-          <TooltipContent side="top">Uploads arrive with rich media</TooltipContent>
+          <TooltipContent side="top">Upload a file</TooltipContent>
         </Tooltip>
+        <input
+          ref={fileInputRef}
+          type="file"
+          multiple
+          hidden
+          onChange={(e) => {
+            addFiles([...(e.target.files ?? [])])
+            e.target.value = ""
+          }}
+        />
         <textarea
-          id="composer-input"
+          id={composerInputId(channel.id)}
           ref={inputRef}
           rows={1}
           value={draft}
@@ -152,13 +221,20 @@ export function Composer({ onSent }: { onSent: () => void }) {
             else notifyStopped()
           }}
           onSelect={mentions.updateTrigger}
+          onPaste={(e) => {
+            const files = [...e.clipboardData.files]
+            if (files.length > 0) {
+              e.preventDefault()
+              addFiles(files)
+            }
+          }}
           onBlur={() => setTimeout(mentions.updateTrigger, 0)}
           onKeyDown={(e) => {
             if (e.nativeEvent.isComposing) return
             if (mentions.onKeyDown(e)) return
             if (e.key === "Enter" && !e.shiftKey) {
               e.preventDefault()
-              send()
+              void send()
             } else if (e.key === "Escape" && replyTo) {
               e.preventDefault()
               setReplyTo(channel.id, undefined)
@@ -169,14 +245,25 @@ export function Composer({ onSent }: { onSent: () => void }) {
           }}
           className="max-h-[50vh] min-h-11 flex-1 resize-none bg-transparent py-[11px] leading-[1.375rem] text-foreground outline-none placeholder:text-muted-foreground/70"
         />
-        <button
-          type="button"
-          aria-label="Emoji"
-          disabled
-          className="flex size-11 shrink-0 items-center justify-center text-interactive disabled:opacity-50"
+        <EmojiPickerPopover
+          onPick={(emoji) => {
+            const el = inputRef.current
+            const at = el?.selectionStart ?? draft.length
+            setDraft(channel.id, draft.slice(0, at) + emoji + draft.slice(at))
+            requestAnimationFrame(() => {
+              el?.focus()
+              el?.setSelectionRange(at + emoji.length, at + emoji.length)
+            })
+          }}
         >
-          <SmileIcon className="size-6" />
-        </button>
+          <button
+            type="button"
+            aria-label="Emoji"
+            className="flex size-11 shrink-0 items-center justify-center text-interactive hover:text-interactive-hover"
+          >
+            <SmileIcon className="size-6" />
+          </button>
+        </EmojiPickerPopover>
         {remaining < 200 && (
           <span
             className={cn(

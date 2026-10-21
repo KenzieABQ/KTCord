@@ -89,13 +89,13 @@ export function unbanMember(serverId: string, userId: string) {
   return rpc(getSupabase().rpc("unban_member", { p_server: serverId, p_user: userId }))
 }
 
-/** `until` null removes the timeout. */
+/** `until` null removes the timeout (the RPC treats any past time as "no timeout"). */
 export function timeoutMember(serverId: string, userId: string, until: Date | null) {
   return rpc(
     getSupabase().rpc("timeout_member", {
       p_server: serverId,
       p_user: userId,
-      p_until: until ? until.toISOString() : null,
+      p_until: (until ?? new Date(0)).toISOString(),
     })
   )
 }

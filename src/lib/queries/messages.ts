@@ -11,12 +11,21 @@ import {
 import { useEffect } from "react"
 
 import {
+  addReaction,
+  createThread,
   deleteMessage,
   editMessage,
   fetchMessages,
   fetchMessagesById,
+  getChannelById,
   getUnreadState,
+  listPins,
+  listThreads,
+  pinMessage,
+  removeReaction,
+  searchMessages,
   sendMessage,
+  type SearchParams,
 } from "@/lib/api/messages"
 import type { Profile } from "@/lib/api/profiles"
 import { getProfile } from "@/lib/api/profiles"
@@ -24,6 +33,8 @@ import { patchInPages, removeFromPages, upsertIntoPages } from "@/lib/messages/f
 import type { ChatMessage, Cursor, MessagePage } from "@/lib/messages/types"
 import { useUserId } from "@/lib/stores/auth-store"
 import { useUnreadStore } from "@/lib/stores/unread-store"
+import { uploadAttachment } from "@/lib/api/attachments"
+import { useUploadStore } from "@/lib/stores/upload-store"
 import { getSupabase } from "@/lib/supabase/client"
 
 import { qk } from "./keys"
@@ -111,23 +122,36 @@ export function useReferencedMessage(id: string | null) {
   })
 }
 
+/** Uploads a message's files (skipping finished ones on retry), then posts it. */
+async function uploadThenSend(channelId: string, message: ChatMessage) {
+  const { files, progress, setProgress, done } = useUploadStore.getState()
+  for (const { path, file } of files[message.id] ?? []) {
+    if (progress[path] === 1) continue
+    await uploadAttachment(path, file, (f) => setProgress(path, f))
+  }
+  const saved = await sendMessage({
+    id: message.id,
+    channelId,
+    content: message.content,
+    replyToId: message.reply_to_id,
+    attachments: message.attachments,
+  })
+  done(message.id)
+  return saved
+}
+
 export function useSendMessage(channelId: string) {
   const queryClient = useQueryClient()
   return useMutation({
-    mutationFn: (message: ChatMessage) =>
-      sendMessage({
-        id: message.id,
-        channelId,
-        content: message.content,
-        replyToId: message.reply_to_id,
-        attachments: message.attachments,
-      }),
+    mutationFn: (message: ChatMessage) => uploadThenSend(channelId, message),
     onMutate: (message) =>
       updateMessagePages(queryClient, channelId, (pages) =>
         upsertIntoPages(pages, { ...message, status: "sending" })
       ),
     onSuccess: (saved) => {
-      updateMessagePages(queryClient, channelId, (pages) => upsertIntoPages(pages, saved))
+      updateMessagePages(queryClient, channelId, (pages) =>
+        upsertIntoPages(pages, { ...saved, reactions: [], thread: null })
+      )
       useUnreadStore.getState().markRead(channelId, saved.created_at)
     },
     onError: (_error, message) =>
@@ -191,5 +215,92 @@ export async function loadProfile(queryClient: QueryClient, userId: string) {
     queryKey: qk.profile(userId),
     queryFn: () => getProfile(userId),
     staleTime: 5 * 60_000,
+  })
+}
+
+// ---------------------------------------------------------------------------
+// Reactions, pins, threads, search
+// ---------------------------------------------------------------------------
+
+/** Toggles your reaction on a message, optimistically. */
+export function useToggleReaction(channelId: string) {
+  const queryClient = useQueryClient()
+  const userId = useUserId()
+  return useMutation({
+    mutationFn: async ({ message, emoji }: { message: ChatMessage; emoji: string }) => {
+      const mine = message.reactions?.some((r) => r.user_id === userId && r.emoji === emoji)
+      if (mine) await removeReaction(message.id, userId, emoji)
+      else await addReaction(message, emoji)
+    },
+    onMutate: ({ message, emoji }) => {
+      const mine = message.reactions?.some((r) => r.user_id === userId && r.emoji === emoji)
+      updateMessagePages(queryClient, channelId, (pages) =>
+        patchInPages(pages, message.id, (m) => ({
+          ...m,
+          reactions: mine
+            ? (m.reactions ?? []).filter((r) => !(r.user_id === userId && r.emoji === emoji))
+            : [...(m.reactions ?? []), { id: `local-${crypto.randomUUID()}`, user_id: userId, emoji }],
+        }))
+      )
+      return { previous: message.reactions ?? [] }
+    },
+    onError: (_e, { message }, context) =>
+      updateMessagePages(queryClient, channelId, (pages) =>
+        patchInPages(pages, message.id, (m) => ({ ...m, reactions: context?.previous ?? m.reactions }))
+      ),
+  })
+}
+
+export function usePins(channelId: string, enabled: boolean) {
+  return useQuery({ queryKey: qk.pins(channelId), queryFn: () => listPins(channelId), enabled })
+}
+
+export function usePinMessage(channelId: string) {
+  const queryClient = useQueryClient()
+  return useMutation({
+    mutationFn: ({ messageId, pinned }: { messageId: string; pinned: boolean }) => pinMessage(messageId, pinned),
+    onSuccess: () => queryClient.invalidateQueries({ queryKey: qk.pins(channelId) }),
+  })
+}
+
+export function useThreads(channelId: string, enabled: boolean) {
+  return useQuery({ queryKey: qk.threads(channelId), queryFn: () => listThreads(channelId), enabled })
+}
+
+export function useThreadChannel(threadId: string | null) {
+  return useQuery({
+    queryKey: qk.thread(threadId ?? ""),
+    queryFn: () => getChannelById(threadId!),
+    enabled: Boolean(threadId),
+    staleTime: 5 * 60_000,
+  })
+}
+
+export function useCreateThread(channelId: string) {
+  const queryClient = useQueryClient()
+  return useMutation({
+    mutationFn: ({ messageId, name }: { messageId: string; name: string }) => createThread(messageId, name),
+    onSuccess: (threadId, { messageId, name }) => {
+      updateMessagePages(queryClient, channelId, (pages) =>
+        patchInPages(pages, messageId, (m) => ({
+          ...m,
+          thread: m.thread ?? { id: threadId, name: name || "Thread", message_count: 0, last_message_at: null },
+        }))
+      )
+      void queryClient.invalidateQueries({ queryKey: qk.threads(channelId) })
+    },
+  })
+}
+
+export function useSearch(scope: string, params: SearchParams | null) {
+  return useInfiniteQuery({
+    queryKey: qk.search(scope, JSON.stringify(params)),
+    queryFn: ({ pageParam }) => searchMessages({ ...params!, offset: pageParam }),
+    initialPageParam: 0,
+    getNextPageParam: (last, all) => {
+      const loaded = all.reduce((n, p) => n + p.messages.length, 0)
+      return loaded < last.total && last.messages.length > 0 ? loaded : undefined
+    },
+    enabled: Boolean(params),
   })
 }

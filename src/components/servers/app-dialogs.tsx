@@ -3,6 +3,7 @@
 import { useRouter } from "next/navigation"
 import { toast } from "sonner"
 
+import { CreateThreadDialog } from "@/components/chat/create-thread-dialog"
 import { FindConversationDialog, SelectFriendsDialog } from "@/components/dms/dm-dialogs"
 import { BanMemberDialog, KickMemberDialog } from "@/components/members/moderation-dialogs"
 import { Button } from "@/components/ui/button"
@@ -93,6 +94,8 @@ function DialogBody({ dialog }: { dialog: AppDialog }) {
       return <SelectFriendsDialog addToChannelId={dialog.addToChannelId} preselect={dialog.preselect} />
     case "find-conversation":
       return <FindConversationDialog />
+    case "create-thread":
+      return <CreateThreadDialog channelId={dialog.channelId} messageId={dialog.messageId} defaultName={dialog.defaultName} />
   }
 }
 

@@ -22,6 +22,7 @@ import {
   onFriendshipChange,
   onMessageChange,
   onNotificationSettingsChange,
+  onReactionChange,
   onReadStateChange,
   onRecipientChange,
   onUserSettingsChange,
@@ -49,6 +50,7 @@ const TABLES: Record<string, Handler> = {
   notification_settings: onNotificationSettingsChange,
   friendships: onFriendshipChange,
   channel_recipients: onRecipientChange,
+  reactions: onReactionChange,
 }
 
 /**

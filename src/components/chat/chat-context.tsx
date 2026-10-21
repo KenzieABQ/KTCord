@@ -29,6 +29,11 @@ export type ChatContextValue = {
   timedOutUntil: string | null
   canManageMessages: boolean
   canMentionEveryone: boolean
+  canAddReactions: boolean
+  canAttach: boolean
+  canPin: boolean
+  /** Threads can be started from messages in server text channels (not inside threads or DMs). */
+  canStartThreads: boolean
   /** Names for converting readable mentions to tokens and back. */
   mentionSources: MentionSources
   /** Scrolls the feed to a message, loading older history if needed. */
@@ -91,6 +96,11 @@ export function ChatProvider({
       timedOutUntil,
       canManageMessages: hasPermission(permissions, Permission.MANAGE_MESSAGES),
       canMentionEveryone: hasPermission(permissions, Permission.MENTION_EVERYONE),
+      canAddReactions: hasPermission(permissions, Permission.ADD_REACTIONS) && !timedOutUntil,
+      canAttach: hasPermission(permissions, Permission.ATTACH_FILES | Permission.SEND_MESSAGES) && !timedOutUntil,
+      canPin: hasPermission(permissions, Permission.MANAGE_MESSAGES),
+      canStartThreads:
+        channel.type === "text" && hasPermission(permissions, Permission.SEND_MESSAGES) && !timedOutUntil,
       mentionSources: {
         users: mentionUsers(members ?? []),
         roles: (roles ?? []).filter((r) => !r.is_default).map((r) => ({ id: r.id, name: r.name })),
@@ -146,6 +156,10 @@ export function DmChatProvider({
       timedOutUntil: null,
       canManageMessages: false,
       canMentionEveryone: false,
+      canAddReactions: true,
+      canAttach: true,
+      canPin: true,
+      canStartThreads: false,
       mentionSources: { users: mentionUsers(members), roles: [], channels: [] },
       jumpToMessage,
     }

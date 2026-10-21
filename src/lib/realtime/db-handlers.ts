@@ -7,7 +7,7 @@ import { getProfile, type Profile } from "@/lib/api/profiles"
 import type { NotificationSetting, UserSettings } from "@/lib/api/settings"
 import type { JoinedServer, Server } from "@/lib/api/servers"
 import { toChatMessage, type ChatMessage, type MessagePage } from "@/lib/messages/types"
-import { removeFromPages, upsertIntoPages } from "@/lib/messages/feed"
+import { patchInPages, removeFromPages, upsertIntoPages } from "@/lib/messages/feed"
 import { indexPrefs, shouldNotify } from "@/lib/notifications"
 import { qk } from "@/lib/queries/keys"
 import { useTypingStore } from "@/lib/stores/typing-store"
@@ -135,6 +135,20 @@ export function onChannelChange(ctx: DbContext, change: Change<Channel>) {
     return
   }
   const channel = change.new
+  if (channel.type === "thread") {
+    if (change.eventType === "INSERT" && channel.source_message_id && channel.parent_id) {
+      const sourceId = channel.source_message_id
+      updatePages(ctx, channel.parent_id, (pages) =>
+        patchInPages(pages, sourceId, (m) => ({
+          ...m,
+          thread: m.thread ?? { id: channel.id, name: channel.name ?? "Thread", message_count: 0, last_message_at: null },
+        }))
+      )
+    }
+    if (channel.parent_id) void ctx.queryClient.invalidateQueries({ queryKey: qk.threads(channel.parent_id) })
+    ctx.queryClient.setQueryData(qk.thread(channel.id), channel)
+    return
+  }
   if (!channel.server_id) {
     // DM/group DM changes (renames, new owner): refresh the DM list.
     void ctx.queryClient.invalidateQueries({ queryKey: qk.dms(ctx.userId) })
@@ -184,6 +198,28 @@ function updatePages(ctx: DbContext, channelId: string, fn: (pages: MessagePage[
   )
 }
 
+/** A new message in a thread updates the "N Messages" chip on the message that started it. */
+function bumpThreadSummary(ctx: DbContext, message: ChatMessage) {
+  for (const [key, data] of ctx.queryClient.getQueriesData<Pages>({ queryKey: ["messages"] })) {
+    const hit = data?.pages.some((p) => p.messages.some((m) => m.thread?.id === message.channel_id))
+    if (!hit || !data) continue
+    ctx.queryClient.setQueryData<Pages>(key, {
+      ...data,
+      pages: data.pages.map((p) => ({
+        ...p,
+        messages: p.messages.map((m) =>
+          m.thread?.id === message.channel_id
+            ? {
+                ...m,
+                thread: { ...m.thread, message_count: m.thread.message_count + 1, last_message_at: message.created_at },
+              }
+            : m
+        ),
+      })),
+    })
+  }
+}
+
 /** True when the channel is one of the user's DMs (or an unknown non-server channel). */
 function isDmChannel(ctx: DbContext, channelId: string): boolean {
   if (ctx.queryClient.getQueryData<DmChannel[]>(qk.dms(ctx.userId))?.some((dm) => dm.id === channelId)) return true
@@ -227,6 +263,11 @@ export function onMessageChange(ctx: DbContext, change: Change<Tables<"messages"
 
   const message = toChatMessage(change.new)
   updatePages(ctx, message.channel_id, (pages) => upsertIntoPages(pages, message))
+  if (change.eventType === "UPDATE") {
+    // UPDATE events carry no old row, so any edit may be a pin change. Only an open pins list refetches.
+    void ctx.queryClient.invalidateQueries({ queryKey: qk.pins(message.channel_id), refetchType: "active" })
+  }
+  if (change.eventType === "INSERT") bumpThreadSummary(ctx, message)
   if (ctx.queryClient.getQueryData(qk.message(message.id)) !== undefined) {
     ctx.queryClient.setQueryData(qk.message(message.id), message)
   }
@@ -308,4 +349,39 @@ export function onFriendshipChange(ctx: DbContext) {
 export function onRecipientChange(ctx: DbContext) {
   void ctx.queryClient.invalidateQueries({ queryKey: qk.dms(ctx.userId) })
   void ctx.queryClient.invalidateQueries({ queryKey: qk.unreadState(ctx.userId) })
+}
+
+// ---------------------------------------------------------------------------
+// Reactions
+// ---------------------------------------------------------------------------
+
+export function onReactionChange(ctx: DbContext, change: Change<Tables<"reactions">>) {
+  if (change.eventType === "DELETE") {
+    const id = change.old.id
+    if (!id) return
+    for (const [key, data] of ctx.queryClient.getQueriesData<Pages>({ queryKey: ["messages"] })) {
+      if (!data?.pages.some((p) => p.messages.some((m) => m.reactions?.some((r) => r.id === id)))) continue
+      ctx.queryClient.setQueryData<Pages>(key, {
+        ...data,
+        pages: data.pages.map((p) => ({
+          ...p,
+          messages: p.messages.map((m) =>
+            m.reactions?.some((r) => r.id === id) ? { ...m, reactions: m.reactions.filter((r) => r.id !== id) } : m
+          ),
+        })),
+      })
+    }
+    return
+  }
+  if (change.eventType !== "INSERT") return
+  const row = change.new
+  updatePages(ctx, row.channel_id, (pages) =>
+    patchInPages(pages, row.message_id, (m) => {
+      const others = (m.reactions ?? []).filter(
+        // Replace our own optimistic copy (local id) with the real row.
+        (r) => r.id !== row.id && !(r.user_id === row.user_id && r.emoji === row.emoji)
+      )
+      return { ...m, reactions: [...others, { id: row.id, user_id: row.user_id, emoji: row.emoji }] }
+    })
+  )
 }

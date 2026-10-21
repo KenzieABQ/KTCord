@@ -16,4 +16,8 @@ export const qk = {
   notificationSettings: (userId: string) => ["notification-settings", userId] as const,
   friendships: (userId: string) => ["friendships", userId] as const,
   dms: (userId: string) => ["dms", userId] as const,
+  pins: (channelId: string) => ["pins", channelId] as const,
+  threads: (channelId: string) => ["threads", channelId] as const,
+  thread: (threadId: string) => ["thread", threadId] as const,
+  search: (scope: string, query: string) => ["search", scope, query] as const,
 }

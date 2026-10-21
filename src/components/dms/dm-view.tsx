@@ -5,10 +5,14 @@ import { useParams, useRouter } from "next/navigation"
 import { useCallback, useEffect, useRef, useState } from "react"
 import { toast } from "sonner"
 
+import { PinsPopover } from "@/components/chat/channel-popovers"
+import { MobileSearchButton } from "@/components/chat/channel-view"
 import { DmChatProvider } from "@/components/chat/chat-context"
 import { Composer } from "@/components/chat/composer"
 import { HeaderButton } from "@/components/chat/header-button"
+import { ChatDropZone } from "@/components/chat/drop-zone"
 import { MessageFeed, type MessageFeedHandle } from "@/components/chat/message-feed"
+import { ChannelSidePanel, HeaderSearch } from "@/components/chat/side-panel"
 import { MessageFeedSkeleton } from "@/components/layout/skeletons"
 import { ViewHeader } from "@/components/layout/view-header"
 import { ProfileCard } from "@/components/profile/profile-card"
@@ -191,65 +195,71 @@ function DmView({ dm, initialJumpId }: { dm: DmChannel; initialJumpId?: string }
   const otherStatus = usePresenceStatus(other?.user_id)
   const desktop = breakpoint === "desktop"
 
-  return (
-    <div className="flex min-w-0 flex-1">
-      <section className="flex min-w-0 flex-1 flex-col">
-        <ViewHeader
-          actions={
-            <>
-              <HeaderButton
-                label={isGroup ? "Add Friends to DM" : "Start a Group DM"}
-                onClick={() =>
-                  openDialog(
-                    isGroup
-                      ? { kind: "create-dm", addToChannelId: dm.id }
-                      : { kind: "create-dm", preselect: other ? [other.user_id] : [] }
-                  )
-                }
-              >
-                <UserPlusIcon className="size-5" />
-              </HeaderButton>
-              <HeaderButton
-                label={isGroup ? "Show Member List" : "Show User Profile"}
-                active={desktop && panelVisible}
-                onClick={() => (desktop ? toggleMemberList() : setSheetOpen(true))}
-              >
-                {isGroup ? <UsersIcon className="size-5" /> : <UserSquareIcon className="size-5" />}
-              </HeaderButton>
-            </>
-          }
-        >
-          <DmAvatar dm={dm} className="size-6" surface="chat" />
-          {isGroup ? (
-            <GroupName dm={dm} />
-          ) : (
-            <>
-              <h1 className="truncate font-semibold text-header">{dmTitle(dm, userId)}</h1>
-              <span className="hidden text-sm text-muted-foreground sm:inline">{STATUS_LABEL[otherStatus]}</span>
-            </>
-          )}
-        </ViewHeader>
-        <DmChatProvider key={dm.id} dm={dm} jumpToMessage={jumpToMessage}>
-          <MessageFeed ref={feed} channel={dm} welcome={<DmWelcome dm={dm} />} initialJumpId={initialJumpId} />
-          <Composer onSent={() => feed.current?.scrollToBottom()} />
-        </DmChatProvider>
-      </section>
+  const profilePanel = desktop ? (
+    panelVisible && (
+      <aside className="w-[340px] shrink-0 border-l border-border bg-sidebar">
+        <DmSidePanel dm={dm} />
+      </aside>
+    )
+  ) : (
+    <Sheet open={sheetOpen} onOpenChange={setSheetOpen}>
+      <SheetContent side="right" className="w-80 max-w-[90vw] gap-0 border-0 bg-sidebar p-0 sm:max-w-80">
+        <SheetTitle className="sr-only">{isGroup ? "Members" : "Profile"}</SheetTitle>
+        <DmSidePanel dm={dm} />
+      </SheetContent>
+    </Sheet>
+  )
 
-      {desktop ? (
-        panelVisible && (
-          <aside className="w-[340px] shrink-0 border-l border-border bg-sidebar">
-            <DmSidePanel dm={dm} />
-          </aside>
-        )
-      ) : (
-        <Sheet open={sheetOpen} onOpenChange={setSheetOpen}>
-          <SheetContent side="right" className="w-80 max-w-[90vw] gap-0 border-0 bg-sidebar p-0 sm:max-w-80">
-            <SheetTitle className="sr-only">{isGroup ? "Members" : "Profile"}</SheetTitle>
-            <DmSidePanel dm={dm} />
-          </SheetContent>
-        </Sheet>
-      )}
-    </div>
+  return (
+    <DmChatProvider key={dm.id} dm={dm} jumpToMessage={jumpToMessage}>
+      <div className="flex min-w-0 flex-1">
+        <section className="flex min-w-0 flex-1 flex-col">
+          <ViewHeader
+            actions={
+              <>
+                <PinsPopover />
+                <HeaderButton
+                  label={isGroup ? "Add Friends to DM" : "Start a Group DM"}
+                  onClick={() =>
+                    openDialog(
+                      isGroup
+                        ? { kind: "create-dm", addToChannelId: dm.id }
+                        : { kind: "create-dm", preselect: other ? [other.user_id] : [] }
+                    )
+                  }
+                >
+                  <UserPlusIcon className="size-5" />
+                </HeaderButton>
+                <HeaderButton
+                  label={isGroup ? "Show Member List" : "Show User Profile"}
+                  active={desktop && panelVisible}
+                  onClick={() => (desktop ? toggleMemberList() : setSheetOpen(true))}
+                >
+                  {isGroup ? <UsersIcon className="size-5" /> : <UserSquareIcon className="size-5" />}
+                </HeaderButton>
+                <HeaderSearch className="ml-1 hidden lg:block" />
+                <MobileSearchButton />
+              </>
+            }
+          >
+            <DmAvatar dm={dm} className="size-6" surface="chat" />
+            {isGroup ? (
+              <GroupName dm={dm} />
+            ) : (
+              <>
+                <h1 className="truncate font-semibold text-header">{dmTitle(dm, userId)}</h1>
+                <span className="hidden text-sm text-muted-foreground sm:inline">{STATUS_LABEL[otherStatus]}</span>
+              </>
+            )}
+          </ViewHeader>
+          <ChatDropZone channelId={dm.id} label={isGroup ? dmTitle(dm, userId) : `@${dmTitle(dm, userId)}`} enabled className="flex min-h-0 flex-1 flex-col">
+            <MessageFeed ref={feed} channel={dm} welcome={<DmWelcome dm={dm} />} initialJumpId={initialJumpId} />
+            <Composer onSent={() => feed.current?.scrollToBottom()} />
+          </ChatDropZone>
+        </section>
+        <ChannelSidePanel fallback={profilePanel} />
+      </div>
+    </DmChatProvider>
   )
 }
 

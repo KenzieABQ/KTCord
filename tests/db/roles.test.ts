@@ -133,7 +133,11 @@ describe.skipIf(!dbTestsEnabled)("roles and moderation (RLS)", () => {
     })
     expect(sendError?.message).toMatch(/timed out/)
 
-    await mod.client.rpc("timeout_member", { p_server: serverId, p_user: member.id, p_until: null })
+    await mod.client.rpc("timeout_member", {
+      p_server: serverId,
+      p_user: member.id,
+      p_until: new Date(0).toISOString(), // any past time lifts the timeout
+    })
     const { error: afterLift } = await member.client.rpc("send_message", {
       p_id: randomUUID(),
       p_channel: generalId,
