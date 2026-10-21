@@ -38,8 +38,10 @@ export function usePresenceSync() {
 
     void supabase.realtime.setAuth().then(() => {
       if (cancelled) return
+      // A unique key per tab: tabs sharing a key drop each other when one closes.
+      // The store groups metas by user_id.
       channel = supabase.channel("presence:global", {
-        config: { private: true, presence: { key: userId } },
+        config: { private: true, presence: { key: crypto.randomUUID() } },
       })
       channel
         .on("presence", { event: "sync" }, () => {

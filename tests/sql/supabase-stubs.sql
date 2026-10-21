@@ -56,6 +56,7 @@ create table realtime.messages (
 );
 alter table realtime.messages enable row level security;
 grant all on realtime.messages to anon, authenticated;
+grant usage on sequence realtime.messages_id_seq to anon, authenticated;
 
 create function realtime.topic() returns text
 language sql stable

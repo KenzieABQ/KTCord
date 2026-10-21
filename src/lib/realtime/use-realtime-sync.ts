@@ -12,6 +12,7 @@ import { useMySettings, useNotificationSettings } from "@/lib/queries/settings"
 import { useDms } from "@/lib/queries/social"
 import { usePresenceSync } from "@/lib/realtime/use-presence"
 import { useUserId } from "@/lib/stores/auth-store"
+import { useVoiceStore } from "@/lib/stores/voice-store"
 import { getSupabase } from "@/lib/supabase/client"
 
 import {
@@ -69,6 +70,8 @@ export function useRealtimeSync() {
       queryClient,
       userId,
       onServerLost: (server) => {
+        const voice = useVoiceStore.getState()
+        if (voice.connection?.serverId === server.id) voice.leave()
         if (window.location.pathname.startsWith(`/channels/${server.id}`)) {
           router.replace("/channels/me")
         }

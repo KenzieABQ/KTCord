@@ -4,6 +4,7 @@ import { HashIcon, SearchIcon, UsersIcon, Volume2Icon } from "lucide-react"
 import { useCallback, useEffect, useRef } from "react"
 
 import { ViewHeader } from "@/components/layout/view-header"
+import { VoiceChannelView } from "@/components/voice/voice-channel-view"
 import { Popover, PopoverContent, PopoverTrigger } from "@/components/ui/popover"
 import { MemberPanel, useToggleMembers } from "@/components/members/member-panel"
 import { useBreakpoint } from "@/hooks/use-breakpoint"
@@ -156,14 +157,7 @@ export function ChannelView({
         <ViewHeader actions={<MembersButton />}>
           <ChannelTitle channel={channel} />
         </ViewHeader>
-        <div className="flex flex-1 flex-col items-center justify-center gap-3 bg-rail p-6 text-center">
-          <Volume2Icon className="size-12 text-muted-foreground" />
-          <h2 className="text-2xl font-bold text-header">{channel.name}</h2>
-          <p className="max-w-sm text-muted-foreground">
-            Voice channels come online in a later milestone. For now this is where the people
-            connected here will show up.
-          </p>
-        </div>
+        <VoiceChannelView serverId={serverId} channel={channel} />
       </section>
       <MemberPanel serverId={serverId} />
     </div>

@@ -6,6 +6,7 @@ import { useEffect, useRef, type ReactNode } from "react"
 import { composerInputId, focusComposer } from "@/components/chat/composer"
 import { ServerSidebar } from "@/components/servers/server-sidebar"
 import { Sheet, SheetContent, SheetTitle } from "@/components/ui/sheet"
+import { VoicePanel } from "@/components/voice/voice-panel"
 import { useBreakpoint } from "@/hooks/use-breakpoint"
 import { useGlobalShortcuts } from "@/hooks/use-global-shortcuts"
 import { useSwipe } from "@/hooks/use-swipe"
@@ -31,6 +32,7 @@ function Navigation() {
         ) : (
           <HomeSidebar />
         )}
+        <VoicePanel />
         <UserPanel />
       </aside>
     </div>

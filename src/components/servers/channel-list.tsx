@@ -42,6 +42,8 @@ import {
   ContextMenuTrigger,
 } from "@/components/ui/context-menu"
 import { Tooltip, TooltipContent, TooltipTrigger } from "@/components/ui/tooltip"
+import { useJoinVoice } from "@/components/voice/use-join-voice"
+import { VoiceOccupants } from "@/components/voice/voice-occupants"
 import type { Channel } from "@/lib/api/channels"
 import { errorMessage } from "@/lib/api/errors"
 import {
@@ -56,6 +58,7 @@ import { useReorderChannels } from "@/lib/queries/servers"
 import { useNotificationPrefs } from "@/lib/queries/settings"
 import { useUiStore } from "@/lib/stores/ui-store"
 import { useChannelUnread } from "@/lib/stores/unread-store"
+import { useVoiceStore, useWatchVoiceChannels } from "@/lib/stores/voice-store"
 
 import { ChannelNotificationItems } from "./notification-menu-items"
 import { cn } from "@/lib/utils"
@@ -145,12 +148,17 @@ function ChannelRow({
   const unread = rawUnread && !active && !muted
   const Icon = channel.type === "voice" ? Volume2Icon : HashIcon
   const href = `/channels/${serverId}/${channel.id}`
+  const { join } = useJoinVoice(serverId)
+  const connectedHere = useVoiceStore((s) => s.connection?.channelId === channel.id)
 
   return (
     <ContextMenu>
       <ContextMenuTrigger asChild>
         <Link
           href={href}
+          onClick={() => {
+            if (channel.type === "voice" && !connectedHere) join(channel.id)
+          }}
           aria-current={active ? "page" : undefined}
           className={cn(
             "group relative mx-2 flex h-8 items-center gap-1.5 rounded-md px-2 transition-colors",
@@ -332,6 +340,7 @@ export function ChannelList({
   )
 
   const full = flattenTree(tree)
+  useWatchVoiceChannels(full.filter((c) => c.type === "voice").map((c) => c.id))
   const isHidden = (c: Channel) =>
     c.type !== "category" &&
     c.parent_id !== null &&
@@ -413,6 +422,7 @@ export function ChannelList({
                     canInvite={canInvite}
                     nested={channel.parent_id !== null}
                   />
+                  {channel.type === "voice" && <VoiceOccupants serverId={serverId} channelId={channel.id} />}
                 </div>
               )}
             </Sortable>

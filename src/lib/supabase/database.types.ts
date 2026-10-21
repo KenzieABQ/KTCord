@@ -808,6 +808,10 @@ export type Database = {
         Args: { p_channel: string; p_user?: string }
         Returns: boolean
       }
+      can_join_voice: {
+        Args: { p_channel: string; p_user?: string }
+        Returns: boolean
+      }
       can_send: {
         Args: { p_channel: string; p_user?: string }
         Returns: boolean

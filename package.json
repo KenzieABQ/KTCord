@@ -14,7 +14,8 @@
     "db:migrate": "node scripts/db-migrate.mjs",
     "test:db": "RUN_DB_TESTS=1 vitest run tests/db",
     "seed": "tsx scripts/seed-dev.ts",
-    "bot": "tsx scripts/bot.ts"
+    "bot": "tsx scripts/bot.ts",
+    "voice-bot": "tsx scripts/voice-bot.ts"
   },
   "dependencies": {
     "@dnd-kit/core": "^6.3.1",

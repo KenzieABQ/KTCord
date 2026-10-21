@@ -9,6 +9,7 @@ import { Toaster } from "@/components/ui/sonner"
 import { TooltipProvider } from "@/components/ui/tooltip"
 import { ApiError } from "@/lib/api/errors"
 import { useAuthStore } from "@/lib/stores/auth-store"
+import { useVoiceStore } from "@/lib/stores/voice-store"
 import { getSupabase } from "@/lib/supabase/client"
 import { isSupabaseConfigured } from "@/lib/supabase/env"
 
@@ -38,7 +39,10 @@ function AuthListener({ queryClient }: { queryClient: QueryClient }) {
     }
     const { data } = getSupabase().auth.onAuthStateChange((event, session) => {
       setSession(session)
-      if (event === "SIGNED_OUT") queryClient.clear()
+      if (event === "SIGNED_OUT") {
+        queryClient.clear()
+        useVoiceStore.getState().leave()
+      }
     })
     return () => data.subscription.unsubscribe()
   }, [queryClient, setSession])
