@@ -195,7 +195,16 @@ export function MessageFeed({
     [fetchNextPage, highlight]
   )
 
+  // After sending, the new message renders (and the composer shrinks back) a frame or two
+  // later, so stay pinned to the bottom until the list height settles.
+  const pinUntil = useRef(0)
+  const pinToBottom = useCallback(() => {
+    if (Date.now() < pinUntil.current) {
+      virtuoso.current?.scrollToIndex({ index: "LAST", align: "end", behavior: "auto" })
+    }
+  }, [])
   const scrollToBottom = useCallback(() => {
+    pinUntil.current = Date.now() + 1000
     virtuoso.current?.scrollToIndex({ index: "LAST", align: "end", behavior: "auto" })
   }, [])
 
@@ -284,10 +293,13 @@ export function MessageFeed({
         increaseViewportBy={{ top: 600, bottom: 200 }}
         atBottomThreshold={80}
         atBottomStateChange={setAtBottom}
+        totalListHeightChanged={pinToBottom}
+        // Jump (never smooth-scroll) to new messages: a smooth scroll aims at the bottom as it
+        // was before the new message was measured, and stops short of it.
         followOutput={(isAtBottom) => {
-          const last = messagesRef.current.at(-1)
+          const last = messages.at(-1)
           if (last?.author_id === userId && last.status === "sending") return "auto"
-          return isAtBottom ? (reducedMotion ? "auto" : "smooth") : false
+          return isAtBottom ? "auto" : false
         }}
         rangeChanged={({ startIndex, endIndex }) => {
           if (dividerIndex === -1) return
@@ -299,8 +311,10 @@ export function MessageFeed({
           const prev = messages[i - 1]
           const newDay = startsNewDay(prev, message)
           const isDivider = i === dividerIndex
+          // flow-root keeps the messages' top margins inside the row Virtuoso measures; a margin
+          // that collapses out of it goes uncounted, and scroll-to-bottom then lands short.
           return (
-            <div>
+            <div className="flow-root">
               {newDay && <DayDivider iso={message.created_at} />}
               {isDivider && <NewMessagesDivider />}
               <MessageItem

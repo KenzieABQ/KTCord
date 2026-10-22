@@ -33,6 +33,7 @@ revoke execute on function public.can_join_voice(uuid, uuid) from public, anon;
 grant execute on function public.can_join_voice(uuid, uuid) to authenticated, service_role;
 
 -- Anyone who can see a voice channel sees who is in it.
+drop policy if exists "channel viewers watch voice topics" on realtime.messages;
 create policy "channel viewers watch voice topics"
   on realtime.messages for select to authenticated
   using (
@@ -41,6 +42,7 @@ create policy "channel viewers watch voice topics"
   );
 
 -- Only people allowed to connect may announce themselves (presence only, no broadcasts).
+drop policy if exists "voice members announce on voice topics" on realtime.messages;
 create policy "voice members announce on voice topics"
   on realtime.messages for insert to authenticated
   with check (
