@@ -19,19 +19,25 @@ function loadImage(src: string): Promise<HTMLImageElement> {
 }
 
 /** Crops `area` out of the image and scales it to a `size`×`size` WebP. */
-export async function cropToSquare(
+export function cropToSquare(src: string, area: PixelArea, size = 256): Promise<Blob> {
+  return cropToSize(src, area, size, size)
+}
+
+/** Crops `area` out of the image and scales it to a `width`×`height` WebP. */
+export async function cropToSize(
   src: string,
   area: PixelArea,
-  size = 256
+  width: number,
+  height: number
 ): Promise<Blob> {
   const image = await loadImage(src)
   const canvas = document.createElement("canvas")
-  canvas.width = size
-  canvas.height = size
+  canvas.width = width
+  canvas.height = height
   const ctx = canvas.getContext("2d")
   if (!ctx) throw new Error("Your browser can't process images.")
   ctx.imageSmoothingQuality = "high"
-  ctx.drawImage(image, area.x, area.y, area.width, area.height, 0, 0, size, size)
+  ctx.drawImage(image, area.x, area.y, area.width, area.height, 0, 0, width, height)
 
   return new Promise((resolve, reject) =>
     canvas.toBlob(

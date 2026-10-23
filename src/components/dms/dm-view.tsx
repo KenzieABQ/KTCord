@@ -15,7 +15,7 @@ import { MessageFeed, type MessageFeedHandle } from "@/components/chat/message-f
 import { ChannelSidePanel, HeaderSearch } from "@/components/chat/side-panel"
 import { MessageFeedSkeleton } from "@/components/layout/skeletons"
 import { ViewHeader } from "@/components/layout/view-header"
-import { ProfileCard } from "@/components/profile/profile-card"
+import { ProfileCard, profileThemeFields } from "@/components/profile/profile-card"
 import { STATUS_LABEL } from "@/components/profile/status-dot"
 import { UserAvatar } from "@/components/profile/user-avatar"
 import { UserPopover } from "@/components/profile/user-popover"
@@ -121,6 +121,7 @@ function DmSidePanel({ dm }: { dm: DmChannel }) {
             displayName: displayNameOf(other.profile),
             avatarUrl: other.profile.avatar_url,
             bannerColor: other.profile.banner_color,
+            ...profileThemeFields(other.profile),
             bio: other.profile.bio,
             createdAt: other.profile.created_at,
             customStatus: custom ? [custom.emoji, custom.text].filter(Boolean).join(" ") : null,

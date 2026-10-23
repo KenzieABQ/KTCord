@@ -178,6 +178,44 @@
   --sidebar-ring: var(--brand);
 }
 
+/*
+ * Dark palettes (Settings → Appearance), like Discord's. Ash is the .dark default above;
+ * Dark is a shade deeper; Onyx is true black for OLED screens.
+ */
+.dark[data-dark-palette="dark"] {
+  --rail: #121214;
+  --rail-item: #232428;
+  --sidebar: #18191c;
+  --chat: #1e1f22;
+  --composer: #26272b;
+  --floating: #0b0c0e;
+  --card: #18191c;
+  --muted: #18191c;
+  --input: #111214;
+  --item-hover: rgb(255 255 255 / 0.05);
+  --item-selected: rgb(255 255 255 / 0.09);
+  --message-hover: rgb(0 0 0 / 0.12);
+  --border: rgb(255 255 255 / 0.06);
+}
+
+.dark[data-dark-palette="onyx"] {
+  --rail: #000000;
+  --rail-item: #141416;
+  --sidebar: #070708;
+  --chat: #000000;
+  --composer: #111113;
+  --floating: #0b0b0c;
+  --card: #0a0a0b;
+  --muted: #0a0a0b;
+  --secondary: #242428;
+  --input: #0d0d0f;
+  --item-hover: rgb(255 255 255 / 0.06);
+  --item-selected: rgb(255 255 255 / 0.1);
+  --message-hover: rgb(255 255 255 / 0.03);
+  --border: rgb(255 255 255 / 0.08);
+  --sidebar-border: rgb(255 255 255 / 0.06);
+}
+
 @layer base {
   * {
     @apply border-border outline-ring/50;
@@ -196,8 +234,9 @@
   }
   html {
     @apply font-sans;
-    /* Settings → Appearance → Chat font scaling. */
+    /* Settings → Appearance → Chat font scaling and message group spacing. */
     --chat-font-size: 16px;
+    --group-spacing: 16px;
   }
 }
 

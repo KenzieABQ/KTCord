@@ -41,10 +41,18 @@ export const registerSchema = z.object({
   password: passwordSchema,
 })
 
+export const pronounsSchema = z.string().trim().max(40, "Must be 40 characters or fewer")
+
+/** An optional theme color: "" means no profile theme. */
+const themeColorSchema = z.union([z.literal(""), hexColorSchema])
+
 export const profileSchema = z.object({
   displayName: displayNameSchema,
   username: usernameSchema,
+  pronouns: pronounsSchema,
   bannerColor: hexColorSchema,
+  themePrimary: themeColorSchema,
+  themeAccent: themeColorSchema,
   bio: bioSchema,
 })
 

@@ -7,21 +7,15 @@ import { toast } from "sonner"
 
 import { UsernameStatus } from "@/components/auth/username-status"
 import { Button } from "@/components/ui/button"
-import {
-  Field,
-  FieldDescription,
-  FieldError,
-  FieldGroup,
-  FieldLabel,
-} from "@/components/ui/field"
+import { Field, FieldDescription, FieldError, FieldGroup, FieldLabel } from "@/components/ui/field"
 import { Input } from "@/components/ui/input"
 import { Textarea } from "@/components/ui/textarea"
 import { useUsernameAvailability } from "@/hooks/use-username-availability"
 import { errorMessage } from "@/lib/api/errors"
 import type { Profile } from "@/lib/api/profiles"
-import { uploadAvatar } from "@/lib/api/storage"
+import { uploadAvatar, uploadBanner } from "@/lib/api/storage"
 import { readFileAsDataUrl } from "@/lib/image"
-import { BANNER_PRESETS, displayNameOf } from "@/lib/profile-display"
+import { BANNER_PRESETS, displayNameOf, THEME_PRESETS } from "@/lib/profile-display"
 import { useUpdateMyProfile } from "@/lib/queries/profiles"
 import { cn } from "@/lib/utils"
 import { profileSchema, type ProfileValues } from "@/lib/validation"
@@ -29,13 +23,44 @@ import { profileSchema, type ProfileValues } from "@/lib/validation"
 import { AvatarCropDialog } from "./avatar-crop-dialog"
 import { ProfileCard } from "./profile-card"
 
-type AvatarChange =
-  | { kind: "unchanged" }
-  | { kind: "new"; blob: Blob; previewUrl: string }
-  | { kind: "removed" }
+type ImageChange = { kind: "unchanged" } | { kind: "new"; blob: Blob; previewUrl: string } | { kind: "removed" }
 
 const MAX_SOURCE_BYTES = 10 * 1024 * 1024
 const labelClass = "text-xs font-bold tracking-wide uppercase"
+const BANNER_SIZE = { width: 960, height: 340 }
+
+function valuesOf(profile: Profile): ProfileValues {
+  return {
+    displayName: profile.display_name ?? "",
+    username: profile.username,
+    pronouns: profile.pronouns ?? "",
+    bannerColor: profile.banner_color,
+    themePrimary: profile.theme_primary ?? "",
+    themeAccent: profile.theme_accent ?? "",
+    bio: profile.bio,
+  }
+}
+
+/** A swatch that opens the native color picker. */
+function ColorPicker({ label, value, onChange }: { label: string; value: string; onChange: (hex: string) => void }) {
+  return (
+    <label className="flex flex-col items-center gap-1.5 text-xs text-muted-foreground">
+      <span
+        className="relative size-16 cursor-pointer overflow-hidden rounded-lg border border-border shadow-inner"
+        style={{ backgroundColor: value }}
+      >
+        <input
+          type="color"
+          aria-label={label}
+          className="absolute inset-0 cursor-pointer opacity-0"
+          value={value}
+          onChange={(e) => onChange(e.target.value)}
+        />
+      </span>
+      {label}
+    </label>
+  )
+}
 
 export function ProfileEditor({
   profile,
@@ -52,35 +77,34 @@ export function ProfileEditor({
   onSaved?: (profile: Profile) => void
 }) {
   const updateProfile = useUpdateMyProfile()
-  const fileInput = useRef<HTMLInputElement>(null)
-  const [cropSrc, setCropSrc] = useState<string | null>(null)
-  const [avatar, setAvatar] = useState<AvatarChange>({ kind: "unchanged" })
+  const avatarInput = useRef<HTMLInputElement>(null)
+  const bannerInput = useRef<HTMLInputElement>(null)
+  const [crop, setCrop] = useState<{ src: string; target: "avatar" | "banner" } | null>(null)
+  const [avatar, setAvatar] = useState<ImageChange>({ kind: "unchanged" })
+  const [banner, setBanner] = useState<ImageChange>({ kind: "unchanged" })
 
   const form = useForm<ProfileValues>({
     resolver: zodResolver(profileSchema),
-    defaultValues: {
-      displayName: profile.display_name ?? "",
-      username: profile.username,
-      bannerColor: profile.banner_color,
-      bio: profile.bio,
-    },
+    defaultValues: valuesOf(profile),
     reValidateMode: "onChange",
   })
   const { errors, isSubmitting, isDirty } = form.formState
-  const [displayName, username, bannerColor, bio] = useWatch({
-    control: form.control,
-    name: ["displayName", "username", "bannerColor", "bio"],
-  })
-  const values = { displayName, username, bannerColor, bio }
+  const values = useWatch({ control: form.control }) as ProfileValues
   const availability = useUsernameAvailability(values.username, profile.username)
+  const themed = Boolean(values.themePrimary && values.themeAccent)
+  const set = (name: keyof ProfileValues, value: string) => form.setValue(name, value, { shouldDirty: true })
 
   // Release preview object URLs when they're replaced or the editor unmounts.
   useEffect(() => {
     if (avatar.kind !== "new") return
     return () => URL.revokeObjectURL(avatar.previewUrl)
   }, [avatar])
+  useEffect(() => {
+    if (banner.kind !== "new") return
+    return () => URL.revokeObjectURL(banner.previewUrl)
+  }, [banner])
 
-  async function onPickFile(file: File | undefined) {
+  async function onPickFile(file: File | undefined, target: "avatar" | "banner") {
     if (!file) return
     if (!file.type.startsWith("image/")) {
       toast.error("Pick an image file.")
@@ -90,7 +114,7 @@ export function ProfileEditor({
       toast.error("That image is too large (max 10 MB).")
       return
     }
-    setCropSrc(await readFileAsDataUrl(file))
+    setCrop({ src: await readFileAsDataUrl(file), target })
   }
 
   async function onSubmit(next: ProfileValues) {
@@ -102,22 +126,26 @@ export function ProfileEditor({
       let avatarUrl = profile.avatar_url
       if (avatar.kind === "new") avatarUrl = await uploadAvatar(profile.id, avatar.blob)
       if (avatar.kind === "removed") avatarUrl = null
+      let bannerUrl = profile.banner_url
+      if (banner.kind === "new") bannerUrl = await uploadBanner(profile.id, banner.blob)
+      if (banner.kind === "removed") bannerUrl = null
+      const theme = next.themePrimary && next.themeAccent
 
       const saved = await updateProfile.mutateAsync({
         display_name: next.displayName || null,
         username: next.username,
+        pronouns: next.pronouns || null,
         banner_color: next.bannerColor,
+        banner_url: bannerUrl,
+        theme_primary: theme ? next.themePrimary : null,
+        theme_accent: theme ? next.themeAccent : null,
         bio: next.bio,
         avatar_url: avatarUrl,
         ...(markOnboarded && { onboarded_at: new Date().toISOString() }),
       })
       setAvatar({ kind: "unchanged" })
-      form.reset({
-        displayName: saved.display_name ?? "",
-        username: saved.username,
-        bannerColor: saved.banner_color,
-        bio: saved.bio,
-      })
+      setBanner({ kind: "unchanged" })
+      form.reset(valuesOf(saved))
       if (!markOnboarded) toast.success("Profile saved.")
       onSaved?.(saved)
     } catch (error) {
@@ -127,16 +155,14 @@ export function ProfileEditor({
 
   const previewAvatar =
     avatar.kind === "new" ? avatar.previewUrl : avatar.kind === "removed" ? null : profile.avatar_url
-  const hasAvatar = Boolean(previewAvatar)
-  const dirty = isDirty || avatar.kind !== "unchanged"
+  const previewBanner =
+    banner.kind === "new" ? banner.previewUrl : banner.kind === "removed" ? null : profile.banner_url
+  const dirty = isDirty || avatar.kind !== "unchanged" || banner.kind !== "unchanged"
+  const validHex = (v: string | undefined) => Boolean(v && /^#[0-9a-f]{6}$/i.test(v))
 
   return (
-    <form
-      onSubmit={form.handleSubmit(onSubmit)}
-      noValidate
-      className="grid gap-8 md:grid-cols-[minmax(0,1fr)_300px]"
-    >
-      <FieldGroup className="gap-5">
+    <form onSubmit={form.handleSubmit(onSubmit)} noValidate className="grid gap-8 md:grid-cols-[minmax(0,1fr)_300px]">
+      <FieldGroup className="gap-6">
         <Field data-invalid={Boolean(errors.displayName)}>
           <FieldLabel htmlFor="displayName" className={labelClass}>
             Display Name
@@ -168,25 +194,66 @@ export function ProfileEditor({
           )}
         </Field>
 
+        <Field data-invalid={Boolean(errors.pronouns)}>
+          <FieldLabel htmlFor="pronouns" className={labelClass}>
+            Pronouns
+          </FieldLabel>
+          <Input
+            id="pronouns"
+            maxLength={40}
+            placeholder="Add your pronouns"
+            aria-invalid={Boolean(errors.pronouns)}
+            {...form.register("pronouns")}
+          />
+          <FieldError errors={[errors.pronouns]} />
+        </Field>
+
+        <div className="h-px bg-border" />
+
         <Field>
           <FieldLabel className={labelClass}>Avatar</FieldLabel>
           <div className="flex flex-wrap gap-2">
-            <Button type="button" onClick={() => fileInput.current?.click()}>
+            <Button type="button" onClick={() => avatarInput.current?.click()}>
               Change Avatar
             </Button>
-            {hasAvatar && (
+            {previewAvatar && (
               <Button type="button" variant="ghost" onClick={() => setAvatar({ kind: "removed" })}>
                 Remove Avatar
               </Button>
             )}
           </div>
           <input
-            ref={fileInput}
+            ref={avatarInput}
             type="file"
             accept="image/png,image/jpeg,image/webp,image/gif"
             className="hidden"
             onChange={(e) => {
-              void onPickFile(e.target.files?.[0])
+              void onPickFile(e.target.files?.[0], "avatar")
+              e.target.value = ""
+            }}
+          />
+        </Field>
+
+        <Field>
+          <FieldLabel className={labelClass}>Profile Banner</FieldLabel>
+          <FieldDescription>An image across the top of your profile. Without one, your banner color shows.</FieldDescription>
+          <div className="flex flex-wrap gap-2">
+            <Button type="button" onClick={() => bannerInput.current?.click()}>
+              {previewBanner ? "Change Banner" : "Upload Banner"}
+            </Button>
+            {previewBanner && (
+              <Button type="button" variant="ghost" onClick={() => setBanner({ kind: "removed" })}>
+                Remove Banner
+              </Button>
+            )}
+          </div>
+          <input
+            ref={bannerInput}
+            type="file"
+            accept="image/png,image/jpeg,image/webp,image/gif"
+            className="hidden"
+            onChange={(e) => {
+              void onPickFile(e.target.files?.[0], "banner")
               e.target.value = ""
             }}
           />
@@ -200,11 +267,11 @@ export function ProfileEditor({
                 key={color}
                 type="button"
                 aria-label={`Banner color ${color}`}
-                aria-pressed={values.bannerColor.toLowerCase() === color}
-                onClick={() => form.setValue("bannerColor", color, { shouldDirty: true })}
+                aria-pressed={values.bannerColor?.toLowerCase() === color}
+                onClick={() => set("bannerColor", color)}
                 className={cn(
                   "size-8 rounded-md ring-offset-2 ring-offset-background transition-transform hover:scale-105",
-                  values.bannerColor.toLowerCase() === color && "ring-2 ring-foreground"
+                  values.bannerColor?.toLowerCase() === color && "ring-2 ring-foreground"
                 )}
                 style={{ backgroundColor: color }}
               />
@@ -216,14 +283,73 @@ export function ProfileEditor({
                 type="color"
                 className="absolute inset-0 cursor-pointer opacity-0"
                 value={values.bannerColor}
-                onChange={(e) =>
-                  form.setValue("bannerColor", e.target.value, { shouldDirty: true })
-                }
+                onChange={(e) => set("bannerColor", e.target.value)}
               />
             </label>
           </div>
           <FieldError errors={[errors.bannerColor]} />
         </Field>
+
+        <Field>
+          <FieldLabel className={labelClass}>Profile Theme</FieldLabel>
+          <FieldDescription>Two colors that wash across your whole profile card.</FieldDescription>
+          <div className="flex flex-wrap gap-2">
+            {THEME_PRESETS.map((preset) => {
+              const selected =
+                values.themePrimary?.toLowerCase() === preset.primary && values.themeAccent?.toLowerCase() === preset.accent
+              return (
+                <button
+                  key={preset.name}
+                  type="button"
+                  aria-label={`${preset.name} theme`}
+                  aria-pressed={selected}
+                  title={preset.name}
+                  onClick={() => {
+                    set("themePrimary", preset.primary)
+                    set("themeAccent", preset.accent)
+                  }}
+                  className={cn(
+                    "size-10 rounded-full ring-offset-2 ring-offset-background transition-transform hover:scale-105",
+                    selected && "ring-2 ring-foreground"
+                  )}
+                  style={{ background: `linear-gradient(180deg, ${preset.primary}, ${preset.accent})` }}
+                />
+              )
+            })}
+          </div>
+          <div className="mt-2 flex items-end gap-4">
+            <ColorPicker
+              label="Primary"
+              value={validHex(values.themePrimary) ? values.themePrimary : "#5865f2"}
+              onChange={(hex) => {
+                set("themePrimary", hex)
+                if (!values.themeAccent) set("themeAccent", "#1e1f22")
+              }}
+            />
+            <ColorPicker
+              label="Accent"
+              value={validHex(values.themeAccent) ? values.themeAccent : "#1e1f22"}
+              onChange={(hex) => {
+                set("themeAccent", hex)
+                if (!values.themePrimary) set("themePrimary", "#5865f2")
+              }}
+            />
+            {themed && (
+              <Button
+                type="button"
+                variant="ghost"
+                onClick={() => {
+                  set("themePrimary", "")
+                  set("themeAccent", "")
+                }}
+              >
+                Remove Theme
+              </Button>
+            )}
+          </div>
+        </Field>
+
+        <div className="h-px bg-border" />
 
         <Field data-invalid={Boolean(errors.bio)}>
           <FieldLabel htmlFor="bio" className={labelClass}>
@@ -238,9 +364,7 @@ export function ProfileEditor({
             aria-invalid={Boolean(errors.bio)}
             {...form.register("bio")}
           />
-          <FieldDescription className="text-right text-xs">
-            {values.bio.length}/190
-          </FieldDescription>
+          <FieldDescription className="text-right text-xs">{(values.bio ?? "").length}/190</FieldDescription>
           <FieldError errors={[errors.bio]} />
         </Field>
 
@@ -259,6 +383,7 @@ export function ProfileEditor({
               onClick={() => {
                 form.reset()
                 setAvatar({ kind: "unchanged" })
+                setBanner({ kind: "unchanged" })
               }}
             >
               Reset
@@ -275,27 +400,30 @@ export function ProfileEditor({
           profile={{
             id: profile.id,
             username: values.username,
-            displayName: displayNameOf({
-              display_name: values.displayName,
-              username: values.username,
-            }),
+            displayName: displayNameOf({ display_name: values.displayName, username: values.username }),
             avatarUrl: previewAvatar,
-            bannerColor: /^#[0-9a-f]{6}$/i.test(values.bannerColor)
-              ? values.bannerColor
-              : profile.banner_color,
-            bio: values.bio,
+            bannerColor: validHex(values.bannerColor) ? values.bannerColor : profile.banner_color,
+            bannerUrl: previewBanner,
+            themePrimary: themed && validHex(values.themePrimary) ? values.themePrimary : null,
+            themeAccent: themed && validHex(values.themeAccent) ? values.themeAccent : null,
+            pronouns: values.pronouns || null,
+            bio: values.bio ?? "",
             createdAt: profile.created_at,
           }}
         />
       </div>
 
       <AvatarCropDialog
-        src={cropSrc}
-        title="Edit avatar"
-        onCancel={() => setCropSrc(null)}
+        src={crop?.src ?? null}
+        title={crop?.target === "banner" ? "Edit banner" : "Edit avatar"}
+        output={crop?.target === "banner" ? BANNER_SIZE : undefined}
+        round={crop?.target !== "banner"}
+        onCancel={() => setCrop(null)}
         onApply={(blob) => {
-          setAvatar({ kind: "new", blob, previewUrl: URL.createObjectURL(blob) })
-          setCropSrc(null)
+          const change = { kind: "new" as const, blob, previewUrl: URL.createObjectURL(blob) }
+          if (crop?.target === "banner") setBanner(change)
+          else setAvatar(change)
+          setCrop(null)
         }}
       />
     </form>

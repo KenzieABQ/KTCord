@@ -32,7 +32,7 @@ export function SystemMessage({
     <div
       className={cn(
         "group relative flex items-center gap-4 py-0.5 pr-12 pl-[72px] text-[0.9375em] text-muted-foreground hover:bg-message-hover",
-        compact ? "mt-1.5" : "mt-[17px]"
+        compact ? "mt-1.5" : "mt-(--group-spacing)"
       )}
     >
       {message.type === "pin" ? (

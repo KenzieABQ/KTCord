@@ -41,6 +41,11 @@ export function uploadAvatar(userId: string, file: Blob) {
   return uploadPublicImage("avatars", userId, file)
 }
 
+/** Profile banners share the avatars bucket (the user's own folder). */
+export function uploadBanner(userId: string, file: Blob) {
+  return uploadPublicImage("avatars", userId, file)
+}
+
 export function uploadServerIcon(serverId: string, file: Blob) {
   return uploadPublicImage("server-icons", serverId, file)
 }

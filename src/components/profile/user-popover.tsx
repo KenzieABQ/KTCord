@@ -19,7 +19,7 @@ import { useUserId } from "@/lib/stores/auth-store"
 import { useComposerStore } from "@/lib/stores/composer-store"
 import { usePresenceStatus } from "@/lib/stores/presence-store"
 
-import { ProfileCard } from "./profile-card"
+import { ProfileCard, profileThemeFields } from "./profile-card"
 
 function PopoverBody({ userId, serverId, onDone }: { userId: string; serverId: string | null; onDone: () => void }) {
   const selfId = useUserId()
@@ -69,6 +69,7 @@ function PopoverBody({ userId, serverId, onDone }: { userId: string; serverId: s
         displayName: member ? memberDisplayName(member) : displayNameOf(profile),
         avatarUrl: profile.avatar_url,
         bannerColor: profile.banner_color,
+        ...profileThemeFields(profile),
         bio: profile.bio,
         createdAt: profile.created_at,
         customStatus: custom ? [custom.emoji, custom.text].filter(Boolean).join(" ") : null,

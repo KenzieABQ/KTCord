@@ -13,17 +13,24 @@ import {
   DialogTitle,
 } from "@/components/ui/dialog"
 import { Slider } from "@/components/ui/slider"
-import { cropToSquare } from "@/lib/image"
+import { cropToSize } from "@/lib/image"
 
-/** Square crop with a round mask, for avatars and server icons. */
+/**
+ * Crop an image before upload: square with a round mask for avatars and server icons by
+ * default, or a wide rectangle (`output` 960×340) for profile banners.
+ */
 export function AvatarCropDialog({
   src,
   title = "Edit image",
+  output = { width: 256, height: 256 },
+  round = true,
   onCancel,
   onApply,
 }: {
   src: string | null
   title?: string
+  output?: { width: number; height: number }
+  round?: boolean
   onCancel: () => void
   onApply: (blob: Blob) => void
 }) {
@@ -36,7 +43,7 @@ export function AvatarCropDialog({
     if (!src || !area) return
     setBusy(true)
     try {
-      onApply(await cropToSquare(src, area))
+      onApply(await cropToSize(src, area, output.width, output.height))
     } finally {
       setBusy(false)
     }
@@ -55,8 +62,8 @@ export function AvatarCropDialog({
               image={src}
               crop={crop}
               zoom={zoom}
-              aspect={1}
-              cropShape="round"
+              aspect={output.width / output.height}
+              cropShape={round ? "round" : "rect"}
               showGrid={false}
               onCropChange={setCrop}
               onZoomChange={setZoom}

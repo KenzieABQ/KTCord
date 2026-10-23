@@ -1,6 +1,7 @@
 import { format } from "date-fns"
-import type { ReactNode } from "react"
+import type { CSSProperties, ReactNode } from "react"
 
+import { themeIsLight } from "@/lib/profile-display"
 import { cn } from "@/lib/utils"
 
 import type { PresenceStatus } from "./status-dot"
@@ -12,14 +13,29 @@ export type ProfileCardData = {
   displayName: string
   avatarUrl: string | null
   bannerColor: string
+  bannerUrl?: string | null
+  /** Profile theme: the card is a gradient from primary (top) to accent (bottom). */
+  themePrimary?: string | null
+  themeAccent?: string | null
+  pronouns?: string | null
   bio: string
   createdAt?: string
   customStatus?: string | null
 }
 
+/** Text colors for a themed card, so names and sections stay readable on any gradient. */
+function themeVars(light: boolean): CSSProperties {
+  return (
+    light
+      ? { "--header": "#060607", "--foreground": "#2e3035", "--muted-foreground": "#4e5058" }
+      : { "--header": "#ffffff", "--foreground": "#dbdee1", "--muted-foreground": "#b5bac1" }
+  ) as CSSProperties
+}
+
 /**
  * The profile card body: banner, avatar, names, About Me and "member since".
- * Used for the live preview in the profile editor and, later, the user popout.
+ * Used by the user popout, the DM side panel and the profile editor's live preview.
+ * With a profile theme the whole card takes the user's two colors, as in Discord.
  */
 export function ProfileCard({
   profile,
@@ -33,11 +49,34 @@ export function ProfileCard({
   /** Extra sections, such as roles or actions. */
   children?: ReactNode
 }) {
+  const themed = Boolean(profile.themePrimary && profile.themeAccent)
+  const light = themed && themeIsLight(profile.themePrimary!, profile.themeAccent!)
+  const tall = themed || Boolean(profile.bannerUrl)
+
   return (
-    <div className={cn("w-full overflow-hidden rounded-lg bg-card shadow-lg", className)}>
-      <div className="h-[60px]" style={{ backgroundColor: profile.bannerColor }} />
-      <div className="relative px-4 pb-4">
-        <div className="absolute -top-10 left-4 rounded-full bg-card p-1.5">
+    <div
+      className={cn("w-full overflow-hidden rounded-lg bg-card shadow-lg", themed && "p-1", className)}
+      style={
+        themed
+          ? {
+              background: `linear-gradient(180deg, ${profile.themePrimary} 0%, ${profile.themeAccent} 100%)`,
+              ...themeVars(light),
+            }
+          : undefined
+      }
+    >
+      <div
+        className={cn("bg-cover bg-center", tall ? "h-[106px]" : "h-[60px]", themed && "rounded-t-md")}
+        style={{
+          backgroundColor: profile.bannerUrl ? undefined : themed ? profile.themePrimary! : profile.bannerColor,
+          backgroundImage: profile.bannerUrl ? `url("${profile.bannerUrl}")` : undefined,
+        }}
+      />
+      <div className={cn("relative px-4 pb-4", themed && (light ? "bg-white/45" : "bg-black/35"), themed && "rounded-b-md")}>
+        <div
+          className={cn("absolute -top-10 left-4 rounded-full p-1.5", themed ? "" : "bg-card")}
+          style={themed ? { backgroundColor: profile.themePrimary! } : undefined}
+        >
           <UserAvatar
             userId={profile.id}
             name={profile.displayName}
@@ -49,32 +88,32 @@ export function ProfileCard({
           />
         </div>
         <div className="pt-12">
-          <p className="truncate text-xl leading-tight font-bold text-header">
-            {profile.displayName}
+          <p className="truncate text-xl leading-tight font-bold text-header">{profile.displayName}</p>
+          <p className="truncate text-sm text-foreground">
+            {profile.username}
+            {profile.pronouns && <span className="text-muted-foreground"> • {profile.pronouns}</span>}
           </p>
-          <p className="truncate text-sm text-foreground">{profile.username}</p>
           {profile.customStatus && (
             <p className="mt-1 truncate text-sm text-muted-foreground">{profile.customStatus}</p>
           )}
         </div>
 
-        <div className="mt-3 space-y-3 rounded-md bg-floating/40 p-3 dark:bg-floating/60">
+        <div
+          className={cn(
+            "mt-3 space-y-3 rounded-md p-3",
+            themed ? (light ? "bg-white/50" : "bg-black/30") : "bg-floating/40 dark:bg-floating/60"
+          )}
+        >
           {profile.bio && (
             <section>
               <h3 className="text-xs font-bold tracking-wide text-header uppercase">About Me</h3>
-              <p className="mt-1 text-sm break-words whitespace-pre-wrap text-foreground">
-                {profile.bio}
-              </p>
+              <p className="mt-1 text-sm break-words whitespace-pre-wrap text-foreground">{profile.bio}</p>
             </section>
           )}
           {profile.createdAt && (
             <section>
-              <h3 className="text-xs font-bold tracking-wide text-header uppercase">
-                Member Since
-              </h3>
-              <p className="mt-1 text-sm text-foreground">
-                {format(new Date(profile.createdAt), "MMM d, yyyy")}
-              </p>
+              <h3 className="text-xs font-bold tracking-wide text-header uppercase">Member Since</h3>
+              <p className="mt-1 text-sm text-foreground">{format(new Date(profile.createdAt), "MMM d, yyyy")}</p>
             </section>
           )}
           {children}
@@ -82,4 +121,19 @@ export function ProfileCard({
       </div>
     </div>
   )
+}
+
+/** The theme and banner fields of a profile row, for ProfileCardData. */
+export function profileThemeFields(profile: {
+  banner_url?: string | null
+  theme_primary?: string | null
+  theme_accent?: string | null
+  pronouns?: string | null
+}) {
+  return {
+    bannerUrl: profile.banner_url ?? null,
+    themePrimary: profile.theme_primary ?? null,
+    themeAccent: profile.theme_accent ?? null,
+    pronouns: profile.pronouns ?? null,
+  }
 }

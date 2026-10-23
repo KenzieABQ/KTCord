@@ -4,7 +4,7 @@ import type { Tables } from "@/lib/supabase/database.types"
 import { toApiError, unwrap } from "./errors"
 import type { MemberProfile } from "./members"
 
-const PROFILE = "id, username, display_name, avatar_url, banner_color, bio, custom_status_text, custom_status_emoji, custom_status_expires_at, created_at"
+const PROFILE = "id, username, display_name, avatar_url, banner_color, banner_url, theme_primary, theme_accent, pronouns, bio, custom_status_text, custom_status_emoji, custom_status_expires_at, created_at"
 
 export type Friendship = Tables<"friendships"> & {
   requester: MemberProfile

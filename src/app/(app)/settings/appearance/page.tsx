@@ -5,17 +5,24 @@ import { useTheme } from "next-themes"
 import { SettingsSection, SettingsToggle } from "@/components/settings/settings-layout"
 import { Slider } from "@/components/ui/slider"
 import {
+  ACCENT_PRESETS,
   CHAT_FONT_SIZES,
   DEFAULT_CHAT_FONT_SIZE,
+  DEFAULT_GROUP_SPACING,
+  GROUP_SPACINGS,
   usePrefsStore,
+  type DarkPalette,
   type MessageDisplay,
 } from "@/lib/stores/prefs-store"
 import { cn } from "@/lib/utils"
 
-const THEMES = [
-  { value: "dark", label: "Dark", swatch: "bg-[#313338]" },
-  { value: "light", label: "Light", swatch: "bg-white" },
-  { value: "system", label: "Sync with computer", swatch: "bg-[linear-gradient(135deg,#fff_50%,#313338_50%)]" },
+/** Discord's themes: Light, three dark palettes, or follow the computer. */
+const THEMES: { id: string; label: string; theme: string; palette?: DarkPalette; swatch: string }[] = [
+  { id: "light", label: "Light", theme: "light", swatch: "#ffffff" },
+  { id: "ash", label: "Ash", theme: "dark", palette: "ash", swatch: "#313338" },
+  { id: "dark", label: "Dark", theme: "dark", palette: "dark", swatch: "#1e1f22" },
+  { id: "onyx", label: "Onyx", theme: "dark", palette: "onyx", swatch: "#000000" },
+  { id: "system", label: "Sync", theme: "system", swatch: "linear-gradient(135deg,#fff 50%,#1e1f22 50%)" },
 ]
 
 const DISPLAYS: { value: MessageDisplay; label: string; description: string }[] = [
@@ -41,7 +48,7 @@ function MessagePreview({ display, fontSize }: { display: MessageDisplay; fontSi
   return (
     <div aria-hidden className="rounded-lg border border-border bg-chat py-3" style={{ fontSize }}>
       {lines.map((line, i) => (
-        <div key={i} className={cn("relative pr-4 pl-[72px]", line.head && i > 0 && (display === "compact" ? "mt-1.5" : "mt-4"))}>
+        <div key={i} className={cn("relative pr-4 pl-[72px]", line.head && i > 0 && (display === "compact" ? "mt-1.5" : "mt-(--group-spacing)"))}>
           {display === "cozy" ? (
             <>
               {line.head && (
@@ -85,25 +92,72 @@ export default function AppearanceSettingsPage() {
       <div className="mt-8">
         <Heading>Theme</Heading>
         <div role="radiogroup" aria-label="Theme" className="mt-3 flex flex-wrap gap-4">
-          {THEMES.map((t) => (
-            <button
-              key={t.value}
-              type="button"
-              role="radio"
-              aria-checked={theme === t.value}
-              onClick={() => setTheme(t.value)}
-              className="flex flex-col items-center gap-2 rounded-md text-sm text-foreground"
-            >
-              <span
+          {THEMES.map((t) => {
+            const selected = theme === t.theme && (t.palette === undefined || prefs.darkPalette === t.palette)
+            return (
+              <button
+                key={t.id}
+                type="button"
+                role="radio"
+                aria-checked={selected}
+                onClick={() => {
+                  setTheme(t.theme)
+                  if (t.palette) prefs.set({ darkPalette: t.palette })
+                }}
+                className="flex flex-col items-center gap-2 rounded-md text-sm text-foreground"
+              >
+                <span
+                  className={cn(
+                    "size-14 rounded-full border border-border",
+                    selected && "ring-2 ring-primary ring-offset-2 ring-offset-background"
+                  )}
+                  style={{ background: t.swatch }}
+                />
+                {t.label}
+              </button>
+            )
+          })}
+        </div>
+        <p className="mt-2 text-xs text-muted-foreground">
+          Onyx is true black, easy on OLED screens. Sync uses your dark palette when your computer is in dark mode.
+        </p>
+      </div>
+
+      <div className="mt-8">
+        <Heading id="accent-color">Accent Color</Heading>
+        <div role="radiogroup" aria-labelledby="accent-color" className="mt-3 flex flex-wrap items-center gap-2">
+          {ACCENT_PRESETS.map((preset) => {
+            const selected = prefs.accentColor.toLowerCase() === preset.color
+            return (
+              <button
+                key={preset.name}
+                type="button"
+                role="radio"
+                aria-checked={selected}
+                aria-label={preset.name}
+                title={preset.name}
+                onClick={() => prefs.set({ accentColor: preset.color })}
                 className={cn(
-                  "size-16 rounded-full border border-border",
-                  t.swatch,
-                  theme === t.value && "ring-2 ring-primary ring-offset-2 ring-offset-background"
+                  "size-9 rounded-full ring-offset-2 ring-offset-background transition-transform hover:scale-105",
+                  selected && "ring-2 ring-foreground"
                 )}
+                style={{ backgroundColor: preset.color || "#5865f2" }}
               />
-              {t.label}
-            </button>
-          ))}
+            )
+          })}
+          <label
+            title="Custom color"
+            className="relative flex size-9 cursor-pointer items-center justify-center overflow-hidden rounded-full border border-dashed border-muted-foreground/60 text-sm text-muted-foreground"
+          >
+            <span aria-hidden>+</span>
+            <input
+              type="color"
+              aria-label="Custom accent color"
+              className="absolute inset-0 cursor-pointer opacity-0"
+              value={prefs.accentColor || "#5865f2"}
+              onChange={(e) => prefs.set({ accentColor: e.target.value })}
+            />
+          </label>
         </div>
       </div>
 
@@ -157,6 +211,26 @@ export default function AppearanceSettingsPage() {
           {CHAT_FONT_SIZES.map((size) => (
             <span key={size} className={cn(size === DEFAULT_CHAT_FONT_SIZE && "font-semibold text-status-online")}>
               {size}px
+            </span>
+          ))}
+        </div>
+      </div>
+
+      <div className="mt-8">
+        <Heading id="group-spacing">Space Between Message Groups</Heading>
+        <Slider
+          thumbProps={{ "aria-labelledby": "group-spacing", "aria-valuetext": `${prefs.groupSpacing}px` }}
+          className="mt-5"
+          min={0}
+          max={GROUP_SPACINGS.length - 1}
+          step={1}
+          value={[Math.max(0, GROUP_SPACINGS.findIndex((v) => v === prefs.groupSpacing))]}
+          onValueChange={([i]) => prefs.set({ groupSpacing: GROUP_SPACINGS[i] })}
+        />
+        <div aria-hidden className="mt-2 flex justify-between text-xs text-muted-foreground">
+          {GROUP_SPACINGS.map((v) => (
+            <span key={v} className={cn(v === DEFAULT_GROUP_SPACING && "font-semibold text-status-online")}>
+              {v}px
             </span>
           ))}
         </div>

@@ -7,10 +7,33 @@ export const DEFAULT_CHAT_FONT_SIZE = 16
 
 export type MessageDisplay = "cozy" | "compact"
 export type InputMode = "voice-activity" | "push-to-talk"
+/** Which dark palette to use when the theme is dark: Discord's Ash, Dark or Onyx (OLED black). */
+export type DarkPalette = "ash" | "dark" | "onyx"
+
+/** Space between message groups, in px (Discord's slider stops). */
+export const GROUP_SPACINGS = [0, 4, 8, 16, 24] as const
+export const DEFAULT_GROUP_SPACING = 16
+
+/** Accent color presets; "" keeps KTCord's blurple. */
+export const ACCENT_PRESETS = [
+  { name: "Blurple", color: "" },
+  { name: "Green", color: "#23a55a" },
+  { name: "Yellow", color: "#f0b232" },
+  { name: "Orange", color: "#f97316" },
+  { name: "Red", color: "#f23f43" },
+  { name: "Pink", color: "#eb459e" },
+  { name: "Purple", color: "#9b59b6" },
+  { name: "Sky", color: "#00a8fc" },
+  { name: "Teal", color: "#1abc9c" },
+] as const
 
 /** Per-device preferences (this browser only), like Discord's App Settings. */
 type PrefsState = {
   messageDisplay: MessageDisplay
+  darkPalette: DarkPalette
+  /** Custom accent (#rrggbb), or "" for the default blurple. */
+  accentColor: string
+  groupSpacing: number
   chatFontSize: number
   reducedMotion: boolean
   /** Show a desktop notification when the tab is in the background (needs browser permission). */
@@ -34,6 +57,9 @@ export const usePrefsStore = create<PrefsState>()(
   persist(
     (set) => ({
       messageDisplay: "cozy",
+      darkPalette: "ash",
+      accentColor: "",
+      groupSpacing: DEFAULT_GROUP_SPACING,
       chatFontSize: DEFAULT_CHAT_FONT_SIZE,
       reducedMotion: false,
       desktopNotifications: true,
@@ -51,6 +77,9 @@ export const usePrefsStore = create<PrefsState>()(
       name: "ktcord-prefs",
       partialize: (s) => ({
         messageDisplay: s.messageDisplay,
+        darkPalette: s.darkPalette,
+        accentColor: s.accentColor,
+        groupSpacing: s.groupSpacing,
         chatFontSize: s.chatFontSize,
         reducedMotion: s.reducedMotion,
         desktopNotifications: s.desktopNotifications,

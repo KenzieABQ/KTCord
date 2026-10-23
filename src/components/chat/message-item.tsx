@@ -239,7 +239,7 @@ export const MessageItem = memo(function MessageItem({
           onKeyDown={onArticleKeyDown}
           className={cn(
             "group relative py-0.5 pr-12 transition-colors outline-none hover:bg-message-hover focus-visible:bg-message-hover focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-inset",
-            showHeader && (compact ? "mt-1.5" : "mt-[17px]"),
+            showHeader && (compact ? "mt-1.5" : "mt-(--group-spacing)"),
             (menuOpen || editing) && "bg-message-hover",
             mentionsMe && "bg-mention-bg before:absolute before:inset-y-0 before:left-0 before:w-0.5 before:bg-status-idle hover:bg-[rgb(250_168_26/0.08)]",
             highlighted && "bg-primary/10"

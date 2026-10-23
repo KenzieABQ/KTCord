@@ -506,6 +506,7 @@ export type Database = {
         Row: {
           avatar_url: string | null
           banner_color: string
+          banner_url: string | null
           bio: string
           created_at: string
           custom_status_emoji: string | null
@@ -514,12 +515,16 @@ export type Database = {
           display_name: string | null
           id: string
           onboarded_at: string | null
+          pronouns: string | null
+          theme_accent: string | null
+          theme_primary: string | null
           updated_at: string
           username: string
         }
         Insert: {
           avatar_url?: string | null
           banner_color?: string
+          banner_url?: string | null
           bio?: string
           created_at?: string
           custom_status_emoji?: string | null
@@ -528,12 +533,16 @@ export type Database = {
           display_name?: string | null
           id: string
           onboarded_at?: string | null
+          pronouns?: string | null
+          theme_accent?: string | null
+          theme_primary?: string | null
           updated_at?: string
           username: string
         }
         Update: {
           avatar_url?: string | null
           banner_color?: string
+          banner_url?: string | null
           bio?: string
           created_at?: string
           custom_status_emoji?: string | null
@@ -542,6 +551,9 @@ export type Database = {
           display_name?: string | null
           id?: string
           onboarded_at?: string | null
+          pronouns?: string | null
+          theme_accent?: string | null
+          theme_primary?: string | null
           updated_at?: string
           username?: string
         }
