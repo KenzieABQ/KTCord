@@ -5,7 +5,7 @@
  * Supported: **bold**, *italic* / _italic_, __underline__, ~~strike~~, ||spoiler||,
  * `inline code`, ```fenced code```, > quotes, >>> rest-of-message quotes,
  * [masked](https://links), autolinked URLs, <https://suppressed>, \escapes,
- * <@user>, <@&role>, <#channel>, @everyone and @here.
+ * <@user>, <@&role>, <#channel>, <:custom_emoji:id>, @everyone and @here.
  */
 
 export type MdNode =
@@ -18,6 +18,7 @@ export type MdNode =
   | { type: "link"; url: string; children: MdNode[] }
   | { type: "mention"; kind: "user" | "role" | "channel"; id: string }
   | { type: "everyone"; value: "everyone" | "here" }
+  | { type: "customEmoji"; name: string; id: string; animated: boolean }
 
 const UUID = "[0-9a-fA-F]{8}-[0-9a-fA-F]{4}-[0-9a-fA-F]{4}-[0-9a-fA-F]{4}-[0-9a-fA-F]{12}"
 const MAX_DEPTH = 6
@@ -71,6 +72,10 @@ const RULES: Rule[] = [
   { re: new RegExp(`<@!?(${UUID})>`, "y"), build: (m) => ({ type: "mention", kind: "user", id: m[1] }) },
   { re: new RegExp(`<@&(${UUID})>`, "y"), build: (m) => ({ type: "mention", kind: "role", id: m[1] }) },
   { re: new RegExp(`<#(${UUID})>`, "y"), build: (m) => ({ type: "mention", kind: "channel", id: m[1] }) },
+  {
+    re: new RegExp(`<(a?):([A-Za-z0-9_]{2,32}):(${UUID})>`, "y"),
+    build: (m) => ({ type: "customEmoji", animated: m[1] === "a", name: m[2], id: m[3] }),
+  },
   {
     re: /@(everyone|here)(?![\p{L}\p{N}_])/uy,
     before: (prev) => !isWordChar(prev),
@@ -206,6 +211,8 @@ export function toPlainText(nodes: MdNode[], names?: { user?: (id: string) => st
           return `#${names?.channel?.(node.id) ?? "unknown-channel"}`
         case "everyone":
           return `@${node.value}`
+        case "customEmoji":
+          return `:${node.name}:`
         case "spoiler":
           return "▇▇▇▇"
         default:
@@ -218,8 +225,11 @@ export function toPlainText(nodes: MdNode[], names?: { user?: (id: string) => st
 /** True when the message is only emoji (up to 27), which Discord shows larger. */
 export function isEmojiOnly(src: string): boolean {
   const trimmed = src.trim()
-  if (!trimmed || trimmed.length > 200) return false
-  const stripped = trimmed.replace(/\s+/g, "")
+  if (!trimmed || trimmed.length > 2000) return false
+  // Custom emoji count as one emoji each.
+  const tokens = trimmed.match(new RegExp(`<a?:[A-Za-z0-9_]{2,32}:${UUID}>`, "g")) ?? []
+  const stripped = trimmed.replace(new RegExp(`<a?:[A-Za-z0-9_]{2,32}:${UUID}>`, "g"), "").replace(/\s+/g, "")
+  if (!stripped) return tokens.length > 0 && tokens.length <= 27
   const emoji = stripped.match(/\p{Extended_Pictographic}(️|‍\p{Extended_Pictographic}|\p{Emoji_Modifier})*|\p{Regional_Indicator}{2}/gu)
-  return Boolean(emoji) && emoji!.join("") === stripped && emoji!.length <= 27
+  return Boolean(emoji) && emoji!.join("") === stripped && emoji!.length + tokens.length <= 27
 }

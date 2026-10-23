@@ -5,6 +5,7 @@ import { toast } from "sonner"
 
 import { Tooltip, TooltipContent, TooltipTrigger } from "@/components/ui/tooltip"
 import { errorMessage } from "@/lib/api/errors"
+import { parseCustomEmoji } from "@/lib/emoji"
 import { memberDisplayName } from "@/lib/members"
 import type { ChatMessage } from "@/lib/messages/types"
 import { useToggleReaction } from "@/lib/queries/messages"
@@ -12,7 +13,14 @@ import { useUserId } from "@/lib/stores/auth-store"
 import { cn } from "@/lib/utils"
 
 import { useChat } from "./chat-context"
+import { Emoji } from "./emoji"
 import { EmojiPickerPopover } from "./emoji-picker"
+
+/** How a reaction reads in labels: the character, or :name: for a custom emoji. */
+const emojiLabel = (emoji: string) => {
+  const custom = parseCustomEmoji(emoji)
+  return custom ? `:${custom.name}:` : emoji
+}
 
 type Group = { emoji: string; count: number; mine: boolean; userIds: string[] }
 
@@ -56,7 +64,7 @@ export function ReactionBar({ message }: { message: ChatMessage }) {
             <button
               type="button"
               aria-pressed={g.mine}
-              aria-label={`${g.emoji} ${g.count}`}
+              aria-label={`${emojiLabel(g.emoji)} ${g.count}`}
               onClick={() => react(g.emoji)}
               className={cn(
                 "flex h-6 items-center gap-1.5 rounded-md border px-1.5 text-sm transition-colors",
@@ -65,12 +73,12 @@ export function ReactionBar({ message }: { message: ChatMessage }) {
                   : "border-transparent bg-sidebar text-muted-foreground hover:border-interactive/40"
               )}
             >
-              <span className="text-base leading-none">{g.emoji}</span>
+              <Emoji value={g.emoji} className="size-4 text-base leading-none" />
               <span className="text-xs font-semibold">{g.count}</span>
             </button>
           </TooltipTrigger>
           <TooltipContent side="top" className="max-w-56 text-center">
-            {names(g.userIds)} reacted with {g.emoji}
+            {names(g.userIds)} reacted with {emojiLabel(g.emoji)}
           </TooltipContent>
         </Tooltip>
       ))}

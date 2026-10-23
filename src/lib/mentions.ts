@@ -17,7 +17,8 @@ export type MentionSources = {
 const CODE = /(```[\s\S]*?```|`[^`\n]*`)/
 
 /** Applies `fn` to the parts of `text` outside code. */
-function outsideCode(text: string, fn: (part: string) => string): string {
+/** Applies `fn` to the parts of `text` outside `inline` and ```fenced``` code. */
+export function outsideCode(text: string, fn: (part: string) => string): string {
   return text
     .split(CODE)
     .map((part, i) => (i % 2 === 1 ? part : fn(part)))
@@ -77,11 +78,13 @@ export function decodeMentions(text: string, sources: MentionSources): string {
   )
 }
 
-export type MentionTrigger = { kind: "@" | "#"; query: string; start: number }
+export type MentionTrigger = { kind: "@" | "#" | ":"; query: string; start: number }
 
-/** The "@que" or "#gen" being typed right before the caret, if any. */
+/** The "@que", "#gen" or ":jo" (emoji, two letters or more) being typed right before the caret, if any. */
 export function findTrigger(text: string, caret: number): MentionTrigger | null {
   const before = text.slice(0, caret)
+  const emoji = before.match(/(^|[\s(]):([A-Za-z0-9_+-]{2,32})$/)
+  if (emoji) return { kind: ":", query: emoji[2], start: before.length - emoji[2].length - 1 }
   const match = before.match(/(^|[\s(])([@#])([^\s@#<>]{0,32})$/)
   if (!match) return null
   const start = before.length - match[3].length - 1

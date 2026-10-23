@@ -694,6 +694,48 @@ export type Database = {
           },
         ]
       }
+      server_emojis: {
+        Row: {
+          animated: boolean
+          created_at: string
+          created_by: string | null
+          id: string
+          name: string
+          server_id: string
+        }
+        Insert: {
+          animated?: boolean
+          created_at?: string
+          created_by?: string | null
+          id?: string
+          name: string
+          server_id: string
+        }
+        Update: {
+          animated?: boolean
+          created_at?: string
+          created_by?: string | null
+          id?: string
+          name?: string
+          server_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "server_emojis_created_by_fkey"
+            columns: ["created_by"]
+            isOneToOne: false
+            referencedRelation: "profiles"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "server_emojis_server_id_fkey"
+            columns: ["server_id"]
+            isOneToOne: false
+            referencedRelation: "servers"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       server_members: {
         Row: {
           id: string
@@ -898,6 +940,10 @@ export type Database = {
         Args: { p_icon_url?: string; p_name: string }
         Returns: string
       }
+      create_server_emoji: {
+        Args: { p_animated?: boolean; p_name: string; p_server: string }
+        Returns: string
+      }
       create_thread: {
         Args: { p_message: string; p_name: string }
         Returns: string
@@ -971,6 +1017,10 @@ export type Database = {
       remove_friend: { Args: { p_user: string }; Returns: undefined }
       rename_group_dm: {
         Args: { p_channel: string; p_name: string }
+        Returns: undefined
+      }
+      rename_server_emoji: {
+        Args: { p_emoji: string; p_name: string }
         Returns: undefined
       }
       reorder_channels: {

@@ -13,7 +13,6 @@ import { useShiftHeld } from "@/hooks/use-shift-held"
 import { errorMessage } from "@/lib/api/errors"
 import { parseMarkdown, toPlainText } from "@/lib/markdown/parse"
 import { memberDisplayName } from "@/lib/members"
-import { decodeMentions, encodeMentions } from "@/lib/mentions"
 import { formatDayDivider, formatMessageTime } from "@/lib/messages/feed"
 import type { ChatMessage } from "@/lib/messages/types"
 import type { Attachment } from "@/lib/api/attachments"
@@ -39,6 +38,7 @@ import { MessageEditor } from "./message-editor"
 import { ReactionBar } from "./reaction-bar"
 import { SystemMessage, ThreadChip } from "./system-message"
 import { useAuthor } from "./use-author"
+import { useMessageCodec } from "./use-message-codec"
 
 export function DayDivider({ iso }: { iso: string }) {
   return (
@@ -147,7 +147,6 @@ export const MessageItem = memo(function MessageItem({
     canAddReactions,
     canPin,
     canStartThreads,
-    mentionSources,
   } = useChat()
   const author = useAuthor(message.author_id)
   const shiftHeld = useShiftHeld()
@@ -161,6 +160,7 @@ export const MessageItem = memo(function MessageItem({
   const openDialog = useUiStore((s) => s.openDialog)
   const openSidePanel = useUiStore((s) => s.openSidePanel)
   const compact = usePrefsStore((s) => s.messageDisplay === "compact")
+  const { encode, decode } = useMessageCodec()
   const [menuOpen, setMenuOpen] = useState(false)
 
   const mine = message.author_id === userId
@@ -209,7 +209,7 @@ export const MessageItem = memo(function MessageItem({
   function save(content: string) {
     setEditing(null)
     editMessage.mutate(
-      { id: message.id, content: encodeMentions(content, mentionSources) },
+      { id: message.id, content: encode(content) },
       { onError: (error) => toast.error(errorMessage(error)) }
     )
   }
@@ -310,7 +310,7 @@ export const MessageItem = memo(function MessageItem({
 
             {editing ? (
               <MessageEditor
-                initial={decodeMentions(message.content, mentionSources)}
+                initial={decode(message.content)}
                 onSave={save}
                 onCancel={() => setEditing(null)}
                 onEmpty={() => {

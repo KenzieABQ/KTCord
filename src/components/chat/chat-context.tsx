@@ -48,6 +48,11 @@ export function useChat(): ChatContextValue {
   return value
 }
 
+/** The chat context when inside a channel or DM, or null elsewhere (e.g. settings). */
+export function useOptionalChat(): ChatContextValue | null {
+  return useContext(ChatContext)
+}
+
 function mentionUsers(members: Iterable<Member>) {
   return [...members].map((m) => ({ id: m.user_id, username: m.profile.username, name: memberDisplayName(m) }))
 }

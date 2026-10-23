@@ -59,3 +59,11 @@ describe("rankMatches", () => {
     expect(rankMatches(items, "av", (s) => [s])).toEqual(["ava", "xavier", "dave"])
   })
 })
+
+describe("findTrigger (emoji)", () => {
+  it("starts suggesting after a colon and two characters", () => {
+    expect(findTrigger("so funny :jo", 12)).toEqual({ kind: ":", query: "jo", start: 9 })
+    expect(findTrigger(":j", 2)).toBeNull()
+    expect(findTrigger("at 10:30", 8)).toBeNull()
+  })
+})

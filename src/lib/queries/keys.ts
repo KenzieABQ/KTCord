@@ -13,6 +13,8 @@ export const qk = {
   bans: (serverId: string) => ["bans", serverId] as const,
   channelAccess: (channelId: string) => ["channel-access", channelId] as const,
   mySettings: (userId: string) => ["my-settings", userId] as const,
+  /** Custom emoji from every server the user is in. */
+  myEmojis: (userId: string) => ["my-emojis", userId] as const,
   notificationSettings: (userId: string) => ["notification-settings", userId] as const,
   friendships: (userId: string) => ["friendships", userId] as const,
   dms: (userId: string) => ["dms", userId] as const,

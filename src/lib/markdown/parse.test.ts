@@ -128,3 +128,22 @@ describe("helpers", () => {
     expect(isEmojiOnly("nice 🔥")).toBe(false)
   })
 })
+
+describe("custom emoji", () => {
+  const id = "0f8b3b7e-2a5c-4c1e-9f3d-2b6a7c8d9e01"
+
+  it("parses tokens into nodes and reads them as :name:", () => {
+    const nodes = parseMarkdown(`gg <a:party_blob:${id}>`)
+    expect(nodes).toEqual([
+      { type: "text", value: "gg " },
+      { type: "customEmoji", name: "party_blob", id, animated: true },
+    ])
+    expect(toPlainText(nodes)).toBe("gg :party_blob:")
+  })
+
+  it("counts custom emoji as emoji-only messages", () => {
+    expect(isEmojiOnly(`<:ok:${id}> <a:party_blob:${id}>`)).toBe(true)
+    expect(isEmojiOnly(`🔥 <:ok:${id}>`)).toBe(true)
+    expect(isEmojiOnly(`nice <:ok:${id}>`)).toBe(false)
+  })
+})

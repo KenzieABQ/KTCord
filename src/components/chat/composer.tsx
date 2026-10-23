@@ -16,11 +16,11 @@ import {
 } from "@/lib/api/attachments"
 import { errorMessage } from "@/lib/api/errors"
 import { visibleElementById } from "@/lib/dom"
-import { encodeMentions } from "@/lib/mentions"
 import { flattenPages } from "@/lib/messages/feed"
 import { newLocalMessage, type MessagePage } from "@/lib/messages/types"
 import { qk } from "@/lib/queries/keys"
 import { findCachedMessage, useSendMessage } from "@/lib/queries/messages"
+import { parseCustomEmoji } from "@/lib/emoji"
 import { useTypingChannel } from "@/lib/realtime/use-typing-channel"
 import { useUserId } from "@/lib/stores/auth-store"
 import { useComposerStore } from "@/lib/stores/composer-store"
@@ -33,6 +33,7 @@ import { useChat } from "./chat-context"
 import { EmojiPickerPopover } from "./emoji-picker"
 import { MentionPopup } from "./mention-popup"
 import { TypingIndicator } from "./typing-indicator"
+import { useMessageCodec } from "./use-message-codec"
 import { useMentionAutocomplete } from "./use-mention-autocomplete"
 import { useAuthor } from "./use-author"
 
@@ -86,7 +87,8 @@ export function pickComposerFiles(channelId: string) {
 export function Composer({ onSent }: { onSent: () => void }) {
   const userId = useUserId()
   const queryClient = useQueryClient()
-  const { channel, channelLabel, canSend, canAttach, timedOutUntil, mentionSources } = useChat()
+  const { channel, channelLabel, canSend, canAttach, timedOutUntil } = useChat()
+  const { encode } = useMessageCodec()
   const staged = useUploadStore((s) => s.staged[channel.id] ?? EMPTY)
   const fileInputRef = useRef<HTMLInputElement>(null)
   const draft = useComposerStore((s) => s.drafts[channel.id] ?? "")
@@ -99,7 +101,7 @@ export function Composer({ onSent }: { onSent: () => void }) {
   const mentions = useMentionAutocomplete(inputRef, draft, (next) => setDraft(channel.id, next))
 
   async function send() {
-    const content = encodeMentions(draft.trim(), mentionSources)
+    const content = encode(draft.trim())
     if (!content && staged.length === 0) return
     if (content.length > MAX_LENGTH) {
       toast.error(`Messages can be up to ${MAX_LENGTH} characters. Yours is ${content.length}.`)
@@ -256,9 +258,11 @@ export function Composer({ onSent }: { onSent: () => void }) {
           className="max-h-[50vh] min-h-11 flex-1 resize-none bg-transparent py-[11px] leading-[1.375rem] text-foreground outline-none placeholder:text-muted-foreground/70"
         />
         <EmojiPickerPopover
-          onPick={(emoji) => {
+          onPick={(picked) => {
             const el = inputRef.current
             const at = el?.selectionStart ?? draft.length
+            const custom = parseCustomEmoji(picked)
+            const emoji = custom ? `:${custom.name}: ` : picked
             setDraft(channel.id, draft.slice(0, at) + emoji + draft.slice(at))
             requestAnimationFrame(() => {
               el?.focus()

@@ -11,6 +11,7 @@ export const PERMISSION_GROUPS: { heading: string; permissions: PermissionInfo[]
       { key: "MANAGE_CHANNELS", label: "Manage Channels", description: "Create, edit, reorder or delete channels and categories." },
       { key: "MANAGE_ROLES", label: "Manage Roles", description: "Create roles and edit or assign roles below their highest role." },
       { key: "MANAGE_SERVER", label: "Manage Server", description: "Change the server's name and icon, and see every invite." },
+      { key: "MANAGE_EXPRESSIONS", label: "Manage Expressions", description: "Add, rename and remove this server's custom emoji." },
     ],
   },
   {

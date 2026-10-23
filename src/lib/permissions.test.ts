@@ -1,4 +1,4 @@
-import { readFileSync } from "node:fs"
+import { readdirSync, readFileSync } from "node:fs"
 import { join } from "node:path"
 
 import { describe, expect, it } from "vitest"
@@ -49,11 +49,13 @@ describe("topRolePosition", () => {
 })
 
 describe("SQL mirror", () => {
-  it("matches the bit table in the servers migration", () => {
-    const sql = readFileSync(
-      join(__dirname, "../../supabase/migrations/20261020000200_servers.sql"),
-      "utf8"
-    )
+  it("matches the bit table in the migrations", () => {
+    // The bit table starts in the servers migration; later migrations add bits in the same format.
+    const dir = join(__dirname, "../../supabase/migrations")
+    const sql = readdirSync(dir)
+      .filter((f) => f.endsWith(".sql"))
+      .map((f) => readFileSync(join(dir, f), "utf8"))
+      .join("\n")
     for (const [name, bit] of Object.entries(Permission)) {
       expect(sql, name).toMatch(new RegExp(`${name}\\s+${bit}\\b`))
     }

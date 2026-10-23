@@ -6,13 +6,17 @@ import { useEffect, useRef } from "react"
 import { UserAvatar } from "@/components/profile/user-avatar"
 import { cn } from "@/lib/utils"
 
+import { Emoji } from "./emoji"
+
 export type MentionOption =
   | { kind: "user"; id: string; label: string; secondary: string; insert: string; avatarUrl: string | null }
   | { kind: "role"; id: string; label: string; color: string | null; insert: string }
   | { kind: "everyone"; id: string; label: string; secondary: string; insert: string }
   | { kind: "channel"; id: string; label: string; insert: string }
+  /** `value` is the character or custom emoji token to draw. */
+  | { kind: "emoji"; id: string; label: string; insert: string; value: string }
 
-/** The suggestion list above the composer while typing @… or #…. */
+/** The suggestion list above the composer while typing @…, #… or :…. */
 export function MentionPopup({
   title,
   options,
@@ -61,6 +65,7 @@ export function MentionPopup({
             )}
             {option.kind === "everyone" && <AtSignIcon className="size-5" />}
             {option.kind === "channel" && <HashIcon className="size-5" />}
+            {option.kind === "emoji" && <Emoji value={option.value} className="size-6 text-xl leading-none" />}
             <span
               className="min-w-0 flex-1 truncate font-medium"
               style={option.kind === "role" && option.color ? { color: option.color } : undefined}

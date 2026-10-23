@@ -2,14 +2,17 @@
 
 import { useMemo, useState, type KeyboardEvent, type RefObject } from "react"
 
+import { customEmojiToken, searchEmoji } from "@/lib/emoji"
 import { memberDisplayName } from "@/lib/members"
 import { findTrigger, rankMatches, type MentionTrigger } from "@/lib/mentions"
+import { useCustomEmoji, useEmojiData } from "@/lib/queries/emoji"
+import { useEmojiStore } from "@/lib/stores/emoji-store"
 
 import { useChat } from "./chat-context"
 import type { MentionOption } from "./mention-popup"
 
 /**
- * Drives the @/# suggestion popup for a textarea: tracks the trigger under the caret,
+ * Drives the @ / # / : suggestion popup for a textarea: tracks the trigger under the caret,
  * ranks matches, handles arrow keys/Enter/Tab/Escape, and inserts the choice.
  */
 export function useMentionAutocomplete(
@@ -17,13 +20,31 @@ export function useMentionAutocomplete(
   value: string,
   setValue: (next: string) => void
 ) {
-  const { membersById, rolesById, channelsById, canMentionEveryone } = useChat()
+  const { serverId, membersById, rolesById, channelsById, canMentionEveryone } = useChat()
+  const emojiData = useEmojiData()
+  const customEmoji = useCustomEmoji(serverId)
+  const skinTone = useEmojiStore((s) => s.skinTone)
   const [trigger, setTrigger] = useState<MentionTrigger | null>(null)
   const [activeIndex, setActiveIndex] = useState(0)
   const [dismissedAt, setDismissedAt] = useState<number | null>(null)
 
   const options = useMemo<MentionOption[]>(() => {
     if (!trigger || dismissedAt === trigger.start) return []
+    if (trigger.kind === ":") {
+      // Custom emoji insert as :name: (encoded on send); standard ones as the character.
+      const q = trigger.query.toLowerCase()
+      const custom: MentionOption[] = customEmoji
+        .filter((e) => e.name.toLowerCase().includes(q))
+        .slice(0, 5)
+        .map((e) => ({ kind: "emoji", id: e.id, label: `:${e.name}:`, insert: `:${e.name}:`, value: customEmojiToken(e) }))
+      const standard: MentionOption[] = emojiData
+        ? searchEmoji(emojiData, q, 10).map((e) => {
+            const char = e.skins && skinTone > 0 ? e.skins[skinTone - 1] : e.char
+            return { kind: "emoji", id: e.char, label: `:${e.names[0]}:`, insert: char, value: char }
+          })
+        : []
+      return [...custom, ...standard].slice(0, 10)
+    }
     if (trigger.kind === "#") {
       const channels = [...channelsById.values()].filter((c) => c.type === "text")
       return rankMatches(channels, trigger.query, (c) => [c.name ?? ""]).map((c) => ({
@@ -60,7 +81,7 @@ export function useMentionAutocomplete(
         }))
       : []
     return [...users, ...roles, ...everyone].slice(0, 10)
-  }, [trigger, dismissedAt, membersById, rolesById, channelsById, canMentionEveryone])
+  }, [trigger, dismissedAt, membersById, rolesById, channelsById, canMentionEveryone, emojiData, customEmoji, skinTone])
 
   function updateTrigger() {
     const el = inputRef.current
@@ -111,7 +132,8 @@ export function useMentionAutocomplete(
     popup:
       options.length > 0
         ? {
-            title: trigger?.kind === "#" ? "Text Channels" : "Members",
+            title:
+              trigger?.kind === "#" ? "Text Channels" : trigger?.kind === ":" ? `Emoji matching :${trigger.query}` : "Members",
             options,
             activeIndex: Math.min(activeIndex, options.length - 1),
             onHover: setActiveIndex,

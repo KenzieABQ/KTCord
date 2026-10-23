@@ -12,6 +12,7 @@ import { useProfile } from "@/lib/queries/profiles"
 import { cn } from "@/lib/utils"
 
 import { useChat } from "./chat-context"
+import { Emoji } from "./emoji"
 
 const mentionClass =
   "rounded-[3px] bg-primary/30 px-0.5 font-medium text-[#c9cdfb] transition-colors hover:bg-primary hover:text-white"
@@ -154,6 +155,8 @@ function renderNodes(nodes: MdNode[]): ReactNode[] {
             @{node.value}
           </span>
         )
+      case "customEmoji":
+        return <Emoji key={i} value={`<${node.animated ? "a" : ""}:${node.name}:${node.id}>`} />
     }
   })
 }
@@ -172,7 +175,7 @@ export const Markdown = memo(function Markdown({
     <div
       className={cn(
         "leading-[1.375em] break-words whitespace-pre-wrap text-foreground",
-        jumbo && "text-[2.75em] leading-[1.2]",
+        jumbo && "text-[2.75em] leading-[1.2] [&_.custom-emoji]:size-[1.1em]",
         className
       )}
     >
