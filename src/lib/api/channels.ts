@@ -39,7 +39,7 @@ export async function createChannel(input: {
 
 export async function updateChannel(
   channelId: string,
-  patch: Pick<TablesUpdate<"channels">, "name" | "topic" | "parent_id" | "is_private">
+  patch: Pick<TablesUpdate<"channels">, "name" | "topic" | "parent_id" | "is_private" | "slowmode_seconds">
 ): Promise<Channel> {
   return unwrap(
     await getSupabase().from("channels").update(patch).eq("id", channelId).select("*").single()
@@ -68,4 +68,43 @@ export function normalizeTextChannelName(name: string): string {
     .trim()
     .replace(/[\s-]+/g, "-")
     .replace(/^-+|-+$/g, "")
+}
+
+export type ChannelOverwrite = Tables<"channel_overwrites">
+
+/** Permission overrides for every channel of a server that the user can see. */
+export async function listChannelOverwrites(serverId: string): Promise<ChannelOverwrite[]> {
+  // Filtering through the channel join; only the override's own columns come back.
+  return unwrap(
+    await getSupabase()
+      .from("channel_overwrites")
+      .select("id, channel_id, role_id, user_id, allow, deny, channels!inner(server_id)")
+      .eq("channels.server_id", serverId)
+  ).map((row) => ({
+    id: row.id,
+    channel_id: row.channel_id,
+    role_id: row.role_id,
+    user_id: row.user_id,
+    allow: row.allow,
+    deny: row.deny,
+  }))
+}
+
+/** Sets a role's or member's override on a channel; allow 0 and deny 0 removes it. */
+export async function setChannelOverwrite(input: {
+  channelId: string
+  roleId?: string | null
+  userId?: string | null
+  allow: number
+  deny: number
+}) {
+  const { error } = await getSupabase().rpc("set_channel_overwrite", {
+    p_channel: input.channelId,
+    // Exactly one target is set; the generated types don't know the other may be null.
+    p_role: (input.roleId ?? null) as string,
+    p_user: (input.userId ?? null) as string,
+    p_allow: input.allow,
+    p_deny: input.deny,
+  })
+  if (error) throw toApiError(error)
 }

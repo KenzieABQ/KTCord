@@ -30,7 +30,7 @@ import {
   Volume2Icon,
 } from "lucide-react"
 import Link from "next/link"
-import { useParams } from "next/navigation"
+import { useParams, useRouter } from "next/navigation"
 import { useState, type ReactNode } from "react"
 import { toast } from "sonner"
 
@@ -62,6 +62,10 @@ import { useVoiceStore, useWatchVoiceChannels } from "@/lib/stores/voice-store"
 
 import { ChannelNotificationItems } from "./notification-menu-items"
 import { cn } from "@/lib/utils"
+
+/** Full-page Channel Settings (Discord-style), opened from the gear and the context menu. */
+export const channelSettingsHref = (serverId: string, channelId: string) =>
+  `/servers/${serverId}/channels/${channelId}/settings/overview`
 
 function HoverIcon({
   label,
@@ -142,6 +146,7 @@ function ChannelRow({
   nested: boolean
 }) {
   const openDialog = useUiStore((s) => s.openDialog)
+  const router = useRouter()
   const { unread: rawUnread, mentions } = useChannelUnread(channel.id)
   const prefs = useNotificationPrefs()
   const muted = isChannelMuted(prefs, channel.id)
@@ -209,7 +214,7 @@ function ChannelRow({
             {canManage && (
               <HoverIcon
                 label="Edit Channel"
-                onClick={() => openDialog({ kind: "edit-channel", serverId, channelId: channel.id })}
+                onClick={() => router.push(channelSettingsHref(serverId, channel.id))}
               >
                 <SettingsIcon className="size-4" />
               </HoverIcon>
@@ -236,7 +241,7 @@ function ChannelRow({
           <>
             <ContextMenuSeparator />
             <ContextMenuItem
-              onSelect={() => openDialog({ kind: "edit-channel", serverId, channelId: channel.id })}
+              onSelect={() => router.push(channelSettingsHref(serverId, channel.id))}
             >
               <SettingsIcon /> Edit Channel
             </ContextMenuItem>
@@ -261,6 +266,7 @@ function CategoryRow({
   canManage: boolean
 }) {
   const openDialog = useUiStore((s) => s.openDialog)
+  const router = useRouter()
   const toggleCategory = useUiStore((s) => s.toggleCategory)
 
   return (
@@ -299,7 +305,7 @@ function CategoryRow({
               <PlusIcon /> Create Channel
             </ContextMenuItem>
             <ContextMenuItem
-              onSelect={() => openDialog({ kind: "edit-channel", serverId, channelId: category.id })}
+              onSelect={() => router.push(channelSettingsHref(serverId, category.id))}
             >
               <SettingsIcon /> Edit Category
             </ContextMenuItem>

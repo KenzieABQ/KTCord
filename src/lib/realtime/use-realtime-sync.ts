@@ -18,6 +18,7 @@ import { getSupabase } from "@/lib/supabase/client"
 import {
   onChannelAccessChange,
   onChannelChange,
+  onChannelOverwriteChange,
   onMemberChange,
   onMemberRoleChange,
   onFriendshipChange,
@@ -44,6 +45,7 @@ const TABLES: Record<string, Handler> = {
   member_roles: onMemberRoleChange,
   channels: onChannelChange,
   channel_role_access: onChannelAccessChange,
+  channel_overwrites: onChannelOverwriteChange,
   profiles: onProfileChange,
   messages: onMessageChange,
   read_states: onReadStateChange,

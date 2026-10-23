@@ -7,7 +7,6 @@ export type AppDialog =
   | { kind: "join-server"; code?: string }
   | { kind: "create-channel"; serverId: string; parentId: string | null; type?: "text" | "voice" }
   | { kind: "create-category"; serverId: string }
-  | { kind: "edit-channel"; serverId: string; channelId: string }
   | { kind: "invite"; serverId: string }
   | { kind: "leave-server"; serverId: string }
   | { kind: "kick-member"; serverId: string; userId: string }

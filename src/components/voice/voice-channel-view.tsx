@@ -86,7 +86,8 @@ export function VoiceChannelView({ serverId, channel }: { serverId: string; chan
   useWatchVoiceChannels([channel.id])
   const roster = useVoiceRoster(channel.id)
   const { connection, selfMute, selfDeaf, toggleMute, toggleDeaf, leave } = useVoiceStore()
-  const { ready, canConnect, join } = useJoinVoice(serverId)
+  const { ready, canConnect: canConnectTo, join } = useJoinVoice(serverId)
+  const canConnect = canConnectTo(channel.id)
   const here = connection?.channelId === channel.id ? connection : null
 
   return (

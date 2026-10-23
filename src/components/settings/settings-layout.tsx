@@ -5,6 +5,7 @@ import Link from "next/link"
 import { usePathname, useRouter } from "next/navigation"
 import { useCallback, useEffect, type ReactNode } from "react"
 
+import { Button } from "@/components/ui/button"
 import { Switch } from "@/components/ui/switch"
 import { signOut } from "@/lib/api/auth"
 import { cn } from "@/lib/utils"
@@ -191,6 +192,34 @@ export function SettingsToggle({
         aria-describedby={description ? `${id}-description` : undefined}
         className="mt-0.5"
       />
+    </div>
+  )
+}
+
+/** Discord's "Careful — you have unsaved changes!" bar, pinned to the bottom of a settings page. */
+export function UnsavedChangesBar({
+  onReset,
+  onSave,
+  saving,
+}: {
+  onReset: () => void
+  onSave: () => void
+  saving: boolean
+}) {
+  return (
+    <div
+      role="status"
+      className="sticky bottom-4 z-10 mt-8 flex items-center justify-between gap-3 rounded-lg bg-floating p-3 shadow-xl ring-1 ring-border"
+    >
+      <span className="text-sm text-header">Careful — you have unsaved changes!</span>
+      <div className="flex gap-2">
+        <Button variant="ghost" onClick={onReset} disabled={saving}>
+          Reset
+        </Button>
+        <Button className="bg-success text-white hover:bg-success/80" onClick={onSave} disabled={saving}>
+          {saving ? "Saving…" : "Save Changes"}
+        </Button>
+      </div>
     </div>
   )
 }

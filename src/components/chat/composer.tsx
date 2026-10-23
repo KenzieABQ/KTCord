@@ -2,7 +2,7 @@
 
 import { useQueryClient, type InfiniteData } from "@tanstack/react-query"
 import { format } from "date-fns"
-import { ClockIcon, PlusCircleIcon, SmileIcon, XIcon } from "lucide-react"
+import { ClockIcon, HourglassIcon, PlusCircleIcon, SmileIcon, XIcon } from "lucide-react"
 import { useRef } from "react"
 import { toast } from "sonner"
 
@@ -22,6 +22,7 @@ import { qk } from "@/lib/queries/keys"
 import { findCachedMessage, useSendMessage } from "@/lib/queries/messages"
 import { parseCustomEmoji } from "@/lib/emoji"
 import { useTypingChannel } from "@/lib/realtime/use-typing-channel"
+import { formatSlowmode } from "@/lib/slowmode"
 import { useUserId } from "@/lib/stores/auth-store"
 import { useComposerStore } from "@/lib/stores/composer-store"
 import { useUploadStore, type PendingFile } from "@/lib/stores/upload-store"
@@ -34,6 +35,7 @@ import { EmojiPickerPopover } from "./emoji-picker"
 import { MentionPopup } from "./mention-popup"
 import { TypingIndicator } from "./typing-indicator"
 import { useMessageCodec } from "./use-message-codec"
+import { useSlowmode } from "./use-slowmode"
 import { useMentionAutocomplete } from "./use-mention-autocomplete"
 import { useAuthor } from "./use-author"
 
@@ -89,6 +91,7 @@ export function Composer({ onSent }: { onSent: () => void }) {
   const queryClient = useQueryClient()
   const { channel, channelLabel, canSend, canAttach, timedOutUntil } = useChat()
   const { encode } = useMessageCodec()
+  const slowmode = useSlowmode()
   const staged = useUploadStore((s) => s.staged[channel.id] ?? EMPTY)
   const fileInputRef = useRef<HTMLInputElement>(null)
   const draft = useComposerStore((s) => s.drafts[channel.id] ?? "")
@@ -103,6 +106,10 @@ export function Composer({ onSent }: { onSent: () => void }) {
   async function send() {
     const content = encode(draft.trim())
     if (!content && staged.length === 0) return
+    if (slowmode.remaining > 0) {
+      toast(`Slow mode is on. You can send another message in ${slowmode.remaining}s.`, { id: "slowmode" })
+      return
+    }
     if (content.length > MAX_LENGTH) {
       toast.error(`Messages can be up to ${MAX_LENGTH} characters. Yours is ${content.length}.`)
       return
@@ -142,6 +149,7 @@ export function Composer({ onSent }: { onSent: () => void }) {
     useUploadStore.getState().clearStaged(channel.id)
     notifyStopped()
     sendMessage.mutate(message, { onError: (e) => toast.error(errorMessage(e)) })
+    slowmode.started()
     onSent()
   }
 
@@ -289,7 +297,22 @@ export function Composer({ onSent }: { onSent: () => void }) {
           </span>
         )}
       </form>
-      <TypingIndicator />
+      <div className="relative">
+        <TypingIndicator />
+        {slowmode.active && (
+          <Tooltip>
+            <TooltipTrigger asChild>
+              <span className="absolute top-0 right-1 flex h-6 items-center gap-1 text-xs text-muted-foreground">
+                <HourglassIcon className="size-3.5" />
+                {slowmode.remaining > 0 ? `${slowmode.remaining}s` : "Slowmode is enabled"}
+              </span>
+            </TooltipTrigger>
+            <TooltipContent side="top">
+              Members can send one message every {formatSlowmode(slowmode.seconds)}.
+            </TooltipContent>
+          </Tooltip>
+        )}
+      </div>
     </div>
   )
 }

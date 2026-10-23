@@ -3,7 +3,6 @@
 import { HashIcon, LockIcon, Volume2Icon } from "lucide-react"
 import { useRouter } from "next/navigation"
 import { useState } from "react"
-import { toast } from "sonner"
 
 import { Button } from "@/components/ui/button"
 import { DialogDescription, DialogFooter, DialogHeader, DialogTitle } from "@/components/ui/dialog"
@@ -11,18 +10,9 @@ import { Field, FieldDescription, FieldError, FieldLabel } from "@/components/ui
 import { Checkbox } from "@/components/ui/checkbox"
 import { Input } from "@/components/ui/input"
 import { Switch } from "@/components/ui/switch"
-import { Textarea } from "@/components/ui/textarea"
 import { normalizeTextChannelName } from "@/lib/api/channels"
 import { errorMessage } from "@/lib/api/errors"
-import { useChannelAccess, useSetChannelAccess } from "@/lib/queries/moderation"
-import {
-  useChannel,
-  useChannels,
-  useRoles,
-  useCreateChannel,
-  useDeleteChannel,
-  useUpdateChannel,
-} from "@/lib/queries/servers"
+import { useChannels, useRoles, useCreateChannel } from "@/lib/queries/servers"
 import { useUiStore } from "@/lib/stores/ui-store"
 import { cn } from "@/lib/utils"
 
@@ -203,10 +193,10 @@ export function CreateCategoryDialog({ serverId }: { serverId: string }) {
   )
 }
 
-type AccessValue = { isPrivate: boolean; roleIds: string[] }
+export type AccessValue = { isPrivate: boolean; roleIds: string[] }
 
 /** "Private Channel" switch plus the roles that can see it. */
-function PrivateChannelFields({
+export function PrivateChannelFields({
   serverId,
   value,
   loading,
@@ -267,166 +257,5 @@ function PrivateChannelFields({
         </fieldset>
       )}
     </div>
-  )
-}
-
-/** Rename, set the topic, or delete a channel or category. */
-export function EditChannelDialog({ serverId, channelId }: { serverId: string; channelId: string }) {
-  const router = useRouter()
-  const closeDialog = useUiStore((s) => s.closeDialog)
-  const { data: channel } = useChannel(serverId, channelId)
-  const updateChannel = useUpdateChannel(serverId)
-  const deleteChannel = useDeleteChannel(serverId)
-
-  const [name, setName] = useState(channel?.name ?? "")
-  const [topic, setTopic] = useState(channel?.topic ?? "")
-  const [confirmDelete, setConfirmDelete] = useState(false)
-  const [error, setError] = useState<string | null>(null)
-  const access = useChannelAccess(channelId, Boolean(channel?.is_private))
-  const setChannelAccess = useSetChannelAccess(serverId)
-  // null = unchanged; otherwise the edited private/roles setting.
-  const [accessDraft, setAccessDraft] = useState<AccessValue | null>(null)
-
-  if (!channel) return null
-  const isCategory = channel.type === "category"
-  const currentAccess: AccessValue = accessDraft ?? {
-    isPrivate: channel.is_private,
-    roleIds: access.data ?? [],
-  }
-  const finalName = channel.type === "text" ? normalizeTextChannelName(name) : name.trim()
-  const noun = isCategory ? "Category" : "Channel"
-
-  async function save(e: React.FormEvent) {
-    e.preventDefault()
-    if (!finalName) {
-      setError(`Give the ${noun.toLowerCase()} a name.`)
-      return
-    }
-    try {
-      await updateChannel.mutateAsync({
-        id: channelId,
-        name: finalName,
-        ...(channel!.type === "text" && { topic: topic.trim() || null }),
-      })
-      if (accessDraft) {
-        await setChannelAccess.mutateAsync({
-          channelId,
-          isPrivate: accessDraft.isPrivate,
-          roleIds: accessDraft.roleIds,
-        })
-      }
-      toast.success(`${noun} saved.`)
-      closeDialog()
-    } catch (err) {
-      setError(errorMessage(err))
-    }
-  }
-
-  async function remove() {
-    try {
-      await deleteChannel.mutateAsync(channelId)
-      closeDialog()
-      if (window.location.pathname.includes(channelId)) router.replace(`/channels/${serverId}`)
-    } catch (err) {
-      setError(errorMessage(err))
-    }
-  }
-
-  if (confirmDelete) {
-    return (
-      <div>
-        <DialogHeader>
-          <DialogTitle>Delete {noun}</DialogTitle>
-          <DialogDescription>
-            Are you sure you want to delete <strong className="text-foreground">{channel.name}</strong>?
-            {isCategory
-              ? " Its channels will move out of the category."
-              : " This can't be undone."}
-          </DialogDescription>
-        </DialogHeader>
-        {error && <p className="mt-3 text-sm text-destructive">{error}</p>}
-        <DialogFooter className={footerClass}>
-          <Button type="button" variant="ghost" onClick={() => setConfirmDelete(false)}>
-            Cancel
-          </Button>
-          <Button
-            type="button"
-            className="bg-destructive text-white hover:bg-destructive/80"
-            onClick={remove}
-            disabled={deleteChannel.isPending}
-          >
-            Delete {noun}
-          </Button>
-        </DialogFooter>
-      </div>
-    )
-  }
-
-  return (
-    <form onSubmit={save} noValidate>
-      <DialogHeader>
-        <DialogTitle>Edit {noun}</DialogTitle>
-      </DialogHeader>
-      <Field className="mt-5" data-invalid={Boolean(error)}>
-        <FieldLabel htmlFor="edit-channel-name" className={labelClass}>
-          {noun} name
-        </FieldLabel>
-        <Input
-          id="edit-channel-name"
-          value={channel.type === "text" ? name.toLowerCase().replace(/\s/g, "-") : name}
-          maxLength={100}
-          autoFocus
-          onChange={(e) => {
-            setName(e.target.value)
-            setError(null)
-          }}
-          aria-invalid={Boolean(error)}
-        />
-        {error && <FieldError>{error}</FieldError>}
-      </Field>
-      {channel.type === "text" && (
-        <Field className="mt-4">
-          <FieldLabel htmlFor="edit-channel-topic" className={labelClass}>
-            Channel topic
-          </FieldLabel>
-          <Textarea
-            id="edit-channel-topic"
-            rows={3}
-            maxLength={1024}
-            placeholder="Let everyone know how to use this channel!"
-            value={topic}
-            onChange={(e) => setTopic(e.target.value)}
-            className="resize-none"
-          />
-          <FieldDescription className="text-right text-xs">{topic.length}/1024</FieldDescription>
-        </Field>
-      )}
-      {!isCategory && (
-        <PrivateChannelFields
-          serverId={serverId}
-          value={currentAccess}
-          loading={channel.is_private && access.isPending}
-          onChange={setAccessDraft}
-        />
-      )}
-      <DialogFooter className={cn(footerClass, "sm:justify-between")}>
-        <Button
-          type="button"
-          variant="ghost"
-          className="text-destructive hover:text-destructive"
-          onClick={() => setConfirmDelete(true)}
-        >
-          Delete {noun}
-        </Button>
-        <div className="flex gap-2">
-          <Button type="button" variant="ghost" onClick={closeDialog}>
-            Cancel
-          </Button>
-          <Button type="submit" disabled={!finalName || updateChannel.isPending || setChannelAccess.isPending}>
-            Save Changes
-          </Button>
-        </div>
-      </DialogFooter>
-    </form>
   )
 }

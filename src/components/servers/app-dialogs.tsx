@@ -21,7 +21,7 @@ import { errorMessage } from "@/lib/api/errors"
 import { useLeaveServer, useServer } from "@/lib/queries/servers"
 import { useUiStore, type AppDialog } from "@/lib/stores/ui-store"
 
-import { CreateCategoryDialog, CreateChannelDialog, EditChannelDialog } from "./channel-dialogs"
+import { CreateCategoryDialog, CreateChannelDialog } from "./channel-dialogs"
 import { InviteDialog } from "./invite-dialog"
 import { CreateServerDialog, JoinServerDialog } from "./server-dialogs"
 
@@ -82,8 +82,6 @@ function DialogBody({ dialog }: { dialog: AppDialog }) {
       )
     case "create-category":
       return <CreateCategoryDialog serverId={dialog.serverId} />
-    case "edit-channel":
-      return <EditChannelDialog serverId={dialog.serverId} channelId={dialog.channelId} />
     case "invite":
       return <InviteDialog serverId={dialog.serverId} />
     case "leave-server":

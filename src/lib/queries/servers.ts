@@ -149,7 +149,7 @@ export function useCreateChannel(serverId: string) {
 export function useUpdateChannel(serverId: string) {
   const queryClient = useQueryClient()
   return useMutation({
-    mutationFn: ({ id, ...patch }: { id: string; name?: string; topic?: string | null }) =>
+    mutationFn: ({ id, ...patch }: { id: string; name?: string; topic?: string | null; slowmode_seconds?: number }) =>
       updateChannel(id, patch),
     onSuccess: (channel) =>
       queryClient.setQueryData<Channel[]>(qk.channels(serverId), (list) => upsertChannel(list, channel)),

@@ -168,6 +168,12 @@ export function onChannelAccessChange(ctx: DbContext) {
   void ctx.queryClient.invalidateQueries({ queryKey: ["channels"] })
 }
 
+export function onChannelOverwriteChange(ctx: DbContext) {
+  // Overrides change what people can do in a channel, and whether they can see it at all.
+  void ctx.queryClient.invalidateQueries({ queryKey: ["channel-overwrites"] })
+  void ctx.queryClient.invalidateQueries({ queryKey: ["channels"] })
+}
+
 export function onProfileChange(ctx: DbContext, change: Change<Profile>) {
   if (change.eventType !== "UPDATE") return
   const profile = change.new

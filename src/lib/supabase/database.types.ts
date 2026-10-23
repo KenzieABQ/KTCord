@@ -89,6 +89,55 @@ export type Database = {
           },
         ]
       }
+      channel_overwrites: {
+        Row: {
+          allow: number
+          channel_id: string
+          deny: number
+          id: string
+          role_id: string | null
+          user_id: string | null
+        }
+        Insert: {
+          allow?: number
+          channel_id: string
+          deny?: number
+          id?: string
+          role_id?: string | null
+          user_id?: string | null
+        }
+        Update: {
+          allow?: number
+          channel_id?: string
+          deny?: number
+          id?: string
+          role_id?: string | null
+          user_id?: string | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "channel_overwrites_channel_id_fkey"
+            columns: ["channel_id"]
+            isOneToOne: false
+            referencedRelation: "channels"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "channel_overwrites_role_id_fkey"
+            columns: ["role_id"]
+            isOneToOne: false
+            referencedRelation: "roles"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "channel_overwrites_user_id_fkey"
+            columns: ["user_id"]
+            isOneToOne: false
+            referencedRelation: "profiles"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       channel_recipients: {
         Row: {
           channel_id: string
@@ -172,6 +221,7 @@ export type Database = {
           parent_id: string | null
           position: number
           server_id: string | null
+          slowmode_seconds: number
           source_message_id: string | null
           topic: string | null
           type: Database["public"]["Enums"]["channel_type"]
@@ -186,6 +236,7 @@ export type Database = {
           parent_id?: string | null
           position?: number
           server_id?: string | null
+          slowmode_seconds?: number
           source_message_id?: string | null
           topic?: string | null
           type: Database["public"]["Enums"]["channel_type"]
@@ -200,6 +251,7 @@ export type Database = {
           parent_id?: string | null
           position?: number
           server_id?: string | null
+          slowmode_seconds?: number
           source_message_id?: string | null
           topic?: string | null
           type?: Database["public"]["Enums"]["channel_type"]
@@ -871,6 +923,7 @@ export type Database = {
         Returns: boolean
       }
       can_view_channel: { Args: { p_channel: string }; Returns: boolean }
+      channel_overwrite_mask: { Args: never; Returns: number }
       channel_permissions: {
         Args: { p_channel: string; p_user?: string }
         Returns: number
@@ -1123,6 +1176,16 @@ export type Database = {
       }
       set_channel_access: {
         Args: { p_channel: string; p_private: boolean; p_role_ids: string[] }
+        Returns: undefined
+      }
+      set_channel_overwrite: {
+        Args: {
+          p_allow: number
+          p_channel: string
+          p_deny: number
+          p_role: string
+          p_user: string
+        }
         Returns: undefined
       }
       set_member_roles: {

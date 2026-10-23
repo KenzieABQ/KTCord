@@ -5,6 +5,8 @@ import { describe, expect, it } from "vitest"
 
 import {
   ALL_PERMISSIONS,
+  applyOverwrites,
+  CHANNEL_OVERWRITE_MASK,
   computeServerPermissions,
   DEFAULT_EVERYONE_PERMISSIONS,
   hasPermission,
@@ -61,5 +63,41 @@ describe("SQL mirror", () => {
     }
     expect(sql).toContain(`= ${DEFAULT_EVERYONE_PERMISSIONS}`)
     expect(sql).toContain(String(ALL_PERMISSIONS))
+    expect(sql).toContain(`${CHANNEL_OVERWRITE_MASK}::bigint`)
+  })
+})
+
+describe("applyOverwrites", () => {
+  const base = DEFAULT_EVERYONE_PERMISSIONS
+  const SEND = Permission.SEND_MESSAGES
+  const args = (overwrites: { role_id: string | null; user_id: string | null; allow: number; deny: number }[], roles: string[] = []) => ({
+    base,
+    overwrites,
+    everyoneRoleId: "everyone",
+    memberRoleIds: roles,
+    userId: "u",
+  })
+
+  it("denies through @everyone and allows back through a role", () => {
+    const ow = [
+      { role_id: "everyone", user_id: null, allow: 0, deny: SEND },
+      { role_id: "mod", user_id: null, allow: SEND, deny: 0 },
+    ]
+    expect(applyOverwrites(args(ow)) & SEND).toBe(0)
+    expect(applyOverwrites(args(ow, ["mod"])) & SEND).toBe(SEND)
+  })
+
+  it("lets a member override win over roles", () => {
+    const ow = [
+      { role_id: "mod", user_id: null, allow: SEND, deny: 0 },
+      { role_id: null, user_id: "u", allow: 0, deny: SEND },
+    ]
+    expect(applyOverwrites(args(ow, ["mod"])) & SEND).toBe(0)
+  })
+
+  it("loses everything without View Channel, but never for admins", () => {
+    const hide = [{ role_id: "everyone", user_id: null, allow: 0, deny: Permission.VIEW_CHANNEL }]
+    expect(applyOverwrites(args(hide))).toBe(0)
+    expect(applyOverwrites({ ...args(hide), base: ALL_PERMISSIONS })).toBe(ALL_PERMISSIONS)
   })
 })

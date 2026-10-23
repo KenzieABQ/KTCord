@@ -27,6 +27,7 @@ function ch(
     server_id: "s",
     topic: null,
     is_private: false,
+    slowmode_seconds: 0,
     owner_id: null,
     dm_key: null,
     source_message_id: null,

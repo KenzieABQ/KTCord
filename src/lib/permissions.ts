@@ -84,3 +84,58 @@ export function topRolePosition({
   for (const role of roles) if (mine.has(role.id)) top = Math.max(top, role.position)
   return top
 }
+
+/**
+ * Permissions a channel override may allow or deny: the ones checked per channel. Mirrors
+ * public.channel_overwrite_mask() (VIEW | SEND | MANAGE_MESSAGES | ATTACH | REACT | CONNECT | SPEAK).
+ */
+export const CHANNEL_OVERWRITE_MASK =
+  Permission.VIEW_CHANNEL |
+  Permission.SEND_MESSAGES |
+  Permission.MANAGE_MESSAGES |
+  Permission.ATTACH_FILES |
+  Permission.ADD_REACTIONS |
+  Permission.CONNECT |
+  Permission.SPEAK
+
+export type OverwriteLike = { role_id: string | null; user_id: string | null; allow: number; deny: number }
+
+/**
+ * Same rules as public.channel_row_permissions() after the private-channel check: the
+ * @everyone override, then the member's role overrides together, then their own override.
+ * Without View Channel nothing else counts. Owners and administrators keep everything.
+ */
+export function applyOverwrites({
+  base,
+  overwrites,
+  everyoneRoleId,
+  memberRoleIds,
+  userId,
+}: {
+  base: number
+  overwrites: OverwriteLike[]
+  everyoneRoleId: string | undefined
+  memberRoleIds: Iterable<string>
+  userId: string
+}): number {
+  if (base === ALL_PERMISSIONS) return base
+  if (!hasPermission(base, Permission.VIEW_CHANNEL)) return 0
+  let perms = base
+  const everyone = overwrites.find((o) => o.role_id && o.role_id === everyoneRoleId)
+  if (everyone) perms = (perms & ~everyone.deny) | everyone.allow
+
+  const mine = new Set(memberRoleIds)
+  let allow = 0
+  let deny = 0
+  for (const o of overwrites) {
+    if (o.role_id && o.role_id !== everyoneRoleId && mine.has(o.role_id)) {
+      allow |= o.allow
+      deny |= o.deny
+    }
+  }
+  perms = (perms & ~deny) | allow
+
+  const member = overwrites.find((o) => o.user_id === userId)
+  if (member) perms = (perms & ~member.deny) | member.allow
+  return hasPermission(perms, Permission.VIEW_CHANNEL) ? perms : 0
+}

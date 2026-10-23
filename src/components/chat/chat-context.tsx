@@ -9,7 +9,8 @@ import type { MentionSources } from "@/lib/mentions"
 import { memberDisplayName } from "@/lib/members"
 import { isTimedOut } from "@/lib/moderation"
 import { hasPermission, Permission } from "@/lib/permissions"
-import { useChannels, useMembers, useRoles, useServerPermissions } from "@/lib/queries/servers"
+import { useChannelPermissions } from "@/lib/queries/channel-permissions"
+import { useChannels, useMembers, useRoles } from "@/lib/queries/servers"
 import { useUserId } from "@/lib/stores/auth-store"
 
 export type ChatContextValue = {
@@ -38,6 +39,9 @@ export type ChatContextValue = {
   mentionSources: MentionSources
   /** Scrolls the feed to a message, loading older history if needed. */
   jumpToMessage: (id: string) => void
+  /** Seconds members must wait between messages here (0 = off). */
+  slowmodeSeconds: number
+  canBypassSlowmode: boolean
 }
 
 const ChatContext = createContext<ChatContextValue | null>(null)
@@ -72,7 +76,8 @@ export function ChatProvider({
   const { data: members } = useMembers(serverId)
   const { data: roles } = useRoles(serverId)
   const { data: channels } = useChannels(serverId)
-  const { permissions } = useServerPermissions(serverId)
+  // Server permissions with this channel's overrides applied (threads follow their parent).
+  const { permissions } = useChannelPermissions(serverId, channel.id)
   const userId = useUserId()
   // Re-evaluate when a timeout ends so the composer unlocks without a refresh.
   const [clock, setClock] = useState(0)
@@ -106,6 +111,9 @@ export function ChatProvider({
       canPin: hasPermission(permissions, Permission.MANAGE_MESSAGES),
       canStartThreads:
         channel.type === "text" && hasPermission(permissions, Permission.SEND_MESSAGES) && !timedOutUntil,
+      slowmodeSeconds: channel.slowmode_seconds ?? 0,
+      canBypassSlowmode:
+        hasPermission(permissions, Permission.MANAGE_MESSAGES) || hasPermission(permissions, Permission.MANAGE_CHANNELS),
       mentionSources: {
         users: mentionUsers(members ?? []),
         roles: (roles ?? []).filter((r) => !r.is_default).map((r) => ({ id: r.id, name: r.name })),
@@ -165,6 +173,8 @@ export function DmChatProvider({
       canAttach: true,
       canPin: true,
       canStartThreads: false,
+      slowmodeSeconds: 0,
+      canBypassSlowmode: true,
       mentionSources: { users: mentionUsers(members), roles: [], channels: [] },
       jumpToMessage,
     }
