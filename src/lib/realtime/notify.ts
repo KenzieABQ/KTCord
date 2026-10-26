@@ -8,7 +8,7 @@ import type { Profile } from "@/lib/api/profiles"
 import type { JoinedServer } from "@/lib/api/servers"
 import { parseMarkdown, toPlainText } from "@/lib/markdown/parse"
 import { memberDisplayName } from "@/lib/members"
-import type { ChatMessage } from "@/lib/messages/types"
+import { previewText, type ChatMessage } from "@/lib/messages/types"
 import { displayNameOf } from "@/lib/profile-display"
 import { qk } from "@/lib/queries/keys"
 import { playNotificationSound } from "@/lib/sound"
@@ -48,7 +48,7 @@ export function notifyMessage(
   }
 
   const author = message.author_id ? nameOf(message.author_id) : "Someone"
-  const preview = toPlainText(parseMarkdown(message.content), { user: nameOf }).slice(0, 140) || "Sent an attachment"
+  const preview = toPlainText(parseMarkdown(previewText(message)), { user: nameOf }).slice(0, 140) || "Sent an attachment"
   const place = where.isDm
     ? dm?.type === "group_dm"
       ? dm.name || "Group DM"

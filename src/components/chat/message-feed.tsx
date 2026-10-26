@@ -36,6 +36,7 @@ import type { ChatMessage } from "@/lib/messages/types"
 import { useDeleteMessage, useMessages } from "@/lib/queries/messages"
 import { MARK_READ_EVENT } from "@/lib/shortcuts"
 import { useUserId } from "@/lib/stores/auth-store"
+import { useMarkChannelRead } from "@/lib/queries/settings"
 import { isChannelUnread, useUnreadStore } from "@/lib/stores/unread-store"
 
 import { useChat } from "./chat-context"
@@ -104,6 +105,7 @@ export function MessageFeed({
   const virtuoso = useRef<VirtuosoHandle>(null)
   const deleteMessage = useDeleteMessage(channel.id)
   const setActive = useUnreadStore((s) => s.setActive)
+  const { mutate: markChannelRead } = useMarkChannelRead()
   const focused = useWindowFocused()
 
   const pages = useMemo(() => query.data?.pages ?? [], [query.data])
@@ -122,8 +124,18 @@ export function MessageFeed({
     const entry = useUnreadStore.getState().channels[channel.id]
     return isChannelUnread(entry) ? entry!.lastReadAt : null
   })
-  const dividerIndex = firstUnreadIndex(messages, dividerAt, userId)
+  // Mark Unread moves the divider to the chosen message (yours included).
+  const markedAt = useUnreadStore((s) => s.markedUnread[channel.id])
+  const dividerIndex = markedAt
+    ? messages.findIndex((m) => m.created_at > markedAt)
+    : firstUnreadIndex(messages, dividerAt, userId)
   const [unreadBarDismissed, setUnreadBarDismissed] = useState(false)
+  // A new Mark Unread brings the bar back.
+  const [barMarkedAt, setBarMarkedAt] = useState(markedAt)
+  if (barMarkedAt !== markedAt) {
+    setBarMarkedAt(markedAt)
+    setUnreadBarDismissed(false)
+  }
   const [dividerVisible, setDividerVisible] = useState(false)
 
   // Escape marks the channel read, which also dismisses the "new messages" bar.
@@ -147,7 +159,7 @@ export function MessageFeed({
   // Mark read when the newest message is visible in a focused window (debounced).
   const latest = useMemo(() => [...messages].reverse().find((m) => !m.status), [messages])
   useEffect(() => {
-    if (!latest || !atBottom || !focused) return
+    if (!latest || !atBottom || !focused || markedAt) return
     useUnreadStore.getState().markRead(channel.id, latest.created_at)
     const timer = setTimeout(() => {
       markRead(channel.id, latest.id).catch(() => {
@@ -155,7 +167,7 @@ export function MessageFeed({
       })
     }, 600)
     return () => clearTimeout(timer)
-  }, [channel.id, latest, atBottom, focused])
+  }, [channel.id, latest, atBottom, focused, markedAt])
 
   const loadOlder = useCallback(() => {
     if (hasNextPage && !isFetchingNextPage) void fetchNextPage()
@@ -165,6 +177,12 @@ export function MessageFeed({
     setHighlightId(id)
     setTimeout(() => setHighlightId((current) => (current === id ? null : current)), 2000)
   }, [])
+
+  // Pinning to the bottom (see pinToBottom): until when after sending, whether the reader is
+  // following the newest messages, and when they last scrolled by hand.
+  const pinUntil = useRef(0)
+  const stickToBottom = useRef(true)
+  const lastUserScroll = useRef(0)
 
   // Scroll to a message, loading older pages until it's found (or history runs out).
   const messagesRef = useRef(messages)
@@ -187,6 +205,7 @@ export function MessageFeed({
         return
       }
       // Let Virtuoso render the newly prepended items before scrolling.
+      stickToBottom.current = false
       requestAnimationFrame(() => {
         virtuoso.current?.scrollToIndex({ index, align: "center", behavior: "auto" })
         highlight(id)
@@ -195,16 +214,52 @@ export function MessageFeed({
     [fetchNextPage, highlight]
   )
 
-  // After sending, the new message renders (and the composer shrinks back) a frame or two
-  // later, so stay pinned to the bottom until the list height settles.
-  const pinUntil = useRef(0)
+  // Stay pinned to the bottom while the list grows under us: after sending (the message and
+  // composer settle a frame or two later) and whenever we were at the bottom and content
+  // grew, like a link preview or image loading. Only scrolling up yourself unpins.
   const pinToBottom = useCallback(() => {
-    if (Date.now() < pinUntil.current) {
+    if (Date.now() < pinUntil.current || stickToBottom.current) {
       virtuoso.current?.scrollToIndex({ index: "LAST", align: "end", behavior: "auto" })
     }
   }, [])
+  const onAtBottomChange = useCallback((bottom: boolean) => {
+    if (!bottom && stickToBottom.current) {
+      // Scrolling up unsticks first (below), so this is content growing. Catch up instead
+      // of showing Jump to Present.
+      virtuoso.current?.scrollToIndex({ index: "LAST", align: "end", behavior: "auto" })
+      return
+    }
+    if (bottom) stickToBottom.current = true
+    setAtBottom(bottom)
+  }, [])
+  const scrollerRef = useCallback((scroller: HTMLElement | Window | null) => {
+    if (!(scroller instanceof HTMLElement)) return
+    const mark = () => {
+      lastUserScroll.current = Date.now()
+    }
+    // Wheel, touch, scrollbar drags and keyboard scrolling count as the user scrolling.
+    for (const type of ["wheel", "touchmove", "pointerdown", "keydown"]) {
+      scroller.addEventListener(type, mark, { passive: true })
+    }
+    // A hand scroll upward stops following at once, before the rows it reveals get measured
+    // (that would pin us back down); scrolling back to the bottom follows again.
+    let lastTop = scroller.scrollTop
+    scroller.addEventListener(
+      "scroll",
+      () => {
+        const top = scroller.scrollTop
+        if (Date.now() - lastUserScroll.current < 500) {
+          if (top < lastTop - 1) stickToBottom.current = false
+          else if (scroller.scrollHeight - top - scroller.clientHeight <= 80) stickToBottom.current = true
+        }
+        lastTop = top
+      },
+      { passive: true }
+    )
+  }, [])
   const scrollToBottom = useCallback(() => {
     pinUntil.current = Date.now() + 1000
+    stickToBottom.current = true
     virtuoso.current?.scrollToIndex({ index: "LAST", align: "end", behavior: "auto" })
   }, [])
 
@@ -267,9 +322,16 @@ export function MessageFeed({
             {unreadCount}
             {pages.at(-1)?.hasMore && unreadCount >= messages.length ? "+" : ""} new{" "}
             {unreadCount === 1 ? "message" : "messages"} since{" "}
-            {dividerAt ? format(new Date(dividerAt), "h:mm a") : "you were here"}
+            {(markedAt ?? dividerAt) ? format(new Date(markedAt ?? dividerAt!), "h:mm a") : "you were here"}
           </button>
-          <button type="button" className="shrink-0 hover:underline" onClick={() => setUnreadBarDismissed(true)}>
+          <button
+            type="button"
+            className="shrink-0 hover:underline"
+            onClick={() => {
+              setUnreadBarDismissed(true)
+              markChannelRead(channel.id)
+            }}
+          >
             Mark As Read
           </button>
         </div>
@@ -292,8 +354,9 @@ export function MessageFeed({
         startReached={loadOlder}
         increaseViewportBy={{ top: 600, bottom: 200 }}
         atBottomThreshold={80}
-        atBottomStateChange={setAtBottom}
+        atBottomStateChange={onAtBottomChange}
         totalListHeightChanged={pinToBottom}
+        scrollerRef={scrollerRef}
         // Jump (never smooth-scroll) to new messages: a smooth scroll aims at the bottom as it
         // was before the new message was measured, and stops short of it.
         followOutput={(isAtBottom) => {

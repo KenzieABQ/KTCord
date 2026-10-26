@@ -319,7 +319,7 @@ function RuleCard({
 }) {
   return (
     <div className="flex items-center gap-4 rounded-lg bg-card p-4">
-      <div className="flex size-10 shrink-0 items-center justify-center rounded-full bg-brand/15 text-brand">{icon}</div>
+      <div className="flex size-10 shrink-0 items-center justify-center rounded-full bg-primary/15 text-primary">{icon}</div>
       <div className="min-w-0 flex-1">
         <p className="truncate font-semibold text-header">{title}</p>
         <p className="text-sm text-muted-foreground">{description}</p>

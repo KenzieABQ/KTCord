@@ -6,6 +6,7 @@ import {
   type ChatMessage,
   type Cursor,
   type MessagePage,
+  type PollDraft,
   type ReactionRow,
   type ThreadSummary,
 } from "@/lib/messages/types"
@@ -89,6 +90,10 @@ export async function sendMessage(input: {
   content: string
   replyToId: string | null
   attachments?: Json
+  replyPing?: boolean
+  /** Forward this message (the database copies its text into a snapshot). */
+  forwardId?: string | null
+  poll?: PollDraft | null
 }): Promise<ChatMessage> {
   const { data, error } = await getSupabase().rpc("send_message", {
     p_id: input.id,
@@ -96,6 +101,9 @@ export async function sendMessage(input: {
     p_content: input.content,
     p_reply_to: input.replyToId ?? undefined,
     p_attachments: input.attachments ?? [],
+    p_reply_ping: input.replyPing ?? true,
+    p_forward: input.forwardId ?? undefined,
+    p_poll: (input.poll ?? undefined) as Json | undefined,
   })
   if (error) throw toApiError(error)
   const row = data?.[0]
@@ -119,6 +127,13 @@ export async function deleteMessage(id: string): Promise<void> {
   const { error, count } = await getSupabase().from("messages").delete({ count: "exact" }).eq("id", id)
   if (error) throw toApiError(error)
   if (count === 0) throw new ApiError("You can't delete that message.")
+}
+
+/** Moves your read marker back to just before this message; returns the new marker. */
+export async function markUnread(channelId: string, messageId: string): Promise<string> {
+  const { data, error } = await getSupabase().rpc("mark_unread", { p_channel: channelId, p_message: messageId })
+  if (error) throw toApiError(error)
+  return data
 }
 
 export async function markRead(channelId: string, messageId: string): Promise<void> {

@@ -63,7 +63,7 @@ describe("links", () => {
     expect(parseInline("[docs](https://a.b/c) <https://x.y>")).toEqual([
       { type: "link", url: "https://a.b/c", children: [t("docs")] },
       t(" "),
-      { type: "link", url: "https://x.y", children: [t("https://x.y")] },
+      { type: "link", url: "https://x.y", children: [t("https://x.y")], suppressEmbed: true },
     ])
   })
 
@@ -145,5 +145,65 @@ describe("custom emoji", () => {
     expect(isEmojiOnly(`<:ok:${id}> <a:party_blob:${id}>`)).toBe(true)
     expect(isEmojiOnly(`🔥 <:ok:${id}>`)).toBe(true)
     expect(isEmojiOnly(`nice <:ok:${id}>`)).toBe(false)
+  })
+})
+
+describe("headings, subtext and lists", () => {
+  const t = (value: string): MdNode => ({ type: "text", value })
+
+  it("parses headings at the start of a line, up to three levels", () => {
+    expect(parseMarkdown("# Big\n## Medium\n### **Small**")).toEqual([
+      { type: "heading", level: 1, children: [t("Big")] },
+      { type: "heading", level: 2, children: [t("Medium")] },
+      { type: "heading", level: 3, children: [{ type: "strong", children: [t("Small")] }] },
+    ])
+  })
+
+  it("leaves hashtags, four hashes and escaped hashes alone", () => {
+    expect(parseMarkdown("#general")).toEqual([t("#general")])
+    expect(parseMarkdown("#### nope")).toEqual([t("#### nope")])
+    expect(parseMarkdown("\\# not a heading")).toEqual([t("# not a heading")])
+  })
+
+  it("parses subtext", () => {
+    expect(parseMarkdown("hello\n-# psst")).toEqual([t("hello"), { type: "subtext", children: [t("psst")] }])
+  })
+
+  it("parses bulleted lists with nesting and continuation lines", () => {
+    expect(parseMarkdown("- one\n  more\n* two\n  - nested")).toEqual([
+      {
+        type: "list",
+        ordered: false,
+        start: 1,
+        items: [
+          [t("one"), { type: "br" }, t("more")],
+          [t("two"), { type: "list", ordered: false, start: 1, items: [[t("nested")]] }],
+        ],
+      },
+    ])
+  })
+
+  it("keeps the first number of an ordered list and splits on a marker change", () => {
+    expect(parseMarkdown("3. three\n4. four\n- dash")).toEqual([
+      { type: "list", ordered: true, start: 3, items: [[t("three")], [t("four")]] },
+      { type: "list", ordered: false, start: 1, items: [[t("dash")]] },
+    ])
+  })
+
+  it("doesn't mistake italics or plain text for lists", () => {
+    expect(parseMarkdown("*not a list*")).toEqual([{ type: "em", children: [t("not a list")] }])
+    expect(parseMarkdown("-not a list")).toEqual([t("-not a list")])
+  })
+
+  it("works inside quotes and reads well as plain text", () => {
+    const nodes = parseMarkdown("> # Title\n> - item\nafter")
+    expect(nodes[0]).toEqual({
+      type: "blockquote",
+      children: [
+        { type: "heading", level: 1, children: [t("Title")] },
+        { type: "list", ordered: false, start: 1, items: [[t("item")]] },
+      ],
+    })
+    expect(toPlainText(parseMarkdown("# Title\nbody\n- a\n- b")).trim()).toBe("Title body a b")
   })
 })

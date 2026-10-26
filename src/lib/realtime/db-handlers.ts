@@ -332,7 +332,16 @@ export function onMessageChange(ctx: DbContext, change: Change<Tables<"messages"
 /** Another device of yours read a channel. */
 export function onReadStateChange(ctx: DbContext, change: Change<Tables<"read_states">>) {
   if (change.eventType === "DELETE" || change.new.user_id !== ctx.userId) return
-  useUnreadStore.getState().markRead(change.new.channel_id, change.new.last_read_at)
+  const { channel_id: channelId, last_read_at: at } = change.new
+  const unread = useUnreadStore.getState()
+  const local = unread.channels[channelId]?.lastReadAt
+  if (local && at < local) {
+    // Marked unread, in another tab or on another device.
+    unread.markUnread(channelId, at, false)
+    void ctx.queryClient.invalidateQueries({ queryKey: qk.unreadState(ctx.userId) })
+  } else if (at !== local) {
+    unread.markRead(channelId, at)
+  }
 }
 
 // ---------------------------------------------------------------------------
@@ -394,4 +403,10 @@ export function onReactionChange(ctx: DbContext, change: Change<Tables<"reaction
 
 export function onVoiceModerationChange(ctx: DbContext) {
   void ctx.queryClient.invalidateQueries({ queryKey: ["voice-moderation"] })
+}
+
+export function onPollVoteChange(ctx: DbContext, change: Change<Tables<"poll_votes">>) {
+  // Deletes carry only the row id, so refresh every poll on screen.
+  const messageId = change.eventType === "DELETE" ? undefined : change.new.message_id
+  void ctx.queryClient.invalidateQueries({ queryKey: messageId ? qk.pollVotes(messageId) : ["poll-votes"] })
 }

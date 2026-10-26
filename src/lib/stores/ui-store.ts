@@ -13,6 +13,7 @@ export type AppDialog =
   | { kind: "ban-member"; serverId: string; userId: string }
   | { kind: "create-dm"; addToChannelId?: string; preselect?: string[] }
   | { kind: "create-thread"; serverId: string; channelId: string; messageId: string; defaultName: string }
+  | { kind: "forward-message"; messageId: string }
   | { kind: "quick-switcher" }
   | { kind: "shortcuts" }
 

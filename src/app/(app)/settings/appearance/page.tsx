@@ -237,6 +237,17 @@ export default function AppearanceSettingsPage() {
       </div>
 
       <div className="mt-8">
+        <Heading>Text &amp; Images</Heading>
+        <SettingsToggle
+          id="link-previews"
+          label="Show embeds and preview website links pasted into chat"
+          description="Links show a preview with the page's title, description and image. Images load through KTCord, so sites don't see your IP address."
+          checked={prefs.linkPreviews}
+          onCheckedChange={(linkPreviews) => prefs.set({ linkPreviews })}
+        />
+      </div>
+
+      <div className="mt-8">
         <Heading>Accessibility</Heading>
         <SettingsToggle
           id="reduced-motion"

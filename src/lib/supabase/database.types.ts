@@ -526,6 +526,7 @@ export type Database = {
           content: string
           created_at: string
           edited_at: string | null
+          forwarded: Json | null
           has_file: boolean | null
           has_image: boolean | null
           has_link: boolean | null
@@ -536,6 +537,8 @@ export type Database = {
           mentions: string[]
           pinned_at: string | null
           pinned_by: string | null
+          poll: Json | null
+          reply_ping: boolean
           reply_to_id: string | null
           search: unknown
           type: Database["public"]["Enums"]["message_type"]
@@ -547,6 +550,7 @@ export type Database = {
           content?: string
           created_at?: string
           edited_at?: string | null
+          forwarded?: Json | null
           has_file?: boolean | null
           has_image?: boolean | null
           has_link?: boolean | null
@@ -557,6 +561,8 @@ export type Database = {
           mentions?: string[]
           pinned_at?: string | null
           pinned_by?: string | null
+          poll?: Json | null
+          reply_ping?: boolean
           reply_to_id?: string | null
           search?: unknown
           type?: Database["public"]["Enums"]["message_type"]
@@ -568,6 +574,7 @@ export type Database = {
           content?: string
           created_at?: string
           edited_at?: string | null
+          forwarded?: Json | null
           has_file?: boolean | null
           has_image?: boolean | null
           has_link?: boolean | null
@@ -578,6 +585,8 @@ export type Database = {
           mentions?: string[]
           pinned_at?: string | null
           pinned_by?: string | null
+          poll?: Json | null
+          reply_ping?: boolean
           reply_to_id?: string | null
           search?: unknown
           type?: Database["public"]["Enums"]["message_type"]
@@ -655,6 +664,45 @@ export type Database = {
           },
           {
             foreignKeyName: "notification_settings_user_id_fkey"
+            columns: ["user_id"]
+            isOneToOne: false
+            referencedRelation: "profiles"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      poll_votes: {
+        Row: {
+          answer_id: number
+          created_at: string
+          id: string
+          message_id: string
+          user_id: string
+        }
+        Insert: {
+          answer_id: number
+          created_at?: string
+          id?: string
+          message_id: string
+          user_id?: string
+        }
+        Update: {
+          answer_id?: number
+          created_at?: string
+          id?: string
+          message_id?: string
+          user_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "poll_votes_message_id_fkey"
+            columns: ["message_id"]
+            isOneToOne: false
+            referencedRelation: "messages"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "poll_votes_user_id_fkey"
             columns: ["user_id"]
             isOneToOne: false
             referencedRelation: "profiles"
@@ -1177,6 +1225,7 @@ export type Database = {
         Returns: string
       }
       delete_role: { Args: { p_role: string }; Returns: undefined }
+      end_poll: { Args: { p_message: string }; Returns: undefined }
       get_invite: {
         Args: { p_code: string }
         Returns: {
@@ -1229,6 +1278,10 @@ export type Database = {
         Returns: string
       }
       mark_server_read: { Args: { p_server: string }; Returns: undefined }
+      mark_unread: {
+        Args: { p_channel: string; p_message: string }
+        Returns: string
+      }
       member_top_position: {
         Args: { p_server: string; p_user: string }
         Returns: number
@@ -1314,7 +1367,10 @@ export type Database = {
           p_attachments?: Json
           p_channel: string
           p_content: string
+          p_forward?: string
           p_id: string
+          p_poll?: Json
+          p_reply_ping?: boolean
           p_reply_to?: string
         }
         Returns: {
@@ -1324,6 +1380,7 @@ export type Database = {
           content: string
           created_at: string
           edited_at: string | null
+          forwarded: Json | null
           has_file: boolean | null
           has_image: boolean | null
           has_link: boolean | null
@@ -1334,6 +1391,8 @@ export type Database = {
           mentions: string[]
           pinned_at: string | null
           pinned_by: string | null
+          poll: Json | null
+          reply_ping: boolean
           reply_to_id: string | null
           search: unknown
           type: Database["public"]["Enums"]["message_type"]
@@ -1448,6 +1507,10 @@ export type Database = {
       voice_removal_allowed: {
         Args: { p_server: string; p_user: string }
         Returns: boolean
+      }
+      vote_poll: {
+        Args: { p_answers: number[]; p_message: string }
+        Returns: undefined
       }
     }
     Enums: {

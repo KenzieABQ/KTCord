@@ -15,6 +15,11 @@ type UnreadState = {
   channels: Record<string, ChannelUnread>
   /** The channel on screen and whether the feed is scrolled to the newest message. */
   active: ActiveView
+  /**
+   * Channels you marked unread here, with the new marker. While you stay in one, reading it
+   * doesn't mark it read again (as in Discord); leaving it or sending a message does.
+   */
+  markedUnread: Record<string, string>
 
   hydrate: (rows: UnreadRow[]) => void
   setActive: (active: ActiveView) => void
@@ -27,6 +32,8 @@ type UnreadState = {
     mentionsMe: boolean
   }) => void
   markRead: (channelId: string, at: string) => void
+  /** Moves the read marker back (Mark Unread); `here` when this tab did it. */
+  markUnread: (channelId: string, at: string, here: boolean) => void
 }
 
 const empty = (serverId: string | null): ChannelUnread => ({
@@ -36,9 +43,10 @@ const empty = (serverId: string | null): ChannelUnread => ({
   mentions: 0,
 })
 
-function isWatching(active: ActiveView, channelId: string) {
+function isWatching(active: ActiveView, channelId: string, markedUnread: Record<string, string>) {
   return (
     active?.channelId === channelId &&
+    !markedUnread[channelId] &&
     active.atBottom &&
     typeof document !== "undefined" &&
     document.visibilityState === "visible" &&
@@ -49,6 +57,7 @@ function isWatching(active: ActiveView, channelId: string) {
 export const useUnreadStore = create<UnreadState>()((set, get) => ({
   channels: {},
   active: null,
+  markedUnread: {},
 
   hydrate: (rows) =>
     set((s) => {
@@ -68,14 +77,21 @@ export const useUnreadStore = create<UnreadState>()((set, get) => ({
       return { channels }
     }),
 
-  setActive: (active) => set({ active }),
+  setActive: (active) =>
+    set((s) => {
+      // Leaving a channel you marked unread lets it be read normally next time.
+      const left = s.active?.channelId
+      if (!left || left === active?.channelId || !s.markedUnread[left]) return { active }
+      return { active, markedUnread: without(s.markedUnread, left) }
+    }),
 
   onMessage: ({ channelId, serverId, createdAt, mine, mentionsMe }) => {
     const prev = get().channels[channelId] ?? empty(serverId)
     // Your own messages, and messages that land while you're watching the bottom of the
     // channel, count as read straight away.
-    const seen = mine || isWatching(get().active, channelId)
+    const seen = mine || isWatching(get().active, channelId, get().markedUnread)
     set((s) => ({
+      markedUnread: mine ? without(s.markedUnread, channelId) : s.markedUnread,
       channels: {
         ...s.channels,
         [channelId]: {
@@ -92,8 +108,12 @@ export const useUnreadStore = create<UnreadState>()((set, get) => ({
   markRead: (channelId, at) =>
     set((s) => {
       const prev = s.channels[channelId] ?? empty(null)
-      if (prev.lastReadAt && prev.lastReadAt >= at && prev.mentions === 0) return s
+      const markedUnread = without(s.markedUnread, channelId)
+      if (prev.lastReadAt && prev.lastReadAt >= at && prev.mentions === 0) {
+        return markedUnread === s.markedUnread ? s : { markedUnread }
+      }
       return {
+        markedUnread,
         channels: {
           ...s.channels,
           [channelId]: {
@@ -104,7 +124,23 @@ export const useUnreadStore = create<UnreadState>()((set, get) => ({
         },
       }
     }),
+
+  markUnread: (channelId, at, here) =>
+    set((s) => {
+      const prev = s.channels[channelId] ?? empty(null)
+      return {
+        channels: { ...s.channels, [channelId]: { ...prev, lastReadAt: at } },
+        markedUnread: here ? { ...s.markedUnread, [channelId]: at } : s.markedUnread,
+      }
+    }),
 }))
+
+function without(map: Record<string, string>, key: string) {
+  if (!(key in map)) return map
+  const next = { ...map }
+  delete next[key]
+  return next
+}
 
 export function isChannelUnread(entry: ChannelUnread | undefined): boolean {
   return Boolean(

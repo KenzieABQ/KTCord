@@ -2,10 +2,16 @@
 
 import { useQueryClient, type InfiniteData } from "@tanstack/react-query"
 import { format } from "date-fns"
-import { ClockIcon, HourglassIcon, PlusCircleIcon, SmileIcon, XIcon } from "lucide-react"
-import { useRef } from "react"
+import { AtSignIcon, BarChart3Icon, ClockIcon, HourglassIcon, PlusCircleIcon, SmileIcon, UploadIcon, XIcon } from "lucide-react"
+import { useRef, useState } from "react"
 import { toast } from "sonner"
 
+import {
+  DropdownMenu,
+  DropdownMenuContent,
+  DropdownMenuItem,
+  DropdownMenuTrigger,
+} from "@/components/ui/dropdown-menu"
 import { Tooltip, TooltipContent, TooltipTrigger } from "@/components/ui/tooltip"
 import { useAutosize } from "@/hooks/use-autosize"
 import {
@@ -18,7 +24,7 @@ import { errorMessage } from "@/lib/api/errors"
 import { isAutomodBlock } from "@/lib/automod"
 import { visibleElementById } from "@/lib/dom"
 import { flattenPages } from "@/lib/messages/feed"
-import { newLocalMessage, type MessagePage } from "@/lib/messages/types"
+import { newLocalMessage, type MessagePage, type PollDraft } from "@/lib/messages/types"
 import { qk } from "@/lib/queries/keys"
 import { findCachedMessage, useSendMessage } from "@/lib/queries/messages"
 import { parseCustomEmoji } from "@/lib/emoji"
@@ -34,6 +40,7 @@ import { AttachmentTray, stageFiles } from "./attachment-tray"
 import { useChat } from "./chat-context"
 import { EmojiPickerPopover } from "./emoji-picker"
 import { MentionPopup } from "./mention-popup"
+import { PollDialog } from "./poll-dialog"
 import { TypingIndicator } from "./typing-indicator"
 import { useMessageCodec } from "./use-message-codec"
 import { useSlowmode } from "./use-slowmode"
@@ -43,26 +50,52 @@ import { useAuthor } from "./use-author"
 const MAX_LENGTH = 2000
 const EMPTY: PendingFile[] = []
 
-function ReplyBar({ messageId, onCancel }: { messageId: string; onCancel: () => void }) {
+function ReplyBar({ channelId, messageId, onCancel }: { channelId: string; messageId: string; onCancel: () => void }) {
   const queryClient = useQueryClient()
+  const userId = useUserId()
   const original = findCachedMessage(queryClient, messageId)
   const author = useAuthor(original?.author_id ?? null)
+  const ping = useComposerStore((s) => s.replyPing[channelId] ?? true)
+  const ownMessage = original?.author_id === userId
   return (
-    <div className="flex h-8 items-center justify-between rounded-t-lg bg-sidebar px-4 text-sm text-muted-foreground">
+    <div className="flex h-8 items-center justify-between gap-3 rounded-t-lg bg-sidebar px-4 text-sm text-muted-foreground">
       <span className="truncate">
         Replying to{" "}
         <strong className="font-semibold text-header" style={author.color ? { color: author.color } : undefined}>
           {author.name}
         </strong>
       </span>
-      <button
-        type="button"
-        aria-label="Cancel reply"
-        onClick={onCancel}
-        className="rounded-full text-interactive hover:text-interactive-hover"
-      >
-        <XIcon className="size-4" />
-      </button>
+      <span className="flex shrink-0 items-center gap-3">
+        {!ownMessage && (
+          <Tooltip>
+            <TooltipTrigger asChild>
+              <button
+                type="button"
+                aria-pressed={ping}
+                onClick={() => useComposerStore.getState().setReplyPing(channelId, !ping)}
+                className={cn(
+                  "flex items-center gap-0.5 text-xs font-bold uppercase",
+                  ping ? "text-link" : "text-muted-foreground hover:text-interactive-hover"
+                )}
+              >
+                <AtSignIcon className="size-3.5" />
+                {ping ? "On" : "Off"}
+              </button>
+            </TooltipTrigger>
+            <TooltipContent side="top">
+              {ping ? `Click to stop pinging ${author.name}` : `Click to ping ${author.name}`}
+            </TooltipContent>
+          </Tooltip>
+        )}
+        <button
+          type="button"
+          aria-label="Cancel reply"
+          onClick={onCancel}
+          className="rounded-full text-interactive hover:text-interactive-hover"
+        >
+          <XIcon className="size-4" />
+        </button>
+      </span>
     </div>
   )
 }
@@ -95,6 +128,7 @@ export function Composer({ onSent }: { onSent: () => void }) {
   const slowmode = useSlowmode()
   const staged = useUploadStore((s) => s.staged[channel.id] ?? EMPTY)
   const fileInputRef = useRef<HTMLInputElement>(null)
+  const [pollOpen, setPollOpen] = useState(false)
   const draft = useComposerStore((s) => s.drafts[channel.id] ?? "")
   const replyTo = useComposerStore((s) => s.replyTo[channel.id])
   const { setDraft, setReplyTo, setEditing } = useComposerStore.getState()
@@ -144,6 +178,7 @@ export function Composer({ onSent }: { onSent: () => void }) {
       content,
       replyToId: replyTo ?? null,
       attachments: attachments as unknown as Json,
+      replyPing: useComposerStore.getState().replyPing[channel.id] ?? true,
     })
     setDraft(channel.id, "")
     setReplyTo(channel.id, undefined)
@@ -161,6 +196,29 @@ export function Composer({ onSent }: { onSent: () => void }) {
         if (!composer.drafts[channel.id]) setDraft(channel.id, decode(content))
       },
     })
+    slowmode.started()
+    onSent()
+  }
+
+  function sendPoll(draft: PollDraft) {
+    if (slowmode.remaining > 0) {
+      toast(`Slow mode is on. You can send another message in ${slowmode.remaining}s.`, { id: "slowmode" })
+      return
+    }
+    const message = newLocalMessage({
+      id: crypto.randomUUID(),
+      channelId: channel.id,
+      authorId: userId,
+      content: "",
+      replyToId: null,
+      poll: {
+        question: draft.question,
+        answers: draft.answers.map((a, i) => ({ id: i + 1, text: a.text, emoji: a.emoji ?? null })),
+        multiselect: draft.multiselect,
+        expires_at: new Date(Date.now() + draft.duration_hours * 3_600_000).toISOString(),
+      },
+    })
+    sendMessage.mutate(message, { onError: (e) => toast.error(errorMessage(e)) })
     slowmode.started()
     onSent()
   }
@@ -201,7 +259,9 @@ export function Composer({ onSent }: { onSent: () => void }) {
 
   return (
     <div className="shrink-0 px-4">
-      {replyTo && <ReplyBar messageId={replyTo} onCancel={() => setReplyTo(channel.id, undefined)} />}
+      {replyTo && (
+        <ReplyBar channelId={channel.id} messageId={replyTo} onCancel={() => setReplyTo(channel.id, undefined)} />
+      )}
       {staged.length > 0 && <AttachmentTray channelId={channel.id} items={staged} rounded={!replyTo} />}
       <form
         onSubmit={(e) => {
@@ -214,20 +274,26 @@ export function Composer({ onSent }: { onSent: () => void }) {
         )}
       >
         {mentions.popup && <MentionPopup {...mentions.popup} />}
-        <Tooltip>
-          <TooltipTrigger asChild>
+        <DropdownMenu>
+          <DropdownMenuTrigger asChild>
             <button
               type="button"
-              aria-label="Upload a file"
-              disabled={!canAttach}
-              onClick={() => fileInputRef.current?.click()}
-              className="flex size-11 shrink-0 items-center justify-center text-interactive hover:text-interactive-hover disabled:opacity-50"
+              aria-label="Upload a file or create a poll"
+              className="flex size-11 shrink-0 items-center justify-center text-interactive hover:text-interactive-hover"
             >
               <PlusCircleIcon className="size-6" />
             </button>
-          </TooltipTrigger>
-          <TooltipContent side="top">Upload a file</TooltipContent>
-        </Tooltip>
+          </DropdownMenuTrigger>
+          <DropdownMenuContent side="top" align="start" className="w-52">
+            <DropdownMenuItem disabled={!canAttach} onSelect={() => fileInputRef.current?.click()}>
+              <UploadIcon /> Upload a File
+            </DropdownMenuItem>
+            <DropdownMenuItem onSelect={() => setPollOpen(true)}>
+              <BarChart3Icon /> Create Poll
+            </DropdownMenuItem>
+          </DropdownMenuContent>
+        </DropdownMenu>
+        <PollDialog open={pollOpen} onOpenChange={setPollOpen} channelLabel={channelLabel} onPost={sendPoll} />
         <input
           ref={fileInputRef}
           type="file"

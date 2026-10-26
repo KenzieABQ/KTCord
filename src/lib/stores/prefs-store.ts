@@ -36,6 +36,8 @@ type PrefsState = {
   groupSpacing: number
   chatFontSize: number
   reducedMotion: boolean
+  /** Show previews (embeds) for links posted in chat. */
+  linkPreviews: boolean
   /** Show a desktop notification when the tab is in the background (needs browser permission). */
   desktopNotifications: boolean
   /** Show an in-app toast for new messages while KTCord is open. */
@@ -62,6 +64,7 @@ export const usePrefsStore = create<PrefsState>()(
       groupSpacing: DEFAULT_GROUP_SPACING,
       chatFontSize: DEFAULT_CHAT_FONT_SIZE,
       reducedMotion: false,
+      linkPreviews: true,
       desktopNotifications: true,
       inAppToasts: true,
       notificationSound: true,
@@ -82,6 +85,7 @@ export const usePrefsStore = create<PrefsState>()(
         groupSpacing: s.groupSpacing,
         chatFontSize: s.chatFontSize,
         reducedMotion: s.reducedMotion,
+        linkPreviews: s.linkPreviews,
         desktopNotifications: s.desktopNotifications,
         inAppToasts: s.inAppToasts,
         notificationSound: s.notificationSound,

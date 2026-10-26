@@ -4,6 +4,7 @@
  *
  * Supported: **bold**, *italic* / _italic_, __underline__, ~~strike~~, ||spoiler||,
  * `inline code`, ```fenced code```, > quotes, >>> rest-of-message quotes,
+ * # headings (#, ##, ###), -# subtext, - bulleted and 1. numbered lists (indent to nest),
  * [masked](https://links), autolinked URLs, <https://suppressed>, \escapes,
  * <@user>, <@&role>, <#channel>, <:custom_emoji:id>, @everyone and @here.
  */
@@ -15,7 +16,10 @@ export type MdNode =
   | { type: "inlineCode"; value: string }
   | { type: "codeBlock"; lang: string | null; value: string }
   | { type: "blockquote"; children: MdNode[] }
-  | { type: "link"; url: string; children: MdNode[] }
+  | { type: "heading"; level: 1 | 2 | 3; children: MdNode[] }
+  | { type: "subtext"; children: MdNode[] }
+  | { type: "list"; ordered: boolean; start: number; items: MdNode[][] }
+  | { type: "link"; url: string; children: MdNode[]; suppressEmbed?: true }
   | { type: "mention"; kind: "user" | "role" | "channel"; id: string }
   | { type: "everyone"; value: "everyone" | "here" }
   | { type: "customEmoji"; name: string; id: string; animated: boolean }
@@ -62,7 +66,7 @@ const RULES: Rule[] = [
   },
   {
     re: /<(https?:\/\/[^\s>]+)>/y,
-    build: (m) => ({ type: "link", url: m[1], children: [{ type: "text", value: m[1] }] }),
+    build: (m) => ({ type: "link", url: m[1], children: [{ type: "text", value: m[1] }], suppressEmbed: true }),
   },
   {
     // Trailing punctuation stays outside the link, as in "see https://x.y."
@@ -127,6 +131,97 @@ export function parseInline(src: string, depth = 0): MdNode[] {
   return out
 }
 
+const HEADING = /^(#{1,3}) +(\S.*)$/
+const SUBTEXT = /^-# +(\S.*)$/
+const LIST_ITEM = /^( *)(?:[-*]|(\d{1,9})\.) +(\S.*)$/
+
+type ListLine = { indent: number; ordered: boolean; number: number; lines: string[] }
+
+/** Nodes that render as their own block, so no line break is needed around them. */
+function isBlock(node: MdNode | undefined) {
+  return (
+    node?.type === "codeBlock" ||
+    node?.type === "blockquote" ||
+    node?.type === "heading" ||
+    node?.type === "subtext" ||
+    node?.type === "list"
+  )
+}
+
+/**
+ * Turns list lines into lists: deeper-indented items nest under the item above them, and
+ * switching between bullets and numbers at the same level starts a new list.
+ */
+function buildLists(items: ListLine[], depth: number): MdNode[] {
+  const lists: MdNode[] = []
+  let i = 0
+  while (i < items.length) {
+    const first = items[i]
+    const list: Extract<MdNode, { type: "list" }> = {
+      type: "list",
+      ordered: first.ordered,
+      start: first.number,
+      items: [],
+    }
+    while (i < items.length && items[i].ordered === first.ordered) {
+      const item = items[i]
+      let end = i + 1
+      while (end < items.length && items[end].indent > item.indent) end++
+      const children = parseInline(item.lines.join("\n"), depth)
+      if (end > i + 1) children.push(...buildLists(items.slice(i + 1, end), depth + 1))
+      list.items.push(children)
+      i = end
+    }
+    lists.push(list)
+  }
+  return lists
+}
+
+/** Line-level markdown inside one run of lines: headings, subtext and lists, with text between. */
+function parseLines(lines: string[], depth: number): MdNode[] {
+  const out: MdNode[] = []
+  let plain: string[] = []
+  let items: ListLine[] = []
+
+  const flushPlain = () => {
+    if (plain.length === 0) return
+    out.push(...parseInline(plain.join("\n"), depth))
+    plain = []
+  }
+  const flushList = () => {
+    if (items.length === 0) return
+    out.push(...buildLists(items, depth))
+    items = []
+  }
+
+  for (const line of lines) {
+    let m = LIST_ITEM.exec(line)
+    if (m && !SUBTEXT.test(line)) {
+      flushPlain()
+      items.push({ indent: m[1].length, ordered: m[2] !== undefined, number: m[2] ? Number(m[2]) : 1, lines: [m[3]] })
+      continue
+    }
+    // An indented line right after a list item continues that item.
+    if (items.length && /^ {2,}\S/.test(line)) {
+      items[items.length - 1].lines.push(line.trim())
+      continue
+    }
+    flushList()
+    if ((m = HEADING.exec(line))) {
+      flushPlain()
+      out.push({ type: "heading", level: m[1].length as 1 | 2 | 3, children: parseInline(m[2], depth) })
+    } else if ((m = SUBTEXT.exec(line))) {
+      flushPlain()
+      out.push({ type: "subtext", children: parseInline(m[1], depth) })
+    } else {
+      plain.push(line)
+    }
+  }
+  flushList()
+  flushPlain()
+  return out
+}
+
 /** Splits non-code text into quoted and unquoted runs of lines. */
 function parseQuotes(text: string, depth: number): MdNode[] {
   const out: MdNode[] = []
@@ -136,33 +231,31 @@ function parseQuotes(text: string, depth: number): MdNode[] {
 
   const flushPlain = () => {
     if (plain.length === 0) return
-    const inline = parseInline(plain.join("\n"), depth)
-    out.push(...inline)
+    out.push(...parseLines(plain, depth))
     plain = []
   }
   const flushQuote = () => {
     if (quoted.length === 0) return
-    out.push({ type: "blockquote", children: parseInline(quoted.join("\n"), depth) })
+    out.push({ type: "blockquote", children: parseLines(quoted, depth) })
     quoted = []
+  }
+  const endPlain = () => {
+    if (plain.length === 0) return
+    flushPlain()
+    if (!isBlock(out[out.length - 1])) out.push({ type: "br" })
   }
 
   for (let n = 0; n < lines.length; n++) {
     const line = lines[n]
     if (line.startsWith(">>> ")) {
       flushQuote()
-      if (plain.length) {
-        flushPlain()
-        out.push({ type: "br" })
-      }
+      endPlain()
       quoted = [line.slice(4), ...lines.slice(n + 1)]
       flushQuote()
       return out
     }
     if (line.startsWith("> ") || line === ">") {
-      if (plain.length) {
-        flushPlain()
-        out.push({ type: "br" })
-      }
+      endPlain()
       quoted.push(line.slice(2))
     } else {
       // A quote ends at the first unquoted line; that line starts a new plain run.
@@ -193,33 +286,43 @@ export function parseMarkdown(src: string): MdNode[] {
   return out
 }
 
+type Names = { user?: (id: string) => string; role?: (id: string) => string; channel?: (id: string) => string }
+
+function plainOf(node: MdNode, names?: Names): string {
+  switch (node.type) {
+    case "text":
+      return node.value
+    case "br":
+      return " "
+    case "inlineCode":
+    case "codeBlock":
+      return node.value
+    case "mention":
+      if (node.kind === "user") return `@${names?.user?.(node.id) ?? "unknown-user"}`
+      if (node.kind === "role") return `@${names?.role?.(node.id) ?? "deleted-role"}`
+      return `#${names?.channel?.(node.id) ?? "unknown-channel"}`
+    case "everyone":
+      return `@${node.value}`
+    case "customEmoji":
+      return `:${node.name}:`
+    case "spoiler":
+      return "▇▇▇▇"
+    case "list":
+      return node.items.map((item) => toPlainText(item, names)).join(" ")
+    default:
+      return toPlainText(node.children, names)
+  }
+}
+
 /** Plain text for previews (reply bars, notifications, search results). */
-export function toPlainText(nodes: MdNode[], names?: { user?: (id: string) => string; role?: (id: string) => string; channel?: (id: string) => string }): string {
-  return nodes
-    .map((node): string => {
-      switch (node.type) {
-        case "text":
-          return node.value
-        case "br":
-          return " "
-        case "inlineCode":
-        case "codeBlock":
-          return node.value
-        case "mention":
-          if (node.kind === "user") return `@${names?.user?.(node.id) ?? "unknown-user"}`
-          if (node.kind === "role") return `@${names?.role?.(node.id) ?? "deleted-role"}`
-          return `#${names?.channel?.(node.id) ?? "unknown-channel"}`
-        case "everyone":
-          return `@${node.value}`
-        case "customEmoji":
-          return `:${node.name}:`
-        case "spoiler":
-          return "▇▇▇▇"
-        default:
-          return toPlainText(node.children, names)
-      }
-    })
-    .join("")
+export function toPlainText(nodes: MdNode[], names?: Names): string {
+  let out = ""
+  nodes.forEach((node, i) => {
+    // Blocks sit on their own lines; keep a space between them and their neighbors.
+    if (i > 0 && (isBlock(node) || isBlock(nodes[i - 1])) && !out.endsWith(" ")) out += " "
+    out += plainOf(node, names)
+  })
+  return out
 }
 
 /** True when the message is only emoji (up to 27), which Discord shows larger. */

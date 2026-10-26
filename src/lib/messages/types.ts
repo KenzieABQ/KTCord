@@ -28,7 +28,45 @@ export type Cursor = { createdAt: string; id: string }
 
 /** Columns the client reads (skips the tsvector). */
 export const MESSAGE_COLUMNS =
-  "id, channel_id, author_id, content, type, reply_to_id, attachments, mentions, mention_roles, mention_everyone, pinned_at, pinned_by, edited_at, created_at"
+  "id, channel_id, author_id, content, type, reply_to_id, attachments, mentions, mention_roles, mention_everyone, pinned_at, pinned_by, edited_at, created_at, reply_ping, forwarded, poll"
+
+/** The original message a forward carries (built by the database from the real message). */
+export type ForwardSnapshot = {
+  message_id: string
+  channel_id: string
+  author_id: string | null
+  content: string
+  created_at: string
+}
+
+export type PollAnswer = { id: number; text: string; emoji: string | null }
+export type Poll = { question: string; answers: PollAnswer[]; multiselect: boolean; expires_at: string }
+
+/** What the composer sends to create a poll; the database validates and normalizes it. */
+export type PollDraft = {
+  question: string
+  answers: { text: string; emoji?: string | null }[]
+  multiselect: boolean
+  duration_hours: number
+}
+
+export function forwardOf(message: Pick<MessageRow, "forwarded">): ForwardSnapshot | null {
+  const f = message.forwarded as Partial<ForwardSnapshot> | null
+  return f && typeof f === "object" && typeof f.message_id === "string" ? (f as ForwardSnapshot) : null
+}
+
+export function pollOf(message: Pick<MessageRow, "poll">): Poll | null {
+  const p = message.poll as Partial<Poll> | null
+  return p && typeof p === "object" && typeof p.question === "string" && Array.isArray(p.answers) ? (p as Poll) : null
+}
+
+/** The text to preview a message by: its content, else its poll question, else what it forwards. */
+export function previewText(message: Pick<MessageRow, "content" | "forwarded" | "poll">): string {
+  if (message.content) return message.content
+  const poll = pollOf(message)
+  if (poll) return `Poll: ${poll.question}`
+  return forwardOf(message)?.content ?? ""
+}
 
 export function newLocalMessage(input: {
   id: string
@@ -37,6 +75,9 @@ export function newLocalMessage(input: {
   content: string
   replyToId: string | null
   attachments?: Json
+  replyPing?: boolean
+  forwarded?: ForwardSnapshot | null
+  poll?: Poll | null
 }): ChatMessage {
   return {
     id: input.id,
@@ -53,6 +94,9 @@ export function newLocalMessage(input: {
     pinned_by: null,
     edited_at: null,
     created_at: new Date().toISOString(),
+    reply_ping: input.replyPing ?? true,
+    forwarded: input.forwarded ?? null,
+    poll: input.poll ?? null,
     status: "sending",
   }
 }

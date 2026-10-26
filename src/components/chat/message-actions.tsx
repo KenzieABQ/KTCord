@@ -2,6 +2,8 @@
 
 import {
   CopyIcon,
+  EyeOffIcon,
+  ForwardIcon,
   HashIcon,
   LinkIcon,
   MessagesSquareIcon,
@@ -29,7 +31,7 @@ import {
   DropdownMenuTrigger,
 } from "@/components/ui/dropdown-menu"
 import { Tooltip, TooltipContent, TooltipTrigger } from "@/components/ui/tooltip"
-import type { ChatMessage } from "@/lib/messages/types"
+import { forwardOf, type ChatMessage } from "@/lib/messages/types"
 
 import { EmojiPickerPopover } from "./emoji-picker"
 
@@ -42,6 +44,7 @@ export type MessageActionHandlers = {
   canReact: boolean
   canPin: boolean
   canThread: boolean
+  canForward: boolean
   onReply: () => void
   onEdit: () => void
   /** `skipConfirm` is true for the Shift-held toolbar button, as in Discord. */
@@ -49,6 +52,8 @@ export type MessageActionHandlers = {
   onReact: (emoji: string) => void
   onTogglePin: () => void
   onCreateThread: () => void
+  onForward: () => void
+  onMarkUnread: () => void
 }
 
 /** basePath is "/channels/<serverId>" or "/channels/me". */
@@ -128,6 +133,11 @@ export function MessageToolbar({
           <ReplyIcon className="size-[18px]" />
         </ToolbarButton>
       )}
+      {actions.canForward && (
+        <ToolbarButton label="Forward" onClick={actions.onForward}>
+          <ForwardIcon className="size-[18px]" />
+        </ToolbarButton>
+      )}
       {actions.canEdit && (
         <ToolbarButton label="Edit" onClick={actions.onEdit}>
           <PencilIcon className="size-4" />
@@ -203,6 +213,11 @@ function MessageMenuItems({
           Reply <ReplyIcon className="ml-auto" />
         </Item>
       )}
+      {actions.canForward && (
+        <Item onSelect={actions.onForward}>
+          Forward <ForwardIcon className="ml-auto" />
+        </Item>
+      )}
       {actions.canThread && (
         <Item onSelect={actions.onCreateThread}>
           {message.thread ? "Open Thread" : "Create Thread"} <MessagesSquareIcon className="ml-auto" />
@@ -214,9 +229,14 @@ function MessageMenuItems({
           {message.pinned_at ? <PinOffIcon className="ml-auto" /> : <PinIcon className="ml-auto" />}
         </Item>
       )}
-      <Item onSelect={() => copy(message.content, "Text")}>
+      <Item onSelect={() => copy(forwardOf(message)?.content ?? message.content, "Text")}>
         Copy Text <CopyIcon className="ml-auto" />
       </Item>
+      {sent && (
+        <Item onSelect={actions.onMarkUnread}>
+          Mark Unread <EyeOffIcon className="ml-auto" />
+        </Item>
+      )}
       {sent && (
         <Item onSelect={() => copy(messageLink(basePath, message), "Message link")}>
           Copy Message Link <LinkIcon className="ml-auto" />

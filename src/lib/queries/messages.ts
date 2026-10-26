@@ -21,6 +21,7 @@ import {
   getUnreadState,
   listPins,
   listThreads,
+  markUnread,
   pinMessage,
   removeReaction,
   searchMessages,
@@ -32,7 +33,7 @@ import type { Profile } from "@/lib/api/profiles"
 import { getProfile } from "@/lib/api/profiles"
 import { isAutomodBlock } from "@/lib/automod"
 import { patchInPages, removeFromPages, upsertIntoPages } from "@/lib/messages/feed"
-import type { ChatMessage, Cursor, MessagePage } from "@/lib/messages/types"
+import { forwardOf, pollOf, type ChatMessage, type Cursor, type MessagePage } from "@/lib/messages/types"
 import { useUserId } from "@/lib/stores/auth-store"
 import { useUnreadStore } from "@/lib/stores/unread-store"
 import { uploadAttachment } from "@/lib/api/attachments"
@@ -131,12 +132,22 @@ async function uploadThenSend(channelId: string, message: ChatMessage) {
     if (progress[path] === 1) continue
     await uploadAttachment(path, file, (f) => setProgress(path, f))
   }
+  const poll = pollOf(message)
   const saved = await sendMessage({
     id: message.id,
     channelId,
     content: message.content,
     replyToId: message.reply_to_id,
     attachments: message.attachments,
+    replyPing: message.reply_ping,
+    forwardId: forwardOf(message)?.message_id,
+    poll: poll && {
+      question: poll.question,
+      answers: poll.answers.map(({ text, emoji }) => ({ text, emoji })),
+      multiselect: poll.multiselect,
+      // A local poll ends `duration` after it was written.
+      duration_hours: Math.round((Date.parse(poll.expires_at) - Date.parse(message.created_at)) / 3_600_000),
+    },
   })
   done(message.id)
   return saved
@@ -198,6 +209,20 @@ export function useDeleteMessage(channelId: string) {
       updateMessagePages(queryClient, channelId, (pages) => removeFromPages(pages, message.id)),
     onError: (_error, message) =>
       updateMessagePages(queryClient, channelId, (pages) => upsertIntoPages(pages, message)),
+  })
+}
+
+/** Mark Unread: moves your read marker back to just before a message. */
+export function useMarkUnread() {
+  const queryClient = useQueryClient()
+  const userId = useUserId()
+  return useMutation({
+    mutationFn: ({ channelId, messageId }: { channelId: string; messageId: string }) => markUnread(channelId, messageId),
+    onSuccess: (at, { channelId }) => {
+      useUnreadStore.getState().markUnread(channelId, at, true)
+      // Recount the mentions after the new marker.
+      void queryClient.invalidateQueries({ queryKey: qk.unreadState(userId) })
+    },
   })
 }
 

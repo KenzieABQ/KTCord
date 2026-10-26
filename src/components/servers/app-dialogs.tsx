@@ -4,6 +4,7 @@ import { useRouter } from "next/navigation"
 import { toast } from "sonner"
 
 import { CreateThreadDialog } from "@/components/chat/create-thread-dialog"
+import { ForwardDialog } from "@/components/chat/forward-dialog"
 import { SelectFriendsDialog } from "@/components/dms/dm-dialogs"
 import { QuickSwitcher } from "@/components/layout/quick-switcher"
 import { ShortcutsDialog } from "@/components/layout/shortcuts-dialog"
@@ -94,6 +95,8 @@ function DialogBody({ dialog }: { dialog: AppDialog }) {
       return <SelectFriendsDialog addToChannelId={dialog.addToChannelId} preselect={dialog.preselect} />
     case "create-thread":
       return <CreateThreadDialog channelId={dialog.channelId} messageId={dialog.messageId} defaultName={dialog.defaultName} />
+    case "forward-message":
+      return <ForwardDialog messageId={dialog.messageId} />
     case "quick-switcher":
     case "shortcuts":
       // These bring their own dialog shells (below).

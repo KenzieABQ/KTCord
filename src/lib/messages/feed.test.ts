@@ -26,6 +26,9 @@ function msg(id: string, author: string, at: string, extra: Partial<ChatMessage>
     pinned_by: null,
     edited_at: null,
     created_at: at,
+    reply_ping: true,
+    forwarded: null,
+    poll: null,
     ...extra,
   }
 }

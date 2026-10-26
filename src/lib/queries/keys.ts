@@ -10,6 +10,7 @@ export const qk = {
   messages: (channelId: string) => ["messages", channelId] as const,
   message: (messageId: string) => ["message", messageId] as const,
   unreadState: (userId: string) => ["unread-state", userId] as const,
+  pollVotes: (messageId: string) => ["poll-votes", messageId] as const,
   bans: (serverId: string) => ["bans", serverId] as const,
   channelAccess: (channelId: string) => ["channel-access", channelId] as const,
   mySettings: (userId: string) => ["my-settings", userId] as const,

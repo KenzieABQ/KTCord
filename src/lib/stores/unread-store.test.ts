@@ -5,7 +5,7 @@ import { isChannelUnread, useUnreadStore } from "./unread-store"
 const store = () => useUnreadStore.getState()
 
 describe("unread store", () => {
-  beforeEach(() => useUnreadStore.setState({ channels: {}, active: null }))
+  beforeEach(() => useUnreadStore.setState({ channels: {}, active: null, markedUnread: {} }))
 
   it("hydrates from the server and rolls mentions into unread channels", () => {
     store().hydrate([
@@ -40,5 +40,40 @@ describe("unread store", () => {
     store().markRead("a", "2026-10-20T12:00:00Z")
     store().markRead("a", "2026-10-20T11:00:00Z")
     expect(store().channels.a.lastReadAt).toBe("2026-10-20T12:00:00Z")
+  })
+
+  describe("mark unread", () => {
+    it("moves the marker back and keeps the channel unread while you stay in it", () => {
+      store().onMessage({ channelId: "a", serverId: "s", createdAt: "2026-10-20T11:00:00Z", mine: true, mentionsMe: false })
+      store().setActive({ channelId: "a", atBottom: true })
+      store().markUnread("a", "2026-10-20T10:59:59Z", true)
+      expect(isChannelUnread(store().channels.a)).toBe(true)
+      expect(store().markedUnread.a).toBe("2026-10-20T10:59:59Z")
+      // New messages while you're watching don't count as read either.
+      store().onMessage({ channelId: "a", serverId: "s", createdAt: "2026-10-20T11:05:00Z", mine: false, mentionsMe: false })
+      expect(store().channels.a.lastReadAt).toBe("2026-10-20T10:59:59Z")
+    })
+
+    it("ends when you leave the channel, send a message or mark it read", () => {
+      store().setActive({ channelId: "a", atBottom: true })
+      store().markUnread("a", "2026-10-20T10:00:00Z", true)
+      store().setActive({ channelId: "b", atBottom: true })
+      expect(store().markedUnread.a).toBeUndefined()
+
+      store().markUnread("b", "2026-10-20T10:00:00Z", true)
+      store().onMessage({ channelId: "b", serverId: "s", createdAt: "2026-10-20T11:00:00Z", mine: true, mentionsMe: false })
+      expect(store().markedUnread.b).toBeUndefined()
+
+      store().markUnread("b", "2026-10-20T10:00:00Z", true)
+      store().markRead("b", "2026-10-20T11:00:00Z")
+      expect(store().markedUnread.b).toBeUndefined()
+    })
+
+    it("from another device moves the marker without holding the channel unread", () => {
+      store().markRead("a", "2026-10-20T11:00:00Z")
+      store().markUnread("a", "2026-10-20T10:00:00Z", false)
+      expect(store().channels.a.lastReadAt).toBe("2026-10-20T10:00:00Z")
+      expect(store().markedUnread.a).toBeUndefined()
+    })
   })
 })

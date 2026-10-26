@@ -49,6 +49,12 @@ export async function imageSize(file: File): Promise<{ width: number; height: nu
 }
 
 /** Uploads through a signed upload URL so progress can be reported. */
+/** Copies a sent file into another message's folder, for forwarding it. */
+export async function copyAttachment(from: string, to: string) {
+  const { error } = await getSupabase().storage.from(BUCKET).copy(from, to)
+  if (error) throw new ApiError("Couldn't forward the attachments. Try again.", undefined, error)
+}
+
 export async function uploadAttachment(path: string, file: File, onProgress?: (fraction: number) => void) {
   const { data, error } = await getSupabase().storage.from(BUCKET).createSignedUploadUrl(path, { upsert: true })
   if (error || !data) {

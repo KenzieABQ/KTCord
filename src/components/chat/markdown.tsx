@@ -1,8 +1,9 @@
 "use client"
 
+import type { ElementContent, Root } from "hast"
 import { HashIcon } from "lucide-react"
 import Link from "next/link"
-import { Fragment, memo, useMemo, useState, type ReactNode } from "react"
+import { Fragment, memo, useEffect, useMemo, useState, type ReactNode } from "react"
 
 import { UserPopover } from "@/components/profile/user-popover"
 import { memberDisplayName } from "@/lib/members"
@@ -92,6 +93,52 @@ function Spoiler({ children }: { children: ReactNode }) {
   )
 }
 
+function renderHighlighted(nodes: ElementContent[]): ReactNode[] {
+  return nodes.map((node, i) => {
+    if (node.type === "text") return <Fragment key={i}>{node.value}</Fragment>
+    if (node.type !== "element") return null
+    const className = node.properties.className
+    return (
+      <span key={i} className={Array.isArray(className) ? className.join(" ") : undefined}>
+        {renderHighlighted(node.children)}
+      </span>
+    )
+  })
+}
+
+/** A fenced code block; with a language (```js) it's syntax-highlighted once the highlighter loads. */
+function CodeBlock({ lang, value }: { lang: string | null; value: string }) {
+  const [highlighted, setHighlighted] = useState<{ key: string; tree: Root | null } | null>(null)
+  const key = `${lang}\u0000${value}`
+
+  useEffect(() => {
+    if (!lang) return
+    let cancelled = false
+    void import("@/lib/markdown/highlight").then(({ highlightCode }) => {
+      if (!cancelled) setHighlighted({ key, tree: highlightCode(lang, value) })
+    })
+    return () => {
+      cancelled = true
+    }
+  }, [key, lang, value])
+
+  const tree = highlighted?.key === key ? highlighted.tree : null
+  return (
+    <pre
+      className="code-block my-1 max-w-[90%] overflow-x-auto rounded-md border border-border bg-floating/60 p-2 font-mono text-[0.85em] leading-snug whitespace-pre"
+      data-lang={lang ?? undefined}
+    >
+      <code>{tree ? renderHighlighted(tree.children as ElementContent[]) : value}</code>
+    </pre>
+  )
+}
+
+const HEADING_CLASS = {
+  1: "text-[1.5em]",
+  2: "text-[1.25em]",
+  3: "text-[1em]",
+} as const
+
 function renderNodes(nodes: MdNode[]): ReactNode[] {
   return nodes.map((node, i) => {
     switch (node.type) {
@@ -116,15 +163,38 @@ function renderNodes(nodes: MdNode[]): ReactNode[] {
           </code>
         )
       case "codeBlock":
+        return <CodeBlock key={i} lang={node.lang} value={node.value} />
+      case "heading": {
+        const Tag = `h${node.level}` as const
         return (
-          <pre
-            key={i}
-            className="my-1 max-w-[90%] overflow-x-auto rounded-md border border-border bg-floating/60 p-2 font-mono text-[0.85em] leading-snug whitespace-pre"
-            data-lang={node.lang ?? undefined}
-          >
-            <code>{node.value}</code>
-          </pre>
+          <Tag key={i} className={cn("mt-2 mb-1 leading-[1.375em] font-bold text-header first:mt-0", HEADING_CLASS[node.level])}>
+            {renderNodes(node.children)}
+          </Tag>
         )
+      }
+      case "subtext":
+        return (
+          <small key={i} className="block text-[0.8125em] leading-[1.375em] text-muted-foreground">
+            {renderNodes(node.children)}
+          </small>
+        )
+      case "list": {
+        const items = node.items.map((item, n) => <li key={n} className="pl-0.5">{renderNodes(item)}</li>)
+        if (!node.ordered) {
+          return (
+            <ul key={i} className="my-0.5 ml-[1.25em] list-disc [&_ul]:my-0 [&_ul]:list-[circle]">
+              {items}
+            </ul>
+          )
+        }
+        // Room for the widest number in the list.
+        const digits = String(node.start + node.items.length - 1).length
+        return (
+          <ol key={i} start={node.start} className="my-0.5 list-decimal [&_ol]:my-0" style={{ marginLeft: `${digits * 0.6 + 0.8}em` }}>
+            {items}
+          </ol>
+        )
+      }
       case "blockquote":
         return (
           <div key={i} className="flex gap-2">

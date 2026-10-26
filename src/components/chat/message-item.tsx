@@ -14,10 +14,11 @@ import { errorMessage } from "@/lib/api/errors"
 import { parseMarkdown, toPlainText } from "@/lib/markdown/parse"
 import { memberDisplayName } from "@/lib/members"
 import { formatDayDivider, formatMessageTime } from "@/lib/messages/feed"
-import type { ChatMessage } from "@/lib/messages/types"
+import { forwardOf, pollOf, previewText, type ChatMessage } from "@/lib/messages/types"
 import type { Attachment } from "@/lib/api/attachments"
 import {
   useEditMessage,
+  useMarkUnread,
   usePinMessage,
   useReferencedMessage,
   useSendMessage,
@@ -31,10 +32,13 @@ import { cn } from "@/lib/utils"
 
 import { useChat } from "./chat-context"
 import { focusComposer } from "./composer"
+import { ForwardedMessage } from "./forwarded-message"
+import { LinkEmbeds } from "./link-embeds"
 import { Markdown } from "./markdown"
 import { MessageContextMenuContent, MessageToolbar, type MessageActionHandlers } from "./message-actions"
 import { MessageAttachments } from "./message-attachments"
 import { MessageEditor } from "./message-editor"
+import { PollCard } from "./poll-card"
 import { ReactionBar } from "./reaction-bar"
 import { SystemMessage, ThreadChip } from "./system-message"
 import { useAuthor } from "./use-author"
@@ -82,7 +86,7 @@ function ReplyPreview({ messageId }: { messageId: string | null }) {
 
   const preview = useMemo(() => {
     if (!original) return null
-    const text = toPlainText(parseMarkdown(original.content), {
+    const text = toPlainText(parseMarkdown(previewText(original)), {
       user: (id) => {
         const member = membersById.get(id)
         return member ? memberDisplayName(member) : "unknown-user"
@@ -157,6 +161,7 @@ export const MessageItem = memo(function MessageItem({
   const sendMessage = useSendMessage(channel.id)
   const toggleReaction = useToggleReaction(channel.id)
   const pin = usePinMessage(channel.id)
+  const markUnread = useMarkUnread()
   const openDialog = useUiStore((s) => s.openDialog)
   const openSidePanel = useUiStore((s) => s.openSidePanel)
   const compact = usePrefsStore((s) => s.messageDisplay === "compact")
@@ -174,17 +179,20 @@ export const MessageItem = memo(function MessageItem({
   const sent = !message.status
   const onError = (error: unknown) => toast.error(errorMessage(error))
   const actions: MessageActionHandlers = {
-    canEdit: mine && sent,
+    canEdit: mine && sent && !message.poll && !message.forwarded,
     canDelete: mine || canManageMessages,
     canReply: canSend && sent,
     canReact: canAddReactions && sent,
     canPin: canPin && sent,
     canThread: sent && (Boolean(message.thread) || canStartThreads),
+    canForward: sent && !message.poll,
     onReply: () => {
       setReplyTo(channel.id, message.id)
       focusComposer(channel.id)
     },
     onEdit: () => setEditing(message.id),
+    onForward: () => openDialog({ kind: "forward-message", messageId: message.id }),
+    onMarkUnread: () => markUnread.mutate({ channelId: channel.id, messageId: message.id }, { onError }),
     onDelete: (skipConfirm) => onDeleteRequest(message, skipConfirm),
     onReact: (emoji) => toggleReaction.mutate({ message, emoji }, { onError }),
     onTogglePin: () => pin.mutate({ messageId: message.id, pinned: !message.pinned_at }, { onError }),
@@ -205,6 +213,8 @@ export const MessageItem = memo(function MessageItem({
   }
 
   const attachments = (message.attachments ?? []) as unknown as Attachment[]
+  const forward = forwardOf(message)
+  const poll = pollOf(message)
 
   function save(content: string) {
     setEditing(null)
@@ -237,6 +247,12 @@ export const MessageItem = memo(function MessageItem({
           data-highlighted={highlighted || undefined}
           tabIndex={0}
           onKeyDown={onArticleKeyDown}
+          onClick={(e) => {
+            // Alt+click marks a message unread, as in Discord.
+            if (!e.altKey || !sent) return
+            e.preventDefault()
+            actions.onMarkUnread()
+          }}
           className={cn(
             "group relative py-0.5 pr-12 transition-colors outline-none hover:bg-message-hover focus-visible:bg-message-hover focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-inset",
             showHeader && (compact ? "mt-1.5" : "mt-(--group-spacing)"),
@@ -334,7 +350,13 @@ export const MessageItem = memo(function MessageItem({
               </div>
             )}
 
-            {attachments.length > 0 && <MessageAttachments attachments={attachments} />}
+            {forward ? (
+              <ForwardedMessage forward={forward} attachments={attachments} />
+            ) : (
+              attachments.length > 0 && <MessageAttachments attachments={attachments} />
+            )}
+            {poll && <PollCard message={message} poll={poll} />}
+            {message.content && message.status !== "sending" && !editing && <LinkEmbeds content={message.content} />}
             <ReactionBar message={message} />
             {message.thread && (
               <ThreadChip

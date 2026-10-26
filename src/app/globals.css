@@ -250,6 +250,64 @@
   scroll-behavior: auto !important;
 }
 
+/* Syntax highlighting in code blocks (hljs classes from lowlight). */
+:root {
+  --code-keyword: #cf222e;
+  --code-string: #0a3069;
+  --code-number: #0550ae;
+  --code-title: #8250df;
+  --code-comment: #6e7781;
+  --code-builtin: #953800;
+  --code-tag: #116329;
+}
+.dark {
+  --code-keyword: #ff7b72;
+  --code-string: #a5d6ff;
+  --code-number: #79c0ff;
+  --code-title: #d2a8ff;
+  --code-comment: #8b949e;
+  --code-builtin: #ffa657;
+  --code-tag: #7ee787;
+}
+.code-block :is(.hljs-keyword, .hljs-selector-tag, .hljs-meta .hljs-keyword, .hljs-doctag, .hljs-template-tag) {
+  color: var(--code-keyword);
+}
+.code-block :is(.hljs-string, .hljs-regexp, .hljs-meta .hljs-string, .hljs-char.escape_) {
+  color: var(--code-string);
+}
+.code-block :is(.hljs-number, .hljs-literal, .hljs-symbol, .hljs-attr, .hljs-attribute, .hljs-variable.constant_, .hljs-property, .hljs-selector-attr, .hljs-selector-class, .hljs-selector-id) {
+  color: var(--code-number);
+}
+.code-block :is(.hljs-title, .hljs-title.function_, .hljs-title.class_, .hljs-section) {
+  color: var(--code-title);
+}
+.code-block :is(.hljs-comment, .hljs-meta, .hljs-quote) {
+  color: var(--code-comment);
+}
+.code-block .hljs-comment {
+  font-style: italic;
+}
+.code-block :is(.hljs-built_in, .hljs-type, .hljs-variable, .hljs-params, .hljs-subst, .hljs-template-variable) {
+  color: var(--code-builtin);
+}
+.code-block :is(.hljs-name, .hljs-tag, .hljs-bullet, .hljs-selector-pseudo) {
+  color: var(--code-tag);
+}
+.code-block .hljs-addition {
+  color: var(--code-tag);
+  background-color: color-mix(in oklab, var(--code-tag) 15%, transparent);
+}
+.code-block .hljs-deletion {
+  color: var(--code-keyword);
+  background-color: color-mix(in oklab, var(--code-keyword) 15%, transparent);
+}
+.code-block .hljs-emphasis {
+  font-style: italic;
+}
+.code-block .hljs-strong {
+  font-weight: bold;
+}
+
 @layer utilities {
   /* Message text; line heights inside are in em so they follow the chosen size. */
   .chat-text {
