@@ -1,6 +1,6 @@
 import { z } from "zod"
 
-import { createVoiceToken, liveKitConfig } from "@/lib/livekit/server"
+import { createVoiceToken, liveKitConfig, voiceRoomName } from "@/lib/livekit/server"
 import { createSupabaseServerClient } from "@/lib/supabase/server"
 
 const SPEAK = 1 << 15
@@ -26,25 +26,35 @@ export async function POST(request: Request) {
   const userId = auth?.claims.sub
   if (!userId) return fail(401, "unauthenticated")
 
-  const [{ data: allowed, error: joinError }, { data: permissions }, { data: profile }] = await Promise.all([
+  const [{ data: allowed, error: joinError }, { data: permissions }, { data: profile }, { data: channel }] = await Promise.all([
     supabase.rpc("can_join_voice", { p_channel: channelId }),
     supabase.rpc("channel_permissions", { p_channel: channelId }),
     supabase.from("profiles").select("username, display_name").eq("id", userId).maybeSingle(),
+    supabase.from("channels").select("server_id").eq("id", channelId).maybeSingle(),
   ])
   if (joinError) return fail(500, "check_failed")
-  if (!allowed) return fail(403, "forbidden")
+  if (!allowed || !channel?.server_id) return fail(403, "forbidden")
+  const { data: moderation } = await supabase
+    .from("voice_moderation")
+    .select("server_mute, server_deaf")
+    .eq("server_id", channel.server_id)
+    .eq("user_id", userId)
+    .maybeSingle()
 
   const config = liveKitConfig()
   if (!config) return Response.json({ configured: false }, { headers: noStore })
 
-  const canSpeak = ((permissions ?? 0) & SPEAK) !== 0
+  // Server mute and deafen stick until a moderator lifts them, as in Discord.
+  const canSpeak = ((permissions ?? 0) & SPEAK) !== 0 && !moderation?.server_mute
+  const canHear = !moderation?.server_deaf
   const token = await createVoiceToken({
     apiKey: config.apiKey,
     apiSecret: config.apiSecret,
     userId,
     name: profile?.display_name || profile?.username || "KTCord user",
-    channelId,
+    room: voiceRoomName(channel.server_id, channelId),
     canSpeak,
+    canHear,
   })
   return Response.json({ configured: true, token, url: config.url, canSpeak }, { headers: noStore })
 }

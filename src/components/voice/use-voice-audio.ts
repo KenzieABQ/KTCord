@@ -11,6 +11,8 @@ import { useVoiceStore } from "@/lib/stores/voice-store"
 import { isNonTypingKey } from "@/lib/voice/keys"
 import type { VoiceSession } from "@/lib/voice/livekit-session"
 
+import { useMyVoiceModeration } from "./use-my-voice-moderation"
+
 function captureOptions() {
   const { inputDeviceId, noiseSuppression, echoCancellation } = usePrefsStore.getState()
   return {
@@ -41,6 +43,7 @@ export function useVoiceAudio() {
   const pushToTalkKey = usePrefsStore((s) => s.pushToTalkKey)
   const inputDeviceId = usePrefsStore((s) => s.inputDeviceId)
   const outputDeviceId = usePrefsStore((s) => s.outputDeviceId)
+  const { serverMute, serverDeaf } = useMyVoiceModeration()
 
   const [session, setSession] = useState<VoiceSession | null>(null)
   /** Automatic rejoins since the last successful connection. */
@@ -119,7 +122,7 @@ export function useVoiceAudio() {
   }, [channelId, joinedAt])
 
   // Microphone: on unless muted; in push-to-talk mode only while the key is held.
-  const transmit = !selfMute && (inputMode === "voice-activity" || pushToTalkHeld)
+  const transmit = !selfMute && !serverMute && (inputMode === "voice-activity" || pushToTalkHeld)
   useEffect(() => {
     if (!session || !live || !canSpeak) return
     session.setMicrophone(transmit, captureOptions()).catch((error: Error) => {
@@ -129,10 +132,10 @@ export function useVoiceAudio() {
     })
   }, [session, transmit, live, canSpeak])
 
-  // Deafen silences everyone (and the store mutes us too).
+  // Deafen silences everyone (and the store mutes us too). A moderator's server deafen does too.
   useEffect(() => {
-    session?.setDeafened(selfDeaf)
-  }, [session, selfDeaf])
+    session?.setDeafened(selfDeaf || serverDeaf)
+  }, [session, selfDeaf, serverDeaf])
 
   // Switch devices live when they change in settings.
   useEffect(() => {

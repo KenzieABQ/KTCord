@@ -71,9 +71,14 @@ export function ServerSettingsShell({ children }: { children: ReactNode }) {
     can(Permission.MANAGE_SERVER) && { href: `${base}/invites`, label: "Invites" },
     can(Permission.BAN_MEMBERS) && { href: `${base}/bans`, label: "Bans" },
   ].filter(Boolean) as SettingsNavGroup["items"]
+  const moderationItems = [
+    can(Permission.MANAGE_SERVER) && { href: `${base}/automod`, label: "AutoMod" },
+    can(Permission.VIEW_AUDIT_LOG) && { href: `${base}/audit-log`, label: "Audit Log" },
+  ].filter(Boolean) as SettingsNavGroup["items"]
 
   const nav: SettingsNavGroup[] = [
     { heading: server.name, items },
+    { heading: "Moderation", items: moderationItems },
     { heading: "User Management", items: managementItems },
   ].filter((group) => group.items.length > 0)
 

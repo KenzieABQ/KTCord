@@ -15,6 +15,7 @@ import {
   type Attachment,
 } from "@/lib/api/attachments"
 import { errorMessage } from "@/lib/api/errors"
+import { isAutomodBlock } from "@/lib/automod"
 import { visibleElementById } from "@/lib/dom"
 import { flattenPages } from "@/lib/messages/feed"
 import { newLocalMessage, type MessagePage } from "@/lib/messages/types"
@@ -90,7 +91,7 @@ export function Composer({ onSent }: { onSent: () => void }) {
   const userId = useUserId()
   const queryClient = useQueryClient()
   const { channel, channelLabel, canSend, canAttach, timedOutUntil } = useChat()
-  const { encode } = useMessageCodec()
+  const { encode, decode } = useMessageCodec()
   const slowmode = useSlowmode()
   const staged = useUploadStore((s) => s.staged[channel.id] ?? EMPTY)
   const fileInputRef = useRef<HTMLInputElement>(null)
@@ -148,7 +149,18 @@ export function Composer({ onSent }: { onSent: () => void }) {
     setReplyTo(channel.id, undefined)
     useUploadStore.getState().clearStaged(channel.id)
     notifyStopped()
-    sendMessage.mutate(message, { onError: (e) => toast.error(errorMessage(e)) })
+    sendMessage.mutate(message, {
+      onError: (e) => {
+        const reason = errorMessage(e)
+        toast.error(reason)
+        if (!isAutomodBlock(reason)) return
+        // A blocked message wasn't sent: no slow mode wait, and it comes back to edit
+        // unless something new was typed meanwhile.
+        const composer = useComposerStore.getState()
+        composer.setCooldown(channel.id, 0)
+        if (!composer.drafts[channel.id]) setDraft(channel.id, decode(content))
+      },
+    })
     slowmode.started()
     onSent()
   }

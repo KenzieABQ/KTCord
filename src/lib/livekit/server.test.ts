@@ -15,14 +15,14 @@ describe("createVoiceToken", () => {
       apiSecret: SECRET,
       userId: "user-1",
       name: "Ava",
-      channelId: "channel-1",
+      room: "server-1_channel-1",
       canSpeak: true,
     })
     const claims = await new TokenVerifier(KEY, SECRET).verify(jwt)
     expect(claims.sub).toBe("user-1")
     expect(claims.name).toBe("Ava")
     expect(claims.video).toMatchObject({
-      room: "channel-1",
+      room: "server-1_channel-1",
       roomJoin: true,
       canSubscribe: true,
       canPublish: true,
@@ -32,18 +32,20 @@ describe("createVoiceToken", () => {
     expect(claims.exp! - claims.nbf!).toBeLessThanOrEqual(10 * 60)
   })
 
-  it("makes people without SPEAK listen-only", async () => {
+  it("makes people without SPEAK listen-only, and server-deafened people deaf", async () => {
     const jwt = await createVoiceToken({
       apiKey: KEY,
       apiSecret: SECRET,
       userId: "user-2",
       name: "Ben",
-      channelId: "channel-1",
+      room: "server-1_channel-1",
       canSpeak: false,
+      canHear: false,
     })
     const claims = await new TokenVerifier(KEY, SECRET).verify(jwt)
     expect(claims.video?.canPublish).toBe(false)
     expect(claims.video?.canPublishSources).toEqual([])
+    expect(claims.video?.canSubscribe).toBe(false)
   })
 })
 

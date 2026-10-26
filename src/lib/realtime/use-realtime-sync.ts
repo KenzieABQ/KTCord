@@ -28,6 +28,7 @@ import {
   onReadStateChange,
   onRecipientChange,
   onUserSettingsChange,
+  onVoiceModerationChange,
   onProfileChange,
   onRoleChange,
   onServerChange,
@@ -54,6 +55,7 @@ const TABLES: Record<string, Handler> = {
   friendships: onFriendshipChange,
   channel_recipients: onRecipientChange,
   reactions: onReactionChange,
+  voice_moderation: onVoiceModerationChange,
 }
 
 /**

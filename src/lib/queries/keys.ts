@@ -16,6 +16,9 @@ export const qk = {
   /** Custom emoji from every server the user is in. */
   myEmojis: (userId: string) => ["my-emojis", userId] as const,
   channelOverwrites: (serverId: string) => ["channel-overwrites", serverId] as const,
+  voiceModeration: (serverId: string) => ["voice-moderation", serverId] as const,
+  auditLog: (serverId: string, actorId: string, action: string) => ["audit-log", serverId, actorId, action] as const,
+  automodRules: (serverId: string) => ["automod-rules", serverId] as const,
   notificationSettings: (userId: string) => ["notification-settings", userId] as const,
   friendships: (userId: string) => ["friendships", userId] as const,
   dms: (userId: string) => ["dms", userId] as const,

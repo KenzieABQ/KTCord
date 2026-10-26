@@ -21,6 +21,7 @@ export const Permission = {
   CONNECT: 1 << 14,
   SPEAK: 1 << 15,
   MANAGE_EXPRESSIONS: 1 << 16,
+  VIEW_AUDIT_LOG: 1 << 17,
 } as const
 
 export type PermissionName = keyof typeof Permission

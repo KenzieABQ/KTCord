@@ -25,6 +25,9 @@ export type VoiceMember = {
   selfDeaf: boolean
   speaking: boolean
   joinedAt: string
+  /** Set by a moderator; they stick until lifted. */
+  serverMute?: boolean
+  serverDeaf?: boolean
 }
 
 /**

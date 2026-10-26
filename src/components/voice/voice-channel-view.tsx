@@ -9,11 +9,13 @@ import { Tooltip, TooltipContent, TooltipTrigger } from "@/components/ui/tooltip
 import type { Channel } from "@/lib/api/channels"
 import { memberDisplayName } from "@/lib/members"
 import { useMembers } from "@/lib/queries/servers"
-import { useVoiceRoster, useVoiceStore, useWatchVoiceChannels } from "@/lib/stores/voice-store"
+import { useVoiceStore, useWatchVoiceChannels } from "@/lib/stores/voice-store"
 import { cn } from "@/lib/utils"
 import type { VoiceMember } from "@/lib/voice/roster"
 
 import { useJoinVoice } from "./use-join-voice"
+import { useVoicePeople } from "./use-voice-people"
+import { VoiceMemberMenu } from "./voice-member-menu"
 import { VoiceStateIcons } from "./voice-occupants"
 
 function Tile({ serverId, person }: { serverId: string; person: VoiceMember }) {
@@ -21,22 +23,24 @@ function Tile({ serverId, person }: { serverId: string; person: VoiceMember }) {
   const member = members?.find((m) => m.user_id === person.userId)
   const name = member ? memberDisplayName(member) : "Someone"
   return (
-    <UserPopover userId={person.userId} serverId={serverId} side="top">
-      <button
-        type="button"
-        aria-label={`${name}${person.speaking ? ", speaking" : ""}${person.selfMute ? ", muted" : ""}${person.selfDeaf ? ", deafened" : ""}`}
-        className={cn(
-          "relative flex aspect-video min-w-0 items-center justify-center rounded-lg bg-sidebar ring-2 ring-transparent transition-shadow hover:bg-item-hover",
-          person.speaking && "ring-status-online"
-        )}
-      >
-        <UserAvatar userId={person.userId} name={name} src={member?.profile.avatar_url} className="size-20 text-2xl" />
-        <span className="absolute bottom-2 left-2 flex max-w-[calc(100%-1rem)] items-center gap-1.5 rounded-md bg-black/55 px-2 py-0.5 text-sm font-medium text-white">
-          <span className="truncate">{name}</span>
-          <VoiceStateIcons member={person} className="text-white/80" />
-        </span>
-      </button>
-    </UserPopover>
+    <VoiceMemberMenu serverId={serverId} person={person}>
+      <UserPopover userId={person.userId} serverId={serverId} side="top">
+        <button
+          type="button"
+          aria-label={`${name}${person.speaking ? ", speaking" : ""}${person.serverMute ? ", server muted" : person.selfMute ? ", muted" : ""}${person.serverDeaf ? ", server deafened" : person.selfDeaf ? ", deafened" : ""}`}
+          className={cn(
+            "relative flex aspect-video min-w-0 items-center justify-center rounded-lg bg-sidebar ring-2 ring-transparent transition-shadow hover:bg-item-hover",
+            person.speaking && "ring-status-online"
+          )}
+        >
+          <UserAvatar userId={person.userId} name={name} src={member?.profile.avatar_url} className="size-20 text-2xl" />
+          <span className="absolute bottom-2 left-2 flex max-w-[calc(100%-1rem)] items-center gap-1.5 rounded-md bg-black/55 px-2 py-0.5 text-sm font-medium text-white">
+            <span className="truncate">{name}</span>
+            <VoiceStateIcons member={person} className="text-white/80" />
+          </span>
+        </button>
+      </UserPopover>
+    </VoiceMemberMenu>
   )
 }
 
@@ -84,7 +88,7 @@ function ControlButton({
 /** The body of a voice channel: everyone connected, and the call controls. */
 export function VoiceChannelView({ serverId, channel }: { serverId: string; channel: Channel }) {
   useWatchVoiceChannels([channel.id])
-  const roster = useVoiceRoster(channel.id)
+  const roster = useVoicePeople(serverId, channel.id)
   const { connection, selfMute, selfDeaf, toggleMute, toggleDeaf, leave } = useVoiceStore()
   const { ready, canConnect: canConnectTo, join } = useJoinVoice(serverId)
   const canConnect = canConnectTo(channel.id)

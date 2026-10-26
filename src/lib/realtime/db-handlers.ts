@@ -391,3 +391,7 @@ export function onReactionChange(ctx: DbContext, change: Change<Tables<"reaction
     })
   )
 }
+
+export function onVoiceModerationChange(ctx: DbContext) {
+  void ctx.queryClient.invalidateQueries({ queryKey: ["voice-moderation"] })
+}

@@ -12,6 +12,7 @@ export const PERMISSION_GROUPS: { heading: string; permissions: PermissionInfo[]
       { key: "MANAGE_ROLES", label: "Manage Roles", description: "Create roles and edit or assign roles below their highest role." },
       { key: "MANAGE_SERVER", label: "Manage Server", description: "Change the server's name and icon, and see every invite." },
       { key: "MANAGE_EXPRESSIONS", label: "Manage Expressions", description: "Add, rename and remove this server's custom emoji." },
+      { key: "VIEW_AUDIT_LOG", label: "View Audit Log", description: "See the record of who changed what in this server." },
     ],
   },
   {
@@ -20,7 +21,7 @@ export const PERMISSION_GROUPS: { heading: string; permissions: PermissionInfo[]
       { key: "CREATE_INVITE", label: "Create Invite", description: "Invite new people to this server." },
       { key: "KICK_MEMBERS", label: "Kick Members", description: "Remove members below their highest role. They can rejoin with an invite." },
       { key: "BAN_MEMBERS", label: "Ban Members", description: "Permanently remove members below their highest role and delete their recent messages." },
-      { key: "MODERATE_MEMBERS", label: "Timeout Members", description: "Stop members below their highest role from sending messages for a while." },
+      { key: "MODERATE_MEMBERS", label: "Timeout Members", description: "Stop members below their highest role from sending messages for a while, and server mute, deafen or disconnect them in voice." },
     ],
   },
   {

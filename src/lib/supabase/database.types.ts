@@ -14,6 +14,114 @@ export type Database = {
   }
   public: {
     Tables: {
+      audit_log: {
+        Row: {
+          action: string
+          actor_id: string | null
+          created_at: string
+          details: Json
+          id: string
+          reason: string | null
+          server_id: string
+          target_id: string | null
+          target_name: string | null
+        }
+        Insert: {
+          action: string
+          actor_id?: string | null
+          created_at?: string
+          details?: Json
+          id?: string
+          reason?: string | null
+          server_id: string
+          target_id?: string | null
+          target_name?: string | null
+        }
+        Update: {
+          action?: string
+          actor_id?: string | null
+          created_at?: string
+          details?: Json
+          id?: string
+          reason?: string | null
+          server_id?: string
+          target_id?: string | null
+          target_name?: string | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "audit_log_actor_id_fkey"
+            columns: ["actor_id"]
+            isOneToOne: false
+            referencedRelation: "profiles"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "audit_log_server_id_fkey"
+            columns: ["server_id"]
+            isOneToOne: false
+            referencedRelation: "servers"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      automod_rules: {
+        Row: {
+          allow_list: string[]
+          created_at: string
+          created_by: string | null
+          enabled: boolean
+          exempt_role_ids: string[]
+          id: string
+          keywords: string[]
+          kind: string
+          mention_limit: number | null
+          name: string
+          server_id: string
+        }
+        Insert: {
+          allow_list?: string[]
+          created_at?: string
+          created_by?: string | null
+          enabled?: boolean
+          exempt_role_ids?: string[]
+          id?: string
+          keywords?: string[]
+          kind: string
+          mention_limit?: number | null
+          name: string
+          server_id: string
+        }
+        Update: {
+          allow_list?: string[]
+          created_at?: string
+          created_by?: string | null
+          enabled?: boolean
+          exempt_role_ids?: string[]
+          id?: string
+          keywords?: string[]
+          kind?: string
+          mention_limit?: number | null
+          name?: string
+          server_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "automod_rules_created_by_fkey"
+            columns: ["created_by"]
+            isOneToOne: false
+            referencedRelation: "profiles"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "automod_rules_server_id_fkey"
+            columns: ["server_id"]
+            isOneToOne: false
+            referencedRelation: "servers"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       bans: {
         Row: {
           banned_by: string | null
@@ -891,6 +999,58 @@ export type Database = {
           },
         ]
       }
+      voice_moderation: {
+        Row: {
+          id: string
+          server_deaf: boolean
+          server_id: string
+          server_mute: boolean
+          updated_at: string
+          updated_by: string | null
+          user_id: string
+        }
+        Insert: {
+          id?: string
+          server_deaf?: boolean
+          server_id: string
+          server_mute?: boolean
+          updated_at?: string
+          updated_by?: string | null
+          user_id: string
+        }
+        Update: {
+          id?: string
+          server_deaf?: boolean
+          server_id?: string
+          server_mute?: boolean
+          updated_at?: string
+          updated_by?: string | null
+          user_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "voice_moderation_server_id_fkey"
+            columns: ["server_id"]
+            isOneToOne: false
+            referencedRelation: "servers"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "voice_moderation_updated_by_fkey"
+            columns: ["updated_by"]
+            isOneToOne: false
+            referencedRelation: "profiles"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "voice_moderation_user_id_fkey"
+            columns: ["user_id"]
+            isOneToOne: false
+            referencedRelation: "profiles"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
     }
     Views: {
       [_ in never]: never
@@ -901,6 +1061,21 @@ export type Database = {
         Returns: undefined
       }
       are_friends: { Args: { p_a: string; p_b: string }; Returns: boolean }
+      audit: {
+        Args: {
+          p_action: string
+          p_details?: Json
+          p_reason?: string
+          p_server: string
+          p_target?: string
+          p_target_name?: string
+        }
+        Returns: undefined
+      }
+      automod_keyword_match: {
+        Args: { p_allow: string[]; p_content: string; p_keywords: string[] }
+        Returns: string
+      }
       ban_member: {
         Args: {
           p_delete_seconds?: number
@@ -1216,6 +1391,15 @@ export type Database = {
           isSetofReturn: false
         }
       }
+      set_voice_moderation: {
+        Args: {
+          p_deaf: boolean
+          p_mute: boolean
+          p_server: string
+          p_user: string
+        }
+        Returns: undefined
+      }
       shares_server: { Args: { p_a: string; p_b: string }; Returns: boolean }
       timeout_member: {
         Args: { p_server: string; p_until: string; p_user: string }
@@ -1256,6 +1440,15 @@ export type Database = {
         }
       }
       username_available: { Args: { p_username: string }; Returns: boolean }
+      username_of: { Args: { p_user: string }; Returns: string }
+      voice_disconnect_member: {
+        Args: { p_server: string; p_user: string }
+        Returns: undefined
+      }
+      voice_removal_allowed: {
+        Args: { p_server: string; p_user: string }
+        Returns: boolean
+      }
     }
     Enums: {
       channel_type: "text" | "voice" | "category" | "thread" | "dm" | "group_dm"

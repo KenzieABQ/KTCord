@@ -1,14 +1,24 @@
 "use client"
 
-import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query"
+import { useInfiniteQuery, useMutation, useQuery, useQueryClient } from "@tanstack/react-query"
 
 import type { Member, Role } from "@/lib/api/members"
 import {
+  AUDIT_PAGE_SIZE,
   banMember,
+  createAutomodRule,
   createRole,
+  deleteAutomodRule,
   deleteRole,
   kickMember,
+  listAuditLog,
+  listAutomodRules,
   listBans,
+  listVoiceModeration,
+  moderateVoice,
+  setVoiceModeration,
+  updateAutomodRule,
+  type AutomodRuleInput,
   listChannelAccess,
   reorderRoles,
   setChannelAccess,
@@ -19,7 +29,16 @@ import {
   type RolePatch,
 } from "@/lib/api/moderation"
 
+import { useUserId } from "@/lib/stores/auth-store"
+
 import { qk } from "./keys"
+
+/** After a kick, ban or timeout, make sure they're out of voice on the voice server too. */
+function pullFromVoice(serverId: string, userId: string) {
+  void moderateVoice(serverId, userId, "removed").catch(() => {
+    // Their own app leaves voice anyway; this covers clients that don't.
+  })
+}
 
 /** Every moderation write refreshes the lists it touches; Realtime keeps other clients in sync. */
 function useServerInvalidator(serverId: string) {
@@ -109,7 +128,10 @@ export function useKickMember(serverId: string) {
   const invalidate = useServerInvalidator(serverId)
   return useMutation({
     mutationFn: (userId: string) => kickMember(serverId, userId),
-    onSuccess: () => invalidate("members"),
+    onSuccess: (_d, userId) => {
+      invalidate("members")
+      pullFromVoice(serverId, userId)
+    },
   })
 }
 
@@ -118,7 +140,10 @@ export function useBanMember(serverId: string) {
   return useMutation({
     mutationFn: ({ userId, reason, deleteSeconds }: { userId: string; reason: string; deleteSeconds: number }) =>
       banMember(serverId, userId, reason, deleteSeconds),
-    onSuccess: () => invalidate("members", "bans"),
+    onSuccess: (_d, { userId }) => {
+      invalidate("members", "bans")
+      pullFromVoice(serverId, userId)
+    },
   })
 }
 
@@ -134,10 +159,12 @@ export function useTimeoutMember(serverId: string) {
   const queryClient = useQueryClient()
   return useMutation({
     mutationFn: ({ userId, until }: { userId: string; until: Date | null }) => timeoutMember(serverId, userId, until),
-    onSuccess: (_d, { userId, until }) =>
+    onSuccess: (_d, { userId, until }) => {
       queryClient.setQueryData<Member[]>(qk.members(serverId), (list) =>
         list?.map((m) => (m.user_id === userId ? { ...m, timeout_until: until?.toISOString() ?? null } : m))
-      ),
+      )
+      if (until && until.getTime() > Date.now()) pullFromVoice(serverId, userId)
+    },
   })
 }
 
@@ -162,5 +189,78 @@ export function useSetChannelAccess(serverId: string) {
       void queryClient.invalidateQueries({ queryKey: qk.channelAccess(channelId) })
       void queryClient.invalidateQueries({ queryKey: qk.channels(serverId) })
     },
+  })
+}
+
+// ---------------------------------------------------------------------------
+// Voice moderation
+// ---------------------------------------------------------------------------
+
+export function useVoiceModeration(serverId: string | null | undefined) {
+  return useQuery({
+    queryKey: qk.voiceModeration(serverId ?? ""),
+    queryFn: () => listVoiceModeration(serverId!),
+    enabled: Boolean(serverId),
+    staleTime: 60_000,
+  })
+}
+
+/** Server mute/deafen someone, then apply it to the room they're in right now. */
+export function useSetVoiceModeration(serverId: string) {
+  const queryClient = useQueryClient()
+  return useMutation({
+    mutationFn: async ({ userId, mute, deaf }: { userId: string; mute: boolean; deaf: boolean }) => {
+      await setVoiceModeration(serverId, userId, { mute, deaf })
+      await moderateVoice(serverId, userId, "sync").catch(() => {})
+    },
+    onSettled: () => queryClient.invalidateQueries({ queryKey: qk.voiceModeration(serverId) }),
+  })
+}
+
+export function useDisconnectFromVoice(serverId: string) {
+  return useMutation({ mutationFn: (userId: string) => moderateVoice(serverId, userId, "disconnect") })
+}
+
+// ---------------------------------------------------------------------------
+// Audit log and AutoMod
+// ---------------------------------------------------------------------------
+
+export function useAuditLog(serverId: string, filter: { actorId?: string; action?: string }, enabled = true) {
+  return useInfiniteQuery({
+    queryKey: qk.auditLog(serverId, filter.actorId ?? "", filter.action ?? ""),
+    queryFn: ({ pageParam }) => listAuditLog(serverId, { ...filter, before: pageParam }),
+    initialPageParam: undefined as string | undefined,
+    getNextPageParam: (last) => (last.length === AUDIT_PAGE_SIZE ? last.at(-1)?.created_at : undefined),
+    enabled,
+  })
+}
+
+export function useAutomodRules(serverId: string, enabled = true) {
+  return useQuery({ queryKey: qk.automodRules(serverId), queryFn: () => listAutomodRules(serverId), enabled })
+}
+
+export function useSaveAutomodRule(serverId: string) {
+  const userId = useUserId()
+  const queryClient = useQueryClient()
+  return useMutation({
+    mutationFn: ({ id, input }: { id?: string; input: AutomodRuleInput }) =>
+      id ? updateAutomodRule(id, input) : createAutomodRule(serverId, userId, input),
+    onSettled: () => queryClient.invalidateQueries({ queryKey: qk.automodRules(serverId) }),
+  })
+}
+
+export function useToggleAutomodRule(serverId: string) {
+  const queryClient = useQueryClient()
+  return useMutation({
+    mutationFn: ({ id, enabled }: { id: string; enabled: boolean }) => updateAutomodRule(id, { enabled }),
+    onSettled: () => queryClient.invalidateQueries({ queryKey: qk.automodRules(serverId) }),
+  })
+}
+
+export function useDeleteAutomodRule(serverId: string) {
+  const queryClient = useQueryClient()
+  return useMutation({
+    mutationFn: deleteAutomodRule,
+    onSettled: () => queryClient.invalidateQueries({ queryKey: qk.automodRules(serverId) }),
   })
 }

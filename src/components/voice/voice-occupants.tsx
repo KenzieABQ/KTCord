@@ -6,24 +6,38 @@ import { UserAvatar } from "@/components/profile/user-avatar"
 import { UserPopover } from "@/components/profile/user-popover"
 import { memberDisplayName } from "@/lib/members"
 import { useMembers } from "@/lib/queries/servers"
-import { useVoiceRoster } from "@/lib/stores/voice-store"
 import { cn } from "@/lib/utils"
 import type { VoiceMember } from "@/lib/voice/roster"
 
-/** Mute and deafen icons for someone in voice. */
+import { useVoicePeople } from "./use-voice-people"
+import { VoiceMemberMenu } from "./voice-member-menu"
+
+/** Mute and deafen icons for someone in voice; red when a moderator did it (server mute/deafen). */
 export function VoiceStateIcons({ member, className }: { member: VoiceMember; className?: string }) {
-  if (!member.selfMute && !member.selfDeaf) return null
+  const muted = member.serverMute || member.selfMute
+  const deafened = member.serverDeaf || member.selfDeaf
+  if (!muted && !deafened) return null
   return (
     <span className={cn("flex shrink-0 items-center gap-1 text-muted-foreground", className)}>
-      {member.selfMute && <MicOffIcon aria-label="Muted" className="size-3.5" />}
-      {member.selfDeaf && <HeadphoneOffIcon aria-label="Deafened" className="size-3.5" />}
+      {muted && (
+        <MicOffIcon
+          aria-label={member.serverMute ? "Server muted" : "Muted"}
+          className={cn("size-3.5", member.serverMute && "text-destructive")}
+        />
+      )}
+      {deafened && (
+        <HeadphoneOffIcon
+          aria-label={member.serverDeaf ? "Server deafened" : "Deafened"}
+          className={cn("size-3.5", member.serverDeaf && "text-destructive")}
+        />
+      )}
     </span>
   )
 }
 
 /** The people connected to a voice channel, listed under it in the sidebar. */
 export function VoiceOccupants({ serverId, channelId }: { serverId: string; channelId: string }) {
-  const roster = useVoiceRoster(channelId)
+  const roster = useVoicePeople(serverId, channelId)
   const { data: members } = useMembers(serverId)
   if (roster.length === 0) return null
 
@@ -34,27 +48,29 @@ export function VoiceOccupants({ serverId, channelId }: { serverId: string; chan
         const name = member ? memberDisplayName(member) : "Someone"
         return (
           <li key={person.userId}>
-            <UserPopover userId={person.userId} serverId={serverId}>
-              <button
-                type="button"
-                className="flex h-8 w-full items-center gap-2 rounded-md px-2 text-left text-muted-foreground hover:bg-item-hover hover:text-interactive-hover"
-              >
-                <UserAvatar
-                  userId={person.userId}
-                  name={name}
-                  src={member?.profile.avatar_url}
-                  className={cn(
-                    "size-6 rounded-full ring-2 ring-transparent transition-shadow",
-                    person.speaking && "ring-status-online"
-                  )}
-                />
-                <span className={cn("min-w-0 flex-1 truncate text-sm", person.speaking && "text-header")}>
-                  {name}
-                </span>
-                <VoiceStateIcons member={person} />
-                {person.speaking && <span className="sr-only">(speaking)</span>}
-              </button>
-            </UserPopover>
+            <VoiceMemberMenu serverId={serverId} person={person}>
+              <UserPopover userId={person.userId} serverId={serverId}>
+                <button
+                  type="button"
+                  className="flex h-8 w-full items-center gap-2 rounded-md px-2 text-left text-muted-foreground hover:bg-item-hover hover:text-interactive-hover"
+                >
+                  <UserAvatar
+                    userId={person.userId}
+                    name={name}
+                    src={member?.profile.avatar_url}
+                    className={cn(
+                      "size-6 rounded-full ring-2 ring-transparent transition-shadow",
+                      person.speaking && "ring-status-online"
+                    )}
+                  />
+                  <span className={cn("min-w-0 flex-1 truncate text-sm", person.speaking && "text-header")}>
+                    {name}
+                  </span>
+                  <VoiceStateIcons member={person} />
+                  {person.speaking && <span className="sr-only">(speaking)</span>}
+                </button>
+              </UserPopover>
+            </VoiceMemberMenu>
           </li>
         )
       })}

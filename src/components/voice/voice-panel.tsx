@@ -10,6 +10,8 @@ import { useVoiceStore, type VoiceStatus } from "@/lib/stores/voice-store"
 import { cn } from "@/lib/utils"
 import { formatKeyCode } from "@/lib/voice/keys"
 
+import { useMyVoiceModeration } from "./use-my-voice-moderation"
+
 const STATUS: Record<VoiceStatus, { label: string; className: string }> = {
   connecting: { label: "Connecting…", className: "text-status-idle" },
   connected: { label: "Voice Connected", className: "text-status-online" },
@@ -23,6 +25,7 @@ export function VoicePanel() {
   const pushToTalkHeld = useVoiceStore((s) => s.pushToTalkHeld)
   const inputMode = usePrefsStore((s) => s.inputMode)
   const pushToTalkKey = usePrefsStore((s) => s.pushToTalkKey)
+  const { serverMute, serverDeaf } = useMyVoiceModeration()
   const { data: server } = useServer(connection?.serverId)
   const { data: channels } = useChannels(connection?.serverId)
   if (!connection) return null
@@ -43,7 +46,11 @@ export function VoicePanel() {
         >
           {channel?.name ?? "Voice"} / {server?.name ?? "Server"}
         </Link>
-        {connection.audio === "unavailable" ? (
+        {serverMute || serverDeaf ? (
+          <p className="truncate text-[11px] text-destructive">
+            {serverMute && serverDeaf ? "Server muted and deafened" : serverMute ? "Server muted" : "Server deafened"} by a moderator
+          </p>
+        ) : connection.audio === "unavailable" ? (
           <p className="truncate text-[11px] text-muted-foreground">Presence only: no voice server set up</p>
         ) : !connection.canSpeak ? (
           <p className="truncate text-[11px] text-muted-foreground">Listening only</p>

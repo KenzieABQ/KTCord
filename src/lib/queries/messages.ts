@@ -27,8 +27,10 @@ import {
   sendMessage,
   type SearchParams,
 } from "@/lib/api/messages"
+import { errorMessage } from "@/lib/api/errors"
 import type { Profile } from "@/lib/api/profiles"
 import { getProfile } from "@/lib/api/profiles"
+import { isAutomodBlock } from "@/lib/automod"
 import { patchInPages, removeFromPages, upsertIntoPages } from "@/lib/messages/feed"
 import type { ChatMessage, Cursor, MessagePage } from "@/lib/messages/types"
 import { useUserId } from "@/lib/stores/auth-store"
@@ -154,9 +156,12 @@ export function useSendMessage(channelId: string) {
       )
       useUnreadStore.getState().markRead(channelId, saved.created_at)
     },
-    onError: (_error, message) =>
+    onError: (error, message) =>
       updateMessagePages(queryClient, channelId, (pages) =>
-        patchInPages(pages, message.id, (m) => ({ ...m, status: "failed" }))
+        // AutoMod's verdict won't change on retry, so a blocked message just goes away.
+        isAutomodBlock(errorMessage(error))
+          ? removeFromPages(pages, message.id)
+          : patchInPages(pages, message.id, (m) => ({ ...m, status: "failed" }))
       ),
   })
 }
