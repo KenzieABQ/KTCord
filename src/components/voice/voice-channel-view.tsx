@@ -26,6 +26,8 @@ import { Button } from "@/components/ui/button"
 import { Tooltip, TooltipContent, TooltipTrigger } from "@/components/ui/tooltip"
 import type { Channel } from "@/lib/api/channels"
 import { memberDisplayName } from "@/lib/members"
+import { displayNameOf } from "@/lib/profile-display"
+import { useProfile } from "@/lib/queries/profiles"
 import { useMembers } from "@/lib/queries/servers"
 import { useUserId } from "@/lib/stores/auth-store"
 import { useVideo, useVoiceMediaStore } from "@/lib/stores/voice-media-store"
@@ -39,14 +41,19 @@ import { VideoTrack } from "./video-track"
 import { VoiceMemberMenu } from "./voice-member-menu"
 import { VoiceStateIcons } from "./voice-occupants"
 
-function useMemberName(serverId: string, userId: string) {
-  const { data: members } = useMembers(serverId)
+/** Someone's name and avatar: their server nickname, or (in DM calls) their profile. */
+function useMemberName(serverId: string | null | null, userId: string) {
+  const { data: members } = useMembers(serverId ?? undefined)
   const member = members?.find((m) => m.user_id === userId)
-  return { member, name: member ? memberDisplayName(member) : "Someone" }
+  const { data: profile } = useProfile(member ? null : userId)
+  return {
+    name: member ? memberDisplayName(member) : profile ? displayNameOf(profile) : "Someone",
+    avatarUrl: member?.profile.avatar_url ?? profile?.avatar_url ?? null,
+  }
 }
 
 /** Someone's shared screen, wide, with a fullscreen button. */
-function ScreenTile({ serverId, userId, className }: { serverId: string; userId: string; className?: string }) {
+function ScreenTile({ serverId, userId, className }: { serverId: string | null; userId: string; className?: string }) {
   const track = useVideo(userId, "screen")
   const { name } = useMemberName(serverId, userId)
   const ref = useRef<HTMLDivElement>(null)
@@ -76,13 +83,13 @@ function Tile({
   compact,
   className,
 }: {
-  serverId: string
+  serverId: string | null
   person: VoiceMember
   compact?: boolean
   className?: string
 }) {
   const userId = useUserId()
-  const { member, name } = useMemberName(serverId, person.userId)
+  const { name, avatarUrl } = useMemberName(serverId, person.userId)
   const camera = useVideo(person.userId, "camera")
   return (
     <VoiceMemberMenu serverId={serverId} person={person}>
@@ -109,7 +116,7 @@ function Tile({
             <UserAvatar
               userId={person.userId}
               name={name}
-              src={member?.profile.avatar_url}
+              src={avatarUrl}
               className={compact ? "size-12 text-base" : "size-20 text-2xl"}
             />
           )}
@@ -140,7 +147,7 @@ function FeedTile({
   compact,
   className,
 }: {
-  serverId: string
+  serverId: string | null
   feed: Feed
   pinned: boolean
   onPin: () => void
@@ -212,13 +219,13 @@ function LayoutSwitch({
  * feed on the main stage (the pinned one, else a screen share, else whoever spoke last)
  * with the rest in a strip below.
  */
-function CallStage({
+export function CallStage({
   serverId,
   channelName,
   roster,
   sharing,
 }: {
-  serverId: string
+  serverId: string | null
   channelName: string
   roster: VoiceMember[]
   sharing: string[]
@@ -287,7 +294,7 @@ function CallStage({
       ) : (
         <ul
           aria-label={`Connected to ${channelName}`}
-          className="scrollbar-thin mx-auto grid w-full max-w-5xl grid-cols-[repeat(auto-fill,minmax(220px,1fr))] content-start gap-3 overflow-y-auto"
+          className="scrollbar-thin mx-auto grid w-full max-w-5xl grid-cols-[repeat(auto-fit,minmax(220px,360px))] content-center justify-center gap-3 overflow-y-auto"
         >
           {feeds.map((feed) => (
             <li key={feed.key} className={cn("aspect-video", feed.kind === "screen" && "col-span-full")}>
@@ -347,12 +354,10 @@ function ControlButton({
   )
 }
 
-/** The body of a voice channel: everyone connected, and the call controls. */
-export function VoiceChannelView({ serverId, channel }: { serverId: string; channel: Channel }) {
-  useWatchVoiceChannels([channel.id])
-  const roster = useVoicePeople(serverId, channel.id)
+/** Mute, deafen, camera, screen share and leave, for the call you're in. */
+export function CallControls() {
   const {
-    connection,
+    connection: here,
     selfMute,
     selfDeaf,
     toggleMute,
@@ -363,6 +368,57 @@ export function VoiceChannelView({ serverId, channel }: { serverId: string; chan
     setCamera,
     setScreenShare,
   } = useVoiceStore()
+  if (!here) return null
+  const videoBlocked =
+    here.audio !== "livekit"
+      ? "Video needs a voice server"
+      : !here.canVideo
+        ? "You don't have permission to share video here"
+        : null
+  const canShareScreen = typeof navigator !== "undefined" && Boolean(navigator.mediaDevices?.getDisplayMedia)
+  return (
+    <div className="flex items-center justify-center gap-3">
+      <ControlButton
+        label={here.canSpeak === false ? "You don't have permission to speak here" : selfMute ? "Unmute" : "Mute"}
+        active={selfMute || here.canSpeak === false}
+        disabled={here.canSpeak === false}
+        onClick={toggleMute}
+      >
+        {selfMute || here.canSpeak === false ? <MicOffIcon className="size-5" /> : <MicIcon className="size-5" />}
+      </ControlButton>
+      <ControlButton label={selfDeaf ? "Undeafen" : "Deafen"} active={selfDeaf} onClick={toggleDeaf}>
+        {selfDeaf ? <HeadphoneOffIcon className="size-5" /> : <HeadphonesIcon className="size-5" />}
+      </ControlButton>
+      <ControlButton
+        label={videoBlocked ?? (camera ? "Turn Off Camera" : "Turn On Camera")}
+        active={camera}
+        disabled={Boolean(videoBlocked)}
+        onClick={() => setCamera(!camera)}
+      >
+        {camera ? <VideoIcon className="size-5" /> : <VideoOffIcon className="size-5" />}
+      </ControlButton>
+      {canShareScreen && (
+        <ControlButton
+          label={videoBlocked ?? (screenShare ? "Stop Sharing" : "Share Your Screen")}
+          active={screenShare}
+          disabled={Boolean(videoBlocked)}
+          onClick={() => setScreenShare(!screenShare)}
+        >
+          {screenShare ? <MonitorOffIcon className="size-5" /> : <MonitorUpIcon className="size-5" />}
+        </ControlButton>
+      )}
+      <ControlButton label="Disconnect" danger onClick={leave}>
+        <PhoneOffIcon className="size-5" />
+      </ControlButton>
+    </div>
+  )
+}
+
+/** The body of a voice channel: everyone connected, and the call controls. */
+export function VoiceChannelView({ serverId, channel }: { serverId: string; channel: Channel }) {
+  useWatchVoiceChannels([channel.id])
+  const roster = useVoicePeople(serverId, channel.id)
+  const connection = useVoiceStore((s) => s.connection)
   const { ready, canConnect: canConnectTo, join } = useJoinVoice(serverId)
   const canConnect = canConnectTo(channel.id)
   const here = connection?.channelId === channel.id ? connection : null
@@ -370,14 +426,6 @@ export function VoiceChannelView({ serverId, channel }: { serverId: string; chan
   const sharing = useVoiceMediaStore(
     useShallow((s) => (here ? Object.keys(s.videos).filter((id) => s.videos[id].screen) : []))
   )
-  const videoBlocked =
-    here?.audio !== "livekit"
-      ? "Video needs a voice server"
-      : !here.canVideo
-        ? "You don't have permission to share video here"
-        : null
-  const canShareScreen = typeof navigator !== "undefined" && Boolean(navigator.mediaDevices?.getDisplayMedia)
-
   return (
     <div className="flex min-h-0 flex-1 flex-col bg-rail">
       {here?.audio === "unavailable" && (
@@ -403,40 +451,7 @@ export function VoiceChannelView({ serverId, channel }: { serverId: string; chan
 
       <div className="flex shrink-0 items-center justify-center gap-3 px-4 pt-2 pb-5">
         {here ? (
-          <>
-            <ControlButton
-              label={here.canSpeak === false ? "You don't have permission to speak here" : selfMute ? "Unmute" : "Mute"}
-              active={selfMute || here.canSpeak === false}
-              disabled={here.canSpeak === false}
-              onClick={toggleMute}
-            >
-              {selfMute || here.canSpeak === false ? <MicOffIcon className="size-5" /> : <MicIcon className="size-5" />}
-            </ControlButton>
-            <ControlButton label={selfDeaf ? "Undeafen" : "Deafen"} active={selfDeaf} onClick={toggleDeaf}>
-              {selfDeaf ? <HeadphoneOffIcon className="size-5" /> : <HeadphonesIcon className="size-5" />}
-            </ControlButton>
-            <ControlButton
-              label={videoBlocked ?? (camera ? "Turn Off Camera" : "Turn On Camera")}
-              active={camera}
-              disabled={Boolean(videoBlocked)}
-              onClick={() => setCamera(!camera)}
-            >
-              {camera ? <VideoIcon className="size-5" /> : <VideoOffIcon className="size-5" />}
-            </ControlButton>
-            {canShareScreen && (
-              <ControlButton
-                label={videoBlocked ?? (screenShare ? "Stop Sharing" : "Share Your Screen")}
-                active={screenShare}
-                disabled={Boolean(videoBlocked)}
-                onClick={() => setScreenShare(!screenShare)}
-              >
-                {screenShare ? <MonitorOffIcon className="size-5" /> : <MonitorUpIcon className="size-5" />}
-              </ControlButton>
-            )}
-            <ControlButton label="Disconnect" danger onClick={leave}>
-              <PhoneOffIcon className="size-5" />
-            </ControlButton>
-          </>
+          <CallControls />
         ) : (
           <div className="flex flex-col items-center gap-2">
             <Button

@@ -14,7 +14,8 @@ export type VoiceAudio = "pending" | "livekit" | "unavailable"
 
 /** The voice channel this tab is connected to. Not remembered: a reload leaves voice, as in Discord. */
 export type VoiceConnection = {
-  serverId: string
+  /** Null for a DM or group DM call. */
+  serverId: string | null
   channelId: string
   status: VoiceStatus
   /** When this tab joined; announced in presence so rosters list people in join order. */
@@ -41,7 +42,7 @@ type VoiceState = {
   toggleMute: () => void
   toggleDeaf: () => void
   /** Joins a voice channel, leaving any other one first. */
-  join: (serverId: string, channelId: string) => void
+  join: (serverId: string | null, channelId: string) => void
   leave: () => void
   /** Starts the current connection over (new token and room), e.g. after losing the voice server. */
   rejoin: () => void

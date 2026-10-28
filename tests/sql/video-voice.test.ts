@@ -48,4 +48,12 @@ describe("video and text in voice (PGlite)", () => {
       "permission"
     )
   })
+
+  it("lets the people in a DM join its call, and nobody else", async () => {
+    const outsider = await signUp(db, "outsider")
+    const { id: dm } = await one<{ id: string }>(owner, "select open_dm($1) as id", [member])
+    expect((await one<{ ok: boolean }>(member, "select can_join_voice($1) as ok", [dm])).ok).toBe(true)
+    expect((await one<{ ok: boolean }>(owner, "select can_join_voice($1) as ok", [dm])).ok).toBe(true)
+    expect((await one<{ ok: boolean }>(outsider, "select can_join_voice($1) as ok", [dm])).ok).toBe(false)
+  })
 })

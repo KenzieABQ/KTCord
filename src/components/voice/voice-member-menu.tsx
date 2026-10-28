@@ -67,17 +67,18 @@ export function VoiceMemberMenu({
   person,
   children,
 }: {
-  serverId: string
+  /** Null in DM calls: only User Volume and Mute apply there. */
+  serverId: string | null
   person: VoiceMember
   children: ReactNode
 }) {
   const userId = useUserId()
-  const { data: server } = useServer(serverId)
-  const { data: roles } = useRoles(serverId)
-  const { data: members } = useMembers(serverId)
-  const { permissions, topPosition, isOwner } = useServerPermissions(serverId)
-  const setModeration = useSetVoiceModeration(serverId)
-  const disconnect = useDisconnectFromVoice(serverId)
+  const { data: server } = useServer(serverId ?? undefined)
+  const { data: roles } = useRoles(serverId ?? undefined)
+  const { data: members } = useMembers(serverId ?? undefined)
+  const { permissions, topPosition, isOwner } = useServerPermissions(serverId ?? undefined)
+  const setModeration = useSetVoiceModeration(serverId ?? "")
+  const disconnect = useDisconnectFromVoice(serverId ?? "")
 
   const target = members?.find((m) => m.user_id === person.userId)
   const targetTop =
@@ -90,6 +91,7 @@ export function VoiceMemberMenu({
         })
       : Infinity
   const canModerate =
+    serverId !== null &&
     hasPermission(permissions, Permission.MODERATE_MEMBERS) &&
     person.userId !== userId &&
     person.userId !== server?.owner_id &&

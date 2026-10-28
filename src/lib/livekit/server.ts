@@ -10,9 +10,12 @@ export function liveKitConfig() {
   return url && apiKey && apiSecret ? { url, apiKey, apiSecret } : null
 }
 
-/** A voice channel's LiveKit room: named by server and channel, so a server's rooms can be found. */
-export function voiceRoomName(serverId: string, channelId: string) {
-  return `${serverId}_${channelId}`
+/**
+ * A call's LiveKit room: named by server and channel for voice channels (so a server's rooms
+ * can be found), and `dm_<channel>` for DM and group DM calls.
+ */
+export function voiceRoomName(serverId: string | null, channelId: string) {
+  return serverId ? `${serverId}_${channelId}` : `dm_${channelId}`
 }
 
 /** What someone may send in a voice room: microphone (SPEAK, not server muted), camera and screen (VIDEO). */

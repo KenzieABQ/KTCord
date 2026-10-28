@@ -1,6 +1,6 @@
 "use client"
 
-import { CircleAlertIcon, InfoIcon, XIcon } from "@/components/icons"
+import { CircleAlertIcon, InfoIcon, PhoneIcon, PhoneOffIcon, XIcon } from "@/components/icons"
 import { toast as sonner, Toaster } from "sonner"
 
 import { UserAvatar } from "@/components/profile/user-avatar"
@@ -100,6 +100,48 @@ export function DmNotice({ id, dm }: { id: string | number; dm: DmNotification }
         className="absolute top-2 right-2 flex size-6 items-center justify-center rounded-full bg-rail text-interactive opacity-0 transition-opacity group-hover/dm:opacity-100 hover:text-interactive-hover focus-visible:opacity-100"
       >
         <XIcon className="size-3.5" />
+      </button>
+    </div>
+  )
+}
+
+export type CallNotification = {
+  callerId: string
+  caller: string
+  avatarUrl: string | null
+  place: string
+  onJoin: () => void
+}
+
+/** An incoming DM call: who's calling, with Join and Decline. */
+export function CallNotice({ id, call }: { id: string | number; call: CallNotification }) {
+  return (
+    <div className="pointer-events-auto flex w-[min(92vw,360px)] items-center gap-3 rounded-2xl border border-border bg-floating p-3 shadow-2xl">
+      <span className="relative shrink-0">
+        <UserAvatar userId={call.callerId} name={call.caller} src={call.avatarUrl} className="size-11 animate-pulse" animate="always" />
+      </span>
+      <span className="min-w-0 flex-1">
+        <span className="block truncate font-semibold text-header">{call.caller}</span>
+        <span className="block truncate text-xs font-medium text-muted-foreground">{call.place}</span>
+      </span>
+      <button
+        type="button"
+        aria-label="Decline"
+        onClick={() => sonner.dismiss(id)}
+        className="flex size-10 shrink-0 items-center justify-center rounded-full bg-destructive text-white hover:bg-destructive/85"
+      >
+        <PhoneOffIcon className="size-5" />
+      </button>
+      <button
+        type="button"
+        aria-label="Join call"
+        onClick={() => {
+          call.onJoin()
+          sonner.dismiss(id)
+        }}
+        className="flex size-10 shrink-0 items-center justify-center rounded-full bg-status-online text-white hover:bg-status-online/85"
+      >
+        <PhoneIcon className="size-5" />
       </button>
     </div>
   )

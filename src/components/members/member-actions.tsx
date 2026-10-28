@@ -4,7 +4,6 @@ import {
   ClockIcon,
   CopyIcon,
   GavelIcon,
-  MessageCircleIcon,
   ShieldIcon,
   UserMinusIcon,
   UserPlusIcon,
@@ -33,11 +32,13 @@ import { errorMessage } from "@/lib/api/errors"
 import { memberDisplayName } from "@/lib/members"
 import { isTimedOut, TIMEOUT_OPTIONS, useModerationAbilities } from "@/lib/moderation"
 import { useSetMemberRoles, useTimeoutMember } from "@/lib/queries/moderation"
-import { useOpenDm, useRelationships, useSendFriendRequest } from "@/lib/queries/social"
+import { useRelationships, useSendFriendRequest } from "@/lib/queries/social"
 import { useUserId } from "@/lib/stores/auth-store"
 import { useUiStore } from "@/lib/stores/ui-store"
 
-const PARTS = {
+import { UserContactItems } from "./user-actions"
+
+export const PARTS = {
   dropdown: {
     Item: DropdownMenuItem,
     CheckboxItem: DropdownMenuCheckboxItem,
@@ -82,7 +83,6 @@ export function MemberActionItems({
 
   const anyModeration = abilities.canKick || abilities.canBan || abilities.canTimeout
   const selfId = useUserId()
-  const openDm = useOpenDm()
   const addFriend = useSendFriendRequest()
   const { data: relationships } = useRelationships()
   const relationship = relationships?.find((r) => r.user.id === userId)
@@ -92,9 +92,7 @@ export function MemberActionItems({
     <>
       {!isSelf && (
         <>
-          <P.Item onSelect={() => openDm.mutate(userId, { onError })}>
-            <MessageCircleIcon /> Message
-          </P.Item>
+          <UserContactItems kind={kind} userId={userId} />
           {!relationship && target && (
             <P.Item
               onSelect={() =>

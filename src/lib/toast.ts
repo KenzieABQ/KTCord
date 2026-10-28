@@ -1,7 +1,14 @@
 import { createElement } from "react"
 import { toast as sonner } from "sonner"
 
-import { DmNotice, Notice, type DmNotification, type NoticeAction } from "@/components/feedback/notices"
+import {
+  CallNotice,
+  DmNotice,
+  Notice,
+  type CallNotification,
+  type DmNotification,
+  type NoticeAction,
+} from "@/components/feedback/notices"
 
 type Options = { id?: string; action?: NoticeAction; description?: string }
 
@@ -27,4 +34,6 @@ export const toast = Object.assign((message: string, options?: Options) => notic
   },
   dm: (dm: DmNotification) =>
     sonner.custom((id) => createElement(DmNotice, { id, dm }), { toasterId: "dms", duration: 6000 }),
+  call: (call: CallNotification) =>
+    sonner.custom((id) => createElement(CallNotice, { id, call }), { toasterId: "dms", duration: 30_000 }),
 })

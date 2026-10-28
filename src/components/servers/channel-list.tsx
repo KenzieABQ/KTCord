@@ -27,6 +27,8 @@ import {
   SettingsIcon,
   UserPlusIcon,
 } from "@/components/icons"
+import { useQueryClient } from "@tanstack/react-query"
+import { prefetchMessages } from "@/lib/queries/messages"
 import Link from "next/link"
 import { useParams, useRouter } from "next/navigation"
 import { useState, type ReactNode } from "react"
@@ -153,6 +155,7 @@ function ChannelRow({
   const href = `/channels/${serverId}/${channel.id}`
   const { join } = useJoinVoice(serverId)
   const connectedHere = useVoiceStore((s) => s.connection?.channelId === channel.id)
+  const queryClient = useQueryClient()
 
   return (
     <ContextMenu>
@@ -161,6 +164,13 @@ function ChannelRow({
           href={href}
           onClick={() => {
             if (channel.type === "voice" && !connectedHere) join(channel.id)
+          }}
+          // Load the newest messages on hover, so the channel opens without a loading state.
+          onPointerEnter={() => {
+            if (channel.type === "text" || channel.type === "announcement") prefetchMessages(queryClient, channel.id)
+          }}
+          onFocus={() => {
+            if (channel.type === "text" || channel.type === "announcement") prefetchMessages(queryClient, channel.id)
           }}
           aria-current={active ? "page" : undefined}
           className={cn(

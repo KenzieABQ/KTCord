@@ -32,6 +32,7 @@ import { useUserId } from "@/lib/stores/auth-store"
 import { usePresenceStatus, usePresenceStore } from "@/lib/stores/presence-store"
 import { useUiStore } from "@/lib/stores/ui-store"
 
+import { DmCallButtons, DmCallPanel } from "@/components/voice/dm-call"
 import { DmAvatar } from "./dm-avatar"
 
 function GroupName({ dm }: { dm: DmChannel }) {
@@ -113,8 +114,9 @@ function DmSidePanel({ dm }: { dm: DmChannel }) {
   if (other) {
     const custom = activeCustomStatus(other.profile)
     return (
-      <div className="h-full overflow-y-auto">
+      <div className="scrollbar-thin h-full overflow-y-auto">
         <ProfileCard
+          fill
           className="rounded-none shadow-none"
           status={otherStatus}
           profile={{
@@ -224,6 +226,7 @@ function DmView({ dm, initialJumpId }: { dm: DmChannel; initialJumpId?: string }
           <ViewHeader
             actions={
               <>
+                <DmCallButtons dm={dm} />
                 <PinsPopover />
                 <HeaderButton
                   label={isGroup ? "Add Friends to DM" : "Start a Group DM"}
@@ -259,6 +262,7 @@ function DmView({ dm, initialJumpId }: { dm: DmChannel; initialJumpId?: string }
               </>
             )}
           </ViewHeader>
+          <DmCallPanel dm={dm} />
           <ChatDropZone channelId={dm.id} label={isGroup ? dmTitle(dm, userId) : `@${dmTitle(dm, userId)}`} enabled className="flex min-h-0 flex-1 flex-col">
             <MessageFeed ref={feed} channel={dm} welcome={<DmWelcome dm={dm} />} initialJumpId={initialJumpId} />
             <Composer onSent={() => feed.current?.scrollToBottom()} />

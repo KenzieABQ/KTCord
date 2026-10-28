@@ -6,6 +6,7 @@ import { useEffect, useRef, useState, type ReactNode } from "react"
 import { composerInputId, focusComposer } from "@/components/chat/composer"
 import { ServerSidebar } from "@/components/servers/server-sidebar"
 import { Sheet, SheetContent, SheetTitle } from "@/components/ui/sheet"
+import { IncomingCalls } from "@/components/voice/dm-call"
 import { VoicePanel } from "@/components/voice/voice-panel"
 import { useBreakpoint } from "@/hooks/use-breakpoint"
 import { useGlobalShortcuts } from "@/hooks/use-global-shortcuts"
@@ -138,6 +139,7 @@ export function AppShell({ children }: { children: ReactNode }) {
         >
           {children}
         </main>
+        <IncomingCalls />
       </div>
     </div>
   )

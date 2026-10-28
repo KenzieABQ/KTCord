@@ -133,7 +133,7 @@ function TextChannel({
           >
             <ChannelTitle channel={channel} />
           </ViewHeader>
-          <ChannelBody feed={feed} channel={channel} initialJumpId={initialJumpId} />
+          <ChannelBody key={channel.id} feed={feed} channel={channel} initialJumpId={initialJumpId} />
         </section>
         <ChannelSidePanel fallback={<MemberPanel serverId={serverId} />} />
       </div>
@@ -170,8 +170,9 @@ export function ChannelView({
 }) {
   if (channel.type === "forum") return <ForumChannel serverId={serverId} channel={channel} />
   if (channel.type !== "voice") {
-    // Keyed so each channel gets a fresh feed (scroll position, unread divider).
-    return <TextChannel key={channel.id} serverId={serverId} channel={channel} initialJumpId={initialJumpId} />
+    // Not keyed: the header and member list stay put between channels; only the body
+    // (feed and composer) starts fresh for each channel (see ChannelBody's key).
+    return <TextChannel serverId={serverId} channel={channel} initialJumpId={initialJumpId} />
   }
 
   return <VoiceChannel serverId={serverId} channel={channel} />

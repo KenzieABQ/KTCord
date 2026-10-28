@@ -34,21 +34,25 @@ export async function POST(request: Request) {
     supabase.from("channels").select("server_id").eq("id", channelId).maybeSingle(),
   ])
   if (joinError) return fail(500, "check_failed")
-  if (!allowed || !channel?.server_id) return fail(403, "forbidden")
-  const { data: moderation } = await supabase
-    .from("voice_moderation")
-    .select("server_mute, server_deaf")
-    .eq("server_id", channel.server_id)
-    .eq("user_id", userId)
-    .maybeSingle()
+  if (!allowed || !channel) return fail(403, "forbidden")
+  // DM calls have no server, so no permissions or server mute: everyone can talk and share video.
+  const isDm = !channel.server_id
+  const { data: moderation } = isDm
+    ? { data: null }
+    : await supabase
+        .from("voice_moderation")
+        .select("server_mute, server_deaf")
+        .eq("server_id", channel.server_id!)
+        .eq("user_id", userId)
+        .maybeSingle()
 
   const config = liveKitConfig()
   if (!config) return Response.json({ configured: false }, { headers: noStore })
 
   // Server mute and deafen stick until a moderator lifts them, as in Discord.
-  const canSpeak = ((permissions ?? 0) & SPEAK) !== 0 && !moderation?.server_mute
+  const canSpeak = isDm || (((permissions ?? 0) & SPEAK) !== 0 && !moderation?.server_mute)
   const canHear = !moderation?.server_deaf
-  const canVideo = ((permissions ?? 0) & VIDEO) !== 0
+  const canVideo = isDm || ((permissions ?? 0) & VIDEO) !== 0
   const token = await createVoiceToken({
     apiKey: config.apiKey,
     apiSecret: config.apiSecret,

@@ -93,24 +93,33 @@ async function primePage(queryClient: QueryClient, messages: ChatMessage[]) {
   }
 }
 
-export function useMessages(channelId: string) {
-  const queryClient = useQueryClient()
-  return useInfiniteQuery({
+function messagesQuery(queryClient: QueryClient, channelId: string) {
+  return {
     queryKey: qk.messages(channelId),
-    queryFn: async ({ pageParam }) => {
+    queryFn: async ({ pageParam }: { pageParam: Cursor | null }) => {
       const page = await fetchMessages(channelId, pageParam)
       await primePage(queryClient, page.messages)
       return page
     },
     initialPageParam: null as Cursor | null,
-    getNextPageParam: (last) =>
+    getNextPageParam: (last: MessagePage) =>
       last.hasMore && last.messages[0]
         ? { createdAt: last.messages[0].created_at, id: last.messages[0].id }
         : undefined,
     // Realtime keeps loaded channels current; reconnects refetch everything.
     staleTime: Infinity,
     gcTime: 10 * 60_000,
-  })
+  }
+}
+
+export function useMessages(channelId: string) {
+  const queryClient = useQueryClient()
+  return useInfiniteQuery(messagesQuery(queryClient, channelId))
+}
+
+/** Loads a channel's newest messages ahead of time (on hover), so opening it is instant. */
+export function prefetchMessages(queryClient: QueryClient, channelId: string) {
+  void queryClient.prefetchInfiniteQuery(messagesQuery(queryClient, channelId))
 }
 
 /** A replied-to message: from the loaded feed if present, else fetched once. */

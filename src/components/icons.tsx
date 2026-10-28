@@ -71,6 +71,8 @@ import {
   MonitorArrowUp,
   Paperclip,
   PencilSimple,
+  Phone,
+  PhoneCall,
   PhoneDisconnect,
   Play,
   Plus,
@@ -277,6 +279,8 @@ export const Volume2Icon = icon(SpeakerHigh, "fill", "Volume2Icon")
 export const VolumeXIcon = icon(SpeakerSlash, "fill", "VolumeXIcon")
 export const XIcon = icon(X, "bold", "XIcon")
 export const RefreshCwIcon = icon(ArrowsClockwise, "bold", "RefreshCwIcon")
+export const PhoneIcon = icon(Phone, "fill", "PhoneIcon")
+export const PhoneCallIcon = icon(PhoneCall, "fill", "PhoneCallIcon")
 export const HeadphoneOffIcon = slashed(Headphones, "HeadphoneOffIcon")
 export const MonitorOffIcon = slashed(Monitor, "MonitorOffIcon")
 export const SmilePlusIcon = plussed(Smiley, "SmilePlusIcon")

@@ -41,11 +41,14 @@ export function ProfileCard({
   profile,
   status,
   className,
+  fill = false,
   children,
 }: {
   profile: ProfileCardData
   status?: PresenceStatus
   className?: string
+  /** Stretch to the full height of its container (side panels), as in Discord's DM profile. */
+  fill?: boolean
   /** Extra sections, such as roles or actions. */
   children?: ReactNode
 }) {
@@ -55,7 +58,12 @@ export function ProfileCard({
 
   return (
     <div
-      className={cn("w-full overflow-hidden rounded-lg bg-card shadow-lg", themed && "p-1", className)}
+      className={cn(
+        "w-full overflow-hidden rounded-lg bg-card shadow-lg",
+        themed && "p-1",
+        fill && "flex min-h-full flex-col",
+        className
+      )}
       style={
         themed
           ? {
@@ -72,7 +80,14 @@ export function ProfileCard({
           backgroundImage: profile.bannerUrl ? `url("${profile.bannerUrl}")` : undefined,
         }}
       />
-      <div className={cn("relative px-4 pb-4", themed && (light ? "bg-white/45" : "bg-black/35"), themed && "rounded-b-md")}>
+      <div
+        className={cn(
+          "relative px-4 pb-4",
+          themed && (light ? "bg-white/45" : "bg-black/35"),
+          themed && "rounded-b-md",
+          fill && "flex-1"
+        )}
+      >
         <div
           className={cn("absolute -top-10 left-4 rounded-full p-1.5", themed ? "" : "bg-card")}
           style={themed ? { backgroundColor: profile.themePrimary! } : undefined}

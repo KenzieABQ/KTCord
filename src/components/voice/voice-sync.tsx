@@ -198,8 +198,8 @@ function useVoiceGuards() {
   const userId = useUserId()
   const connection = useVoiceStore((s) => s.connection)
   const leave = useVoiceStore((s) => s.leave)
-  const { data: channels } = useChannels(connection?.serverId)
-  const { data: members } = useMembers(connection?.serverId)
+  const { data: channels } = useChannels(connection?.serverId ?? undefined)
+  const { data: members } = useMembers(connection?.serverId ?? undefined)
 
   const channelGone = Boolean(connection && channels && !channels.some((c) => c.id === connection.channelId))
   const timeoutUntil = members?.find((m) => m.user_id === userId)?.timeout_until ?? null

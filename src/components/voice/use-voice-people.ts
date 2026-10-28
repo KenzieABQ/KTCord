@@ -7,7 +7,7 @@ import { useVoiceRoster } from "@/lib/stores/voice-store"
 import type { VoiceMember } from "@/lib/voice/roster"
 
 /** The people in a voice channel with their server mute/deafen state. */
-export function useVoicePeople(serverId: string, channelId: string): VoiceMember[] {
+export function useVoicePeople(serverId: string | null, channelId: string): VoiceMember[] {
   const roster = useVoiceRoster(channelId)
   const { data: moderation } = useVoiceModeration(serverId)
   return useMemo(

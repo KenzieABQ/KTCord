@@ -5,7 +5,10 @@ import type { ReactNode } from "react"
 import Link from "next/link"
 
 import { Tooltip, TooltipContent, TooltipTrigger } from "@/components/ui/tooltip"
+import { dmTitle } from "@/lib/api/dms"
 import { useChannels, useServer } from "@/lib/queries/servers"
+import { useVisibleDms } from "@/lib/queries/social"
+import { useUserId } from "@/lib/stores/auth-store"
 import { usePrefsStore } from "@/lib/stores/prefs-store"
 import { useVoiceStore, type VoiceStatus } from "@/lib/stores/voice-store"
 import { cn } from "@/lib/utils"
@@ -61,11 +64,18 @@ export function VoicePanel() {
   const inputMode = usePrefsStore((s) => s.inputMode)
   const pushToTalkKey = usePrefsStore((s) => s.pushToTalkKey)
   const { serverMute, serverDeaf } = useMyVoiceModeration()
-  const { data: server } = useServer(connection?.serverId)
-  const { data: channels } = useChannels(connection?.serverId)
+  const { data: server } = useServer(connection?.serverId ?? undefined)
+  const { data: channels } = useChannels(connection?.serverId ?? undefined)
+  const userId = useUserId()
+  const { data: dms } = useVisibleDms()
   if (!connection) return null
 
   const channel = channels?.find((c) => c.id === connection.channelId)
+  const dm = connection.serverId ? undefined : dms?.find((d) => d.id === connection.channelId)
+  // A DM call links back to the conversation; a voice channel to the channel in its server.
+  const where = connection.serverId
+    ? { href: `/channels/${connection.serverId}/${connection.channelId}`, label: `${channel?.name ?? "Voice"} / ${server?.name ?? "Server"}` }
+    : { href: `/channels/me/${connection.channelId}`, label: dm ? dmTitle(dm, userId) : "Direct Message" }
   const status = STATUS[connection.status]
 
   return (
@@ -76,10 +86,10 @@ export function VoicePanel() {
           {status.label}
         </p>
         <Link
-          href={`/channels/${connection.serverId}/${connection.channelId}`}
+          href={where.href}
           className="block truncate text-xs text-muted-foreground hover:text-interactive-hover hover:underline"
         >
-          {channel?.name ?? "Voice"} / {server?.name ?? "Server"}
+          {where.label}
         </Link>
         {serverMute || serverDeaf ? (
           <p className="truncate text-[11px] text-destructive">

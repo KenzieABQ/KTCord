@@ -1,6 +1,15 @@
 "use client"
 
-import { CheckIcon, CompassIcon, MessageCircleIcon, MoreVerticalIcon, PlusIcon, SearchIcon, UsersIcon, XIcon } from "@/components/icons"
+import {
+  CheckIcon,
+  CompassIcon,
+  MessageCircleIcon,
+  MoreVerticalIcon,
+  PlusIcon,
+  SearchIcon,
+  UsersIcon,
+  XIcon,
+} from "@/components/icons"
 import { useMemo, useState, type ReactNode } from "react"
 import { toast } from "@/lib/toast"
 
@@ -20,10 +29,19 @@ import {
   AlertDialogTitle,
 } from "@/components/ui/alert-dialog"
 import { Button } from "@/components/ui/button"
+import { UserContactItems, UserCopyItems } from "@/components/members/user-actions"
+import {
+  ContextMenu,
+  ContextMenuContent,
+  ContextMenuItem,
+  ContextMenuSeparator,
+  ContextMenuTrigger,
+} from "@/components/ui/context-menu"
 import {
   DropdownMenu,
   DropdownMenuContent,
   DropdownMenuItem,
+  DropdownMenuSeparator,
   DropdownMenuTrigger,
 } from "@/components/ui/dropdown-menu"
 import { Input } from "@/components/ui/input"
@@ -83,13 +101,7 @@ function RoundAction({
   )
 }
 
-function FriendRow({
-  relationship,
-  onRemove,
-}: {
-  relationship: Relationship
-  onRemove: (r: Relationship) => void
-}) {
+function FriendRow({ relationship, onRemove }: { relationship: Relationship; onRemove: (r: Relationship) => void }) {
   const status = usePresenceStore((s) => s.byUser[relationship.user.id])
   const openDm = useOpenDm()
   const respond = useRespondToRequest()
@@ -109,77 +121,98 @@ function FriendRow({
           : STATUS_LABEL[status ?? "offline"]
 
   return (
-    <li className="group -mx-2 flex items-center gap-3 rounded-lg border-t border-border px-2 py-2.5 first:border-t-0 hover:border-transparent hover:bg-item-hover [&:hover+li]:border-transparent">
-      <UserPopover userId={user.id} side="right">
-        <button type="button" className="flex min-w-0 flex-1 items-center gap-3 text-left">
-          <UserAvatar
-            userId={user.id}
-            name={name}
-            src={user.avatar_url}
-            status={relationship.kind === "friend" ? (status ?? "offline") : undefined}
-            surface="chat"
-            className="size-8"
-          />
-          <span className="min-w-0">
-            <span className="flex items-baseline gap-1.5">
-              <span className="truncate font-semibold text-header">{name}</span>
-              <span className="hidden truncate text-sm text-muted-foreground group-hover:inline">{user.username}</span>
-            </span>
-            <span className="block truncate text-xs text-muted-foreground">{subtitle}</span>
-          </span>
-        </button>
-      </UserPopover>
-      <div className="flex shrink-0 gap-2">
+    <ContextMenu>
+      <ContextMenuTrigger asChild>
+        <li className="group -mx-2 flex items-center gap-3 rounded-lg border-t border-border px-2 py-2.5 first:border-t-0 hover:border-transparent hover:bg-item-hover [&:hover+li]:border-transparent">
+          <UserPopover userId={user.id} side="right">
+            <button type="button" className="flex min-w-0 flex-1 items-center gap-3 text-left">
+              <UserAvatar
+                userId={user.id}
+                name={name}
+                src={user.avatar_url}
+                status={relationship.kind === "friend" ? (status ?? "offline") : undefined}
+                surface="chat"
+                className="size-8"
+              />
+              <span className="min-w-0">
+                <span className="flex items-baseline gap-1.5">
+                  <span className="truncate font-semibold text-header">{name}</span>
+                  <span className="hidden truncate text-sm text-muted-foreground group-hover:inline">
+                    {user.username}
+                  </span>
+                </span>
+                <span className="block truncate text-xs text-muted-foreground">{subtitle}</span>
+              </span>
+            </button>
+          </UserPopover>
+          <div className="flex shrink-0 gap-2">
+            {relationship.kind === "friend" && (
+              <>
+                <RoundAction label="Message" onClick={() => openDm.mutate(user.id, { onError })}>
+                  <MessageCircleIcon className="size-4" />
+                </RoundAction>
+                <DropdownMenu>
+                  <Tooltip>
+                    <TooltipTrigger asChild>
+                      <DropdownMenuTrigger
+                        aria-label="More"
+                        className="flex size-9 items-center justify-center rounded-full bg-sidebar text-interactive outline-none focus-visible:ring-2 focus-visible:ring-ring hover:text-interactive-hover"
+                      >
+                        <MoreVerticalIcon className="size-4" />
+                      </DropdownMenuTrigger>
+                    </TooltipTrigger>
+                    <TooltipContent side="top">More</TooltipContent>
+                  </Tooltip>
+                  <DropdownMenuContent align="end" className="w-52">
+                    <UserContactItems kind="dropdown" userId={user.id} message={false} />
+                    <DropdownMenuSeparator />
+                    <DropdownMenuItem variant="destructive" onSelect={() => onRemove(relationship)}>
+                      Remove Friend
+                    </DropdownMenuItem>
+                  </DropdownMenuContent>
+                </DropdownMenu>
+              </>
+            )}
+            {relationship.kind === "incoming" && (
+              <>
+                <RoundAction
+                  label="Accept"
+                  tone="accept"
+                  onClick={() => respond.mutate({ requestId: relationship.id, accept: true }, { onError })}
+                >
+                  <CheckIcon className="size-4" />
+                </RoundAction>
+                <RoundAction
+                  label="Ignore"
+                  tone="deny"
+                  onClick={() => respond.mutate({ requestId: relationship.id, accept: false }, { onError })}
+                >
+                  <XIcon className="size-4" />
+                </RoundAction>
+              </>
+            )}
+            {relationship.kind === "outgoing" && (
+              <RoundAction label="Cancel" tone="deny" onClick={() => remove.mutate(user.id, { onError })}>
+                <XIcon className="size-4" />
+              </RoundAction>
+            )}
+          </div>
+        </li>
+      </ContextMenuTrigger>
+      <ContextMenuContent className="w-56">
+        <UserContactItems kind="context" userId={user.id} />
+        <ContextMenuSeparator />
+        <UserCopyItems kind="context" userId={user.id} username={user.username} />
         {relationship.kind === "friend" && (
           <>
-            <RoundAction label="Message" onClick={() => openDm.mutate(user.id, { onError })}>
-              <MessageCircleIcon className="size-4" />
-            </RoundAction>
-            <DropdownMenu>
-              <Tooltip>
-                <TooltipTrigger asChild>
-                  <DropdownMenuTrigger
-                    aria-label="More"
-                    className="flex size-9 items-center justify-center rounded-full bg-sidebar text-interactive outline-none focus-visible:ring-2 focus-visible:ring-ring hover:text-interactive-hover"
-                  >
-                    <MoreVerticalIcon className="size-4" />
-                  </DropdownMenuTrigger>
-                </TooltipTrigger>
-                <TooltipContent side="top">More</TooltipContent>
-              </Tooltip>
-              <DropdownMenuContent align="end" className="">
-                <DropdownMenuItem variant="destructive" onSelect={() => onRemove(relationship)}>
-                  Remove Friend
-                </DropdownMenuItem>
-              </DropdownMenuContent>
-            </DropdownMenu>
+            <ContextMenuSeparator />
+            <ContextMenuItem variant="destructive" onSelect={() => onRemove(relationship)}>
+              Remove Friend
+            </ContextMenuItem>
           </>
         )}
-        {relationship.kind === "incoming" && (
-          <>
-            <RoundAction
-              label="Accept"
-              tone="accept"
-              onClick={() => respond.mutate({ requestId: relationship.id, accept: true }, { onError })}
-            >
-              <CheckIcon className="size-4" />
-            </RoundAction>
-            <RoundAction
-              label="Ignore"
-              tone="deny"
-              onClick={() => respond.mutate({ requestId: relationship.id, accept: false }, { onError })}
-            >
-              <XIcon className="size-4" />
-            </RoundAction>
-          </>
-        )}
-        {relationship.kind === "outgoing" && (
-          <RoundAction label="Cancel" tone="deny" onClick={() => remove.mutate(user.id, { onError })}>
-            <XIcon className="size-4" />
-          </RoundAction>
-        )}
-      </div>
-    </li>
+      </ContextMenuContent>
+    </ContextMenu>
   )
 }
 
@@ -298,7 +331,9 @@ function ActiveNow({ friends }: { friends: Relationship[] }) {
               />
               <span className="min-w-0">
                 <span className="block truncate font-semibold text-header">{displayNameOf(r.user)}</span>
-                <span className="block truncate text-xs text-muted-foreground">{STATUS_LABEL[presence[r.user.id]]}</span>
+                <span className="block truncate text-xs text-muted-foreground">
+                  {STATUS_LABEL[presence[r.user.id]]}
+                </span>
               </span>
             </li>
           ))}
@@ -347,7 +382,9 @@ export function FriendsView() {
                 aria-current={tab === t.id ? "page" : undefined}
                 className={cn(
                   "flex shrink-0 items-center gap-1.5 rounded-md px-2 py-0.5 text-[15px] font-medium",
-                  tab === t.id ? "bg-item-selected text-interactive-active" : "text-interactive hover:bg-item-hover hover:text-interactive-hover"
+                  tab === t.id
+                    ? "bg-item-selected text-interactive-active"
+                    : "text-interactive hover:bg-item-hover hover:text-interactive-hover"
                 )}
               >
                 {t.label}
