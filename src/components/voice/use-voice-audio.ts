@@ -6,7 +6,7 @@ import { toast } from "sonner"
 import { errorMessage } from "@/lib/api/errors"
 import { fetchVoiceToken } from "@/lib/api/voice"
 import { isTextField } from "@/lib/shortcuts"
-import { usePrefsStore } from "@/lib/stores/prefs-store"
+import { playbackVolume, usePrefsStore } from "@/lib/stores/prefs-store"
 import { useVoiceStore } from "@/lib/stores/voice-store"
 import { isNonTypingKey } from "@/lib/voice/keys"
 import type { VoiceSession } from "@/lib/voice/livekit-session"
@@ -36,6 +36,12 @@ export function useVoiceAudio() {
   const joinedAt = useVoiceStore((s) => s.connection?.joinedAt ?? null)
   const live = useVoiceStore((s) => s.connection?.audio === "livekit" && s.connection.status === "connected")
   const canSpeak = useVoiceStore((s) => s.connection?.canSpeak ?? false)
+  const canVideo = useVoiceStore((s) => s.connection?.canVideo ?? false)
+  const camera = useVoiceStore((s) => s.camera)
+  const screenShare = useVoiceStore((s) => s.screenShare)
+  const cameraDeviceId = usePrefsStore((s) => s.cameraDeviceId)
+  const userVolumes = usePrefsStore((s) => s.userVolumes)
+  const localMutes = usePrefsStore((s) => s.localMutes)
   const selfMute = useVoiceStore((s) => s.selfMute)
   const selfDeaf = useVoiceStore((s) => s.selfDeaf)
   const pushToTalkHeld = useVoiceStore((s) => s.pushToTalkHeld)
@@ -63,7 +69,7 @@ export function useVoiceAudio() {
           useVoiceStore.getState().setAudio("unavailable", false)
           return
         }
-        useVoiceStore.getState().setAudio("livekit", token.canSpeak)
+        useVoiceStore.getState().setAudio("livekit", token.canSpeak, token.canVideo)
 
         const { createVoiceSession } = await import("@/lib/voice/livekit-session")
         if (cancelled) return
@@ -72,6 +78,7 @@ export function useVoiceAudio() {
             capture: captureOptions(),
             outputDeviceId: usePrefsStore.getState().outputDeviceId,
             deafened: useVoiceStore.getState().selfDeaf,
+            volumeFor: playbackVolume,
           },
           {
             onStatus: (status) => {
@@ -96,6 +103,7 @@ export function useVoiceAudio() {
                 id: "voice-playback",
                 action: { label: "Play audio", onClick: resume },
               }),
+            onScreenShareEnded: () => useVoiceStore.getState().setScreenShare(false),
             onDeviceError: (error) =>
               toast.error(
                 error.name === "NotAllowedError"
@@ -136,6 +144,33 @@ export function useVoiceAudio() {
   useEffect(() => {
     session?.setDeafened(selfDeaf || serverDeaf)
   }, [session, selfDeaf, serverDeaf])
+
+  // Camera: on while wanted (and allowed); a refused or missing camera turns the toggle off.
+  useEffect(() => {
+    if (!session || !live) return
+    session.setCamera(camera && canVideo, cameraDeviceId).catch((error: Error) => {
+      useVoiceStore.getState().setCamera(false)
+      toast.error(
+        error.name === "NotAllowedError"
+          ? "KTCord can't use your camera. Allow it in your browser's site settings."
+          : "Your camera isn't working. Check that it's connected and not in use."
+      )
+    })
+  }, [session, live, camera, canVideo, cameraDeviceId])
+
+  // Screen share: the browser asks what to share; cancelling that just turns the toggle off.
+  useEffect(() => {
+    if (!session || !live) return
+    session.setScreenShare(screenShare && canVideo).catch((error: Error) => {
+      useVoiceStore.getState().setScreenShare(false)
+      if (error.name !== "NotAllowedError") toast.error("Couldn't share your screen. Try again.")
+    })
+  }, [session, live, screenShare, canVideo])
+
+  // User Volume and local mutes.
+  useEffect(() => {
+    session?.applyVolumes()
+  }, [session, userVolumes, localMutes])
 
   // Switch devices live when they change in settings.
   useEffect(() => {

@@ -1,6 +1,6 @@
 "use client"
 
-import { HeadphoneOffIcon, MicOffIcon } from "lucide-react"
+import { HeadphoneOffIcon, MicOffIcon, VideoIcon } from "lucide-react"
 
 import { UserAvatar } from "@/components/profile/user-avatar"
 import { UserPopover } from "@/components/profile/user-popover"
@@ -12,13 +12,20 @@ import type { VoiceMember } from "@/lib/voice/roster"
 import { useVoicePeople } from "./use-voice-people"
 import { VoiceMemberMenu } from "./voice-member-menu"
 
-/** Mute and deafen icons for someone in voice; red when a moderator did it (server mute/deafen). */
+/**
+ * State icons for someone in voice: LIVE while screen sharing, camera, and mute/deafen (red
+ * when a moderator did it).
+ */
 export function VoiceStateIcons({ member, className }: { member: VoiceMember; className?: string }) {
   const muted = member.serverMute || member.selfMute
   const deafened = member.serverDeaf || member.selfDeaf
-  if (!muted && !deafened) return null
+  if (!muted && !deafened && !member.video && !member.streaming) return null
   return (
     <span className={cn("flex shrink-0 items-center gap-1 text-muted-foreground", className)}>
+      {member.streaming && (
+        <span className="rounded-sm bg-destructive px-1 text-[10px] leading-4 font-bold text-white">LIVE</span>
+      )}
+      {member.video && <VideoIcon aria-label="Camera on" className="size-3.5" />}
       {muted && (
         <MicOffIcon
           aria-label={member.serverMute ? "Server muted" : "Muted"}

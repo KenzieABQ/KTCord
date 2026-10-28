@@ -33,7 +33,7 @@ const GROUPS: Record<"text" | "voice", { heading: string; keys: PermissionName[]
   ],
   voice: [
     { heading: "General Channel Permissions", keys: ["VIEW_CHANNEL"] },
-    { heading: "Voice Channel Permissions", keys: ["CONNECT", "SPEAK"] },
+    { heading: "Voice Channel Permissions", keys: ["CONNECT", "SPEAK", "VIDEO"] },
   ],
 }
 

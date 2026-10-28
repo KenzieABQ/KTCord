@@ -31,6 +31,8 @@ function useVoicePresence() {
   const selfMute = useVoiceStore((s) => s.selfMute)
   const selfDeaf = useVoiceStore((s) => s.selfDeaf)
   const speaking = useVoiceStore((s) => s.speaking)
+  const video = useVoiceStore((s) => s.camera && Boolean(s.connection?.canVideo))
+  const streaming = useVoiceStore((s) => s.screenShare && Boolean(s.connection?.canVideo))
   const watched = useVoiceRosterStore((s) => Object.keys(s.watchers).sort().join(","))
 
   const connectedId = connection?.channelId ?? null
@@ -42,8 +44,11 @@ function useVoicePresence() {
   }, [watched, connectedId])
 
   const meta = useMemo<VoicePresenceMeta | null>(
-    () => (joinedAt ? { user_id: userId, self_mute: selfMute, self_deaf: selfDeaf, joined_at: joinedAt } : null),
-    [userId, selfMute, selfDeaf, joinedAt]
+    () =>
+      joinedAt
+        ? { user_id: userId, self_mute: selfMute, self_deaf: selfDeaf, joined_at: joinedAt, video, streaming }
+        : null,
+    [userId, selfMute, selfDeaf, joinedAt, video, streaming]
   )
 
   const channels = useRef(new Map<string, RealtimeChannel>())

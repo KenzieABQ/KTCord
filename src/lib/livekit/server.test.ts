@@ -47,6 +47,21 @@ describe("createVoiceToken", () => {
     expect(claims.video?.canPublishSources).toEqual([])
     expect(claims.video?.canSubscribe).toBe(false)
   })
+
+  it("adds camera and screen sharing with VIDEO, even while the microphone is off", async () => {
+    const jwt = await createVoiceToken({
+      apiKey: KEY,
+      apiSecret: SECRET,
+      userId: "user-3",
+      name: "Cy",
+      room: "server-1_channel-1",
+      canSpeak: false,
+      canVideo: true,
+    })
+    const claims = await new TokenVerifier(KEY, SECRET).verify(jwt)
+    expect(claims.video?.canPublish).toBe(true)
+    expect(claims.video?.canPublishSources).toEqual(["camera", "screen_share", "screen_share_audio"])
+  })
 })
 
 describe("liveKitConfig", () => {

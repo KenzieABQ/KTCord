@@ -35,7 +35,7 @@ function DevicePicker({
 }: {
   id: string
   label: string
-  kind: "audioinput" | "audiooutput"
+  kind: "audioinput" | "audiooutput" | "videoinput"
   value: string
   onChange: (deviceId: string) => void
 }) {
@@ -52,7 +52,7 @@ function DevicePicker({
           <SelectItem value={DEFAULT}>System default</SelectItem>
           {devices.map((d, i) => (
             <SelectItem key={d.deviceId} value={d.deviceId}>
-              {d.label || `${kind === "audioinput" ? "Microphone" : "Speaker"} ${i + 1}`}
+              {d.label || `${kind === "audioinput" ? "Microphone" : kind === "videoinput" ? "Camera" : "Speaker"} ${i + 1}`}
             </SelectItem>
           ))}
         </SelectContent>
@@ -61,7 +61,9 @@ function DevicePicker({
         <button
           type="button"
           className="mt-1.5 text-xs text-link hover:underline"
-          onClick={() => requestAccess().catch(() => toast.error("Microphone access was blocked."))}
+          onClick={() =>
+            requestAccess().catch(() => toast.error(`${kind === "videoinput" ? "Camera" : "Microphone"} access was blocked.`))
+          }
         >
           Show device names
         </button>
@@ -100,6 +102,48 @@ function KeyRecorder({ value, onChange }: { value: string; onChange: (code: stri
 }
 
 /** "Let's Check": shows a live level meter from the chosen microphone. */
+/** Settings → Voice & Audio → Video: a camera preview, off until asked for. */
+function CameraPreview({ deviceId }: { deviceId: string }) {
+  const [on, setOn] = useState(false)
+  const video = useRef<HTMLVideoElement>(null)
+
+  useEffect(() => {
+    if (!on) return
+    let stream: MediaStream | null = null
+    let cancelled = false
+    navigator.mediaDevices
+      .getUserMedia({ video: deviceId ? { deviceId: { exact: deviceId } } : true })
+      .then((s) => {
+        if (cancelled) return s.getTracks().forEach((t) => t.stop())
+        stream = s
+        if (video.current) video.current.srcObject = s
+      })
+      .catch(() => {
+        toast.error("KTCord can't use your camera. Allow it in your browser's site settings.")
+        setOn(false)
+      })
+    return () => {
+      cancelled = true
+      stream?.getTracks().forEach((t) => t.stop())
+    }
+  }, [on, deviceId])
+
+  return (
+    <div className="flex flex-col items-start gap-3">
+      <div className="flex aspect-video w-full max-w-sm items-center justify-center overflow-hidden rounded-lg bg-rail">
+        {on ? (
+          <video ref={video} autoPlay playsInline muted className="size-full -scale-x-100 object-cover" />
+        ) : (
+          <span className="text-sm text-muted-foreground">Camera preview is off</span>
+        )}
+      </div>
+      <Button variant="secondary" onClick={() => setOn(!on)}>
+        {on ? "Stop Preview" : "Test Video"}
+      </Button>
+    </div>
+  )
+}
+
 function MicTest() {
   const { inputDeviceId, noiseSuppression, echoCancellation } = usePrefsStore()
   const [testing, setTesting] = useState(false)
@@ -191,6 +235,17 @@ export default function VoiceSettingsPage() {
 
       <div className="mt-8">
         <MicTest />
+      </div>
+
+      <div className="mt-8 flex flex-col gap-4">
+        <DevicePicker
+          id="camera-device"
+          label="Camera"
+          kind="videoinput"
+          value={prefs.cameraDeviceId}
+          onChange={(cameraDeviceId) => prefs.set({ cameraDeviceId })}
+        />
+        <CameraPreview deviceId={prefs.cameraDeviceId} />
       </div>
 
       <div className="mt-8">

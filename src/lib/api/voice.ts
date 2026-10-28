@@ -1,7 +1,7 @@
 import { ApiError } from "./errors"
 
 export type VoiceToken =
-  | { kind: "livekit"; token: string; url: string; canSpeak: boolean }
+  | { kind: "livekit"; token: string; url: string; canSpeak: boolean; canVideo: boolean }
   /** No voice server is configured: voice works as presence only. */
   | { kind: "unavailable" }
 
@@ -28,5 +28,6 @@ export async function fetchVoiceToken(channelId: string): Promise<VoiceToken> {
     token: String(body.token),
     url: String(body.url),
     canSpeak: Boolean(body.canSpeak),
+    canVideo: Boolean(body.canVideo),
   }
 }

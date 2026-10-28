@@ -22,6 +22,7 @@ export const Permission = {
   SPEAK: 1 << 15,
   MANAGE_EXPRESSIONS: 1 << 16,
   VIEW_AUDIT_LOG: 1 << 17,
+  VIDEO: 1 << 18,
 } as const
 
 export type PermissionName = keyof typeof Permission
@@ -35,7 +36,8 @@ export const DEFAULT_EVERYONE_PERMISSIONS =
   Permission.ATTACH_FILES |
   Permission.ADD_REACTIONS |
   Permission.CONNECT |
-  Permission.SPEAK
+  Permission.SPEAK |
+  Permission.VIDEO
 
 export function hasPermission(perms: number, bit: number): boolean {
   return (perms & bit) === bit
@@ -88,7 +90,7 @@ export function topRolePosition({
 
 /**
  * Permissions a channel override may allow or deny: the ones checked per channel. Mirrors
- * public.channel_overwrite_mask() (VIEW | SEND | MANAGE_MESSAGES | ATTACH | REACT | CONNECT | SPEAK).
+ * public.channel_overwrite_mask() (VIEW | SEND | MANAGE_MESSAGES | ATTACH | REACT | CONNECT | SPEAK | VIDEO).
  */
 export const CHANNEL_OVERWRITE_MASK =
   Permission.VIEW_CHANNEL |
@@ -97,7 +99,8 @@ export const CHANNEL_OVERWRITE_MASK =
   Permission.ATTACH_FILES |
   Permission.ADD_REACTIONS |
   Permission.CONNECT |
-  Permission.SPEAK
+  Permission.SPEAK |
+  Permission.VIDEO
 
 export type OverwriteLike = { role_id: string | null; user_id: string | null; allow: number; deny: number }
 

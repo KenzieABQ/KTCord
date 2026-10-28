@@ -8,6 +8,9 @@ export type VoicePresenceMeta = {
   self_mute: boolean
   self_deaf: boolean
   joined_at: string
+  /** Camera on / sharing their screen (missing from older clients). */
+  video?: boolean
+  streaming?: boolean
 }
 
 /** Broadcast on the voice topic whenever someone starts or stops talking. */
@@ -25,6 +28,8 @@ export type VoiceMember = {
   selfDeaf: boolean
   speaking: boolean
   joinedAt: string
+  video?: boolean
+  streaming?: boolean
   /** Set by a moderator; they stick until lifted. */
   serverMute?: boolean
   serverDeaf?: boolean
@@ -54,6 +59,8 @@ export function rosterFromPresence(
       selfDeaf: Boolean(m.self_deaf),
       speaking: Boolean(speaking[m.user_id]) && !m.self_mute,
       joinedAt: m.joined_at,
+      video: Boolean(m.video),
+      streaming: Boolean(m.streaming),
     }))
     .sort((a, b) => a.joinedAt.localeCompare(b.joinedAt) || a.userId.localeCompare(b.userId))
 }
@@ -67,6 +74,8 @@ export function sameRoster(a: VoiceMember[] | undefined, b: VoiceMember[]): bool
       m.selfMute === b[i].selfMute &&
       m.selfDeaf === b[i].selfDeaf &&
       m.speaking === b[i].speaking &&
-      m.joinedAt === b[i].joinedAt
+      m.joinedAt === b[i].joinedAt &&
+      m.video === b[i].video &&
+      m.streaming === b[i].streaming
   )
 }

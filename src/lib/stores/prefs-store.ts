@@ -51,8 +51,19 @@ type PrefsState = {
   pushToTalkKey: string
   noiseSuppression: boolean
   echoCancellation: boolean
+  cameraDeviceId: string
+  /** User Volume per person in voice, 0-100 (missing means 100). */
+  userVolumes: Record<string, number>
+  /** People muted for me only (Discord's "Mute" in their voice menu). */
+  localMutes: Record<string, boolean>
 
   set: (patch: Partial<Omit<PrefsState, "set">>) => void
+}
+
+/** Playback volume for someone in voice, 0-1. */
+export function playbackVolume(userId: string): number {
+  const { userVolumes, localMutes } = usePrefsStore.getState()
+  return localMutes[userId] ? 0 : (userVolumes[userId] ?? 100) / 100
 }
 
 export const usePrefsStore = create<PrefsState>()(
@@ -74,6 +85,9 @@ export const usePrefsStore = create<PrefsState>()(
       pushToTalkKey: "Backquote",
       noiseSuppression: true,
       echoCancellation: true,
+      cameraDeviceId: "",
+      userVolumes: {},
+      localMutes: {},
       set: (patch) => set(patch),
     }),
     {
@@ -95,6 +109,9 @@ export const usePrefsStore = create<PrefsState>()(
         pushToTalkKey: s.pushToTalkKey,
         noiseSuppression: s.noiseSuppression,
         echoCancellation: s.echoCancellation,
+        cameraDeviceId: s.cameraDeviceId,
+        userVolumes: s.userVolumes,
+        localMutes: s.localMutes,
       }),
     }
   )

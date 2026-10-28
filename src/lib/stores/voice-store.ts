@@ -22,6 +22,8 @@ export type VoiceConnection = {
   audio: VoiceAudio
   /** False without the SPEAK permission: listen-only. */
   canSpeak: boolean
+  /** The VIDEO permission: camera and screen sharing. */
+  canVideo: boolean
 }
 
 type VoiceState = {
@@ -32,6 +34,9 @@ type VoiceState = {
   speaking: boolean
   /** Push-to-talk key held down. */
   pushToTalkHeld: boolean
+  /** Camera and screen share wanted on (the session turns them on and reports when they stop). */
+  camera: boolean
+  screenShare: boolean
 
   toggleMute: () => void
   toggleDeaf: () => void
@@ -41,7 +46,9 @@ type VoiceState = {
   /** Starts the current connection over (new token and room), e.g. after losing the voice server. */
   rejoin: () => void
   setStatus: (status: VoiceStatus) => void
-  setAudio: (audio: VoiceAudio, canSpeak: boolean) => void
+  setAudio: (audio: VoiceAudio, canSpeak: boolean, canVideo?: boolean) => void
+  setCamera: (on: boolean) => void
+  setScreenShare: (on: boolean) => void
   setSpeaking: (speaking: boolean) => void
   setPushToTalkHeld: (held: boolean) => void
 }
@@ -54,6 +61,8 @@ export const useVoiceStore = create<VoiceState>()(
       connection: null,
       speaking: false,
       pushToTalkHeld: false,
+      camera: false,
+      screenShare: false,
 
       // Unmuting while deafened also undeafens, as in Discord.
       toggleMute: () =>
@@ -81,24 +90,29 @@ export const useVoiceStore = create<VoiceState>()(
                   joinedAt: new Date().toISOString(),
                   audio: "pending",
                   canSpeak: true,
+                  canVideo: false,
                 },
                 speaking: false,
+                camera: false,
+                screenShare: false,
               }
         ),
-      leave: () => set({ connection: null, speaking: false, pushToTalkHeld: false }),
+      leave: () => set({ connection: null, speaking: false, pushToTalkHeld: false, camera: false, screenShare: false }),
       rejoin: () =>
         set((s) =>
           s.connection
             ? {
                 connection: { ...s.connection, status: "reconnecting", audio: "pending", joinedAt: new Date().toISOString() },
                 speaking: false,
+                camera: false,
+                screenShare: false,
               }
             : s
         ),
       setStatus: (status) =>
         set((s) => (s.connection && s.connection.status !== status ? { connection: { ...s.connection, status } } : s)),
       // Without a voice server there's nothing more to wait for once presence is announced.
-      setAudio: (audio, canSpeak) =>
+      setAudio: (audio, canSpeak, canVideo = false) =>
         set((s) =>
           s.connection
             ? {
@@ -106,11 +120,14 @@ export const useVoiceStore = create<VoiceState>()(
                   ...s.connection,
                   audio,
                   canSpeak,
+                  canVideo,
                   status: audio === "unavailable" ? "connected" : s.connection.status,
                 },
               }
             : s
         ),
+      setCamera: (camera) => set((s) => (s.camera === camera ? s : { camera })),
+      setScreenShare: (screenShare) => set((s) => (s.screenShare === screenShare ? s : { screenShare })),
       setSpeaking: (speaking) => set((s) => (s.speaking === speaking ? s : { speaking })),
       setPushToTalkHeld: (pushToTalkHeld) => set((s) => (s.pushToTalkHeld === pushToTalkHeld ? s : { pushToTalkHeld })),
     }),

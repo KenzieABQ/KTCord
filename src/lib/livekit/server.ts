@@ -15,10 +15,19 @@ export function voiceRoomName(serverId: string, channelId: string) {
   return `${serverId}_${channelId}`
 }
 
+/** What someone may send in a voice room: microphone (SPEAK, not server muted), camera and screen (VIDEO). */
+export function publishSources(canSpeak: boolean, canVideo: boolean): TrackSource[] {
+  return [
+    ...(canSpeak ? [TrackSource.MICROPHONE] : []),
+    ...(canVideo ? [TrackSource.CAMERA, TrackSource.SCREEN_SHARE, TrackSource.SCREEN_SHARE_AUDIO] : []),
+  ]
+}
+
 /**
  * A short-lived token for one voice channel's room. The identity is the user id, so a
  * second tab joining replaces the first (as in Discord). Without SPEAK, or while server
- * muted, the user can listen but not publish; server deafened, they can't hear either.
+ * muted, the user can't publish their microphone; without VIDEO, no camera or screen;
+ * server deafened, they can't hear either.
  */
 export async function createVoiceToken(input: {
   apiKey: string
@@ -27,6 +36,7 @@ export async function createVoiceToken(input: {
   name: string
   room: string
   canSpeak: boolean
+  canVideo?: boolean
   canHear?: boolean
 }) {
   const token = new AccessToken(input.apiKey, input.apiSecret, {
@@ -34,12 +44,13 @@ export async function createVoiceToken(input: {
     name: input.name,
     ttl: "10m",
   })
+  const sources = publishSources(input.canSpeak, input.canVideo ?? false)
   token.addGrant({
     room: input.room,
     roomJoin: true,
     canSubscribe: input.canHear ?? true,
-    canPublish: input.canSpeak,
-    canPublishSources: input.canSpeak ? [TrackSource.MICROPHONE] : [],
+    canPublish: sources.length > 0,
+    canPublishSources: sources,
     canPublishData: false,
   })
   return token.toJwt()
@@ -77,18 +88,19 @@ export async function applyVoiceModeration(
   config: Config,
   serverId: string,
   userId: string,
-  state: { canPublish: boolean; canSubscribe: boolean }
+  state: { canSpeak: boolean; canVideo: boolean; canSubscribe: boolean }
 ) {
   const client = rooms(config)
   const names = await roomsWith(config, serverId, userId)
+  const sources = publishSources(state.canSpeak, state.canVideo)
   await Promise.all(
     names.map((room) =>
       client.updateParticipant(room, userId, {
         permission: {
-          canPublish: state.canPublish,
+          canPublish: sources.length > 0,
           canSubscribe: state.canSubscribe,
           canPublishData: false,
-          canPublishSources: state.canPublish ? [TrackSource.MICROPHONE] : [],
+          canPublishSources: sources,
         },
       })
     )

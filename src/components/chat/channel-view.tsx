@@ -1,10 +1,11 @@
 "use client"
 
-import { HashIcon, SearchIcon, UsersIcon, Volume2Icon } from "lucide-react"
+import { HashIcon, MessageSquareTextIcon, SearchIcon, UsersIcon, Volume2Icon } from "lucide-react"
 import { useCallback, useEffect, useRef } from "react"
 
 import { ViewHeader } from "@/components/layout/view-header"
 import { VoiceChannelView } from "@/components/voice/voice-channel-view"
+import { VoiceTextChat } from "@/components/voice/voice-text-chat"
 import { Popover, PopoverContent, PopoverTrigger } from "@/components/ui/popover"
 import { MemberPanel, useToggleMembers } from "@/components/members/member-panel"
 import { useBreakpoint } from "@/hooks/use-breakpoint"
@@ -151,15 +152,30 @@ export function ChannelView({
     return <TextChannel key={channel.id} serverId={serverId} channel={channel} initialJumpId={initialJumpId} />
   }
 
+  return <VoiceChannel serverId={serverId} channel={channel} />
+}
+
+function VoiceChannel({ serverId, channel }: { serverId: string; channel: Channel }) {
+  const chatOpen = useUiStore((s) => s.voiceChatOpen)
+  const setChatOpen = useUiStore((s) => s.setVoiceChatOpen)
   return (
     <div className="flex min-w-0 flex-1">
       <section className="flex min-w-0 flex-1 flex-col">
-        <ViewHeader actions={<MembersButton />}>
+        <ViewHeader
+          actions={
+            <>
+              <HeaderButton label={chatOpen ? "Hide Chat" : "Show Chat"} active={chatOpen} onClick={() => setChatOpen(!chatOpen)}>
+                <MessageSquareTextIcon className="size-5" />
+              </HeaderButton>
+              <MembersButton />
+            </>
+          }
+        >
           <ChannelTitle channel={channel} />
         </ViewHeader>
         <VoiceChannelView serverId={serverId} channel={channel} />
       </section>
-      <MemberPanel serverId={serverId} />
+      {chatOpen ? <VoiceTextChat serverId={serverId} channel={channel} /> : <MemberPanel serverId={serverId} />}
     </div>
   )
 }

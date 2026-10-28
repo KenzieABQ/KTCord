@@ -39,6 +39,7 @@ export const PERMISSION_GROUPS: { heading: string; permissions: PermissionInfo[]
     permissions: [
       { key: "CONNECT", label: "Connect", description: "Join voice channels." },
       { key: "SPEAK", label: "Speak", description: "Talk in voice channels." },
+      { key: "VIDEO", label: "Video", description: "Share your camera or screen in voice channels." },
     ],
   },
   {

@@ -37,6 +37,8 @@ type UiState = {
   lastChannelByServer: Record<string, string>
   /** Recently opened channels and DMs, newest first, for the quick switcher (remembered). */
   recentChannelIds: string[]
+  /** A voice channel's text chat is open beside the call. */
+  voiceChatOpen: boolean
 
   setNavDrawerOpen: (open: boolean) => void
   toggleMemberList: () => void
@@ -48,6 +50,7 @@ type UiState = {
   toggleCategory: (categoryId: string) => void
   rememberChannel: (serverId: string, channelId: string) => void
   visitChannel: (channelId: string) => void
+  setVoiceChatOpen: (open: boolean) => void
 }
 
 export const useUiStore = create<UiState>()(
@@ -58,6 +61,8 @@ export const useUiStore = create<UiState>()(
       memberSheetOpen: false,
       dialog: null,
       sidePanel: null,
+      voiceChatOpen: false,
+      setVoiceChatOpen: (voiceChatOpen) => set({ voiceChatOpen }),
       collapsedCategories: {},
       lastChannelByServer: {},
       recentChannelIds: [],

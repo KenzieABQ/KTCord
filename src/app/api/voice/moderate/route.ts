@@ -55,7 +55,8 @@ export async function POST(request: Request) {
         .maybeSingle()
       const { data: perms } = await supabase.rpc("server_permissions", { p_server: serverId, p_user: userId })
       const rooms = await applyVoiceModeration(config, serverId, userId, {
-        canPublish: ((perms ?? 0) & (1 << 15)) !== 0 && !state?.server_mute,
+        canSpeak: ((perms ?? 0) & (1 << 15)) !== 0 && !state?.server_mute,
+        canVideo: ((perms ?? 0) & (1 << 18)) !== 0,
         canSubscribe: !state?.server_deaf,
       })
       return reply(200, { configured: true, rooms })

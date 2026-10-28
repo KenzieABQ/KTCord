@@ -1,6 +1,7 @@
 "use client"
 
-import { PhoneOffIcon, SignalIcon } from "lucide-react"
+import { MonitorUpIcon, PhoneOffIcon, SignalIcon, VideoIcon } from "lucide-react"
+import type { ReactNode } from "react"
 import Link from "next/link"
 
 import { Tooltip, TooltipContent, TooltipTrigger } from "@/components/ui/tooltip"
@@ -18,10 +19,44 @@ const STATUS: Record<VoiceStatus, { label: string; className: string }> = {
   reconnecting: { label: "Reconnecting…", className: "text-status-idle" },
 }
 
-/** Above the user panel while connected to voice: status, where, and a disconnect button. */
+function PanelButton({
+  label,
+  active,
+  onClick,
+  children,
+}: {
+  label: string
+  active?: boolean
+  onClick: () => void
+  children: ReactNode
+}) {
+  return (
+    <Tooltip>
+      <TooltipTrigger asChild>
+        <button
+          type="button"
+          aria-label={label}
+          aria-pressed={active}
+          onClick={onClick}
+          className={cn(
+            "flex size-8 items-center justify-center rounded-md hover:bg-item-hover",
+            active ? "text-status-online" : "text-interactive hover:text-interactive-hover"
+          )}
+        >
+          {children}
+        </button>
+      </TooltipTrigger>
+      <TooltipContent side="top">{label}</TooltipContent>
+    </Tooltip>
+  )
+}
+
+/** Above the user panel while connected to voice: status, where, camera/screen, and disconnect. */
 export function VoicePanel() {
   const connection = useVoiceStore((s) => s.connection)
   const leave = useVoiceStore((s) => s.leave)
+  const camera = useVoiceStore((s) => s.camera)
+  const screenShare = useVoiceStore((s) => s.screenShare)
   const pushToTalkHeld = useVoiceStore((s) => s.pushToTalkHeld)
   const inputMode = usePrefsStore((s) => s.inputMode)
   const pushToTalkKey = usePrefsStore((s) => s.pushToTalkKey)
@@ -60,6 +95,26 @@ export function VoicePanel() {
           </p>
         ) : null}
       </div>
+      {connection.audio === "livekit" && connection.canVideo && (
+        <>
+          <PanelButton
+            label={camera ? "Turn Off Camera" : "Turn On Camera"}
+            active={camera}
+            onClick={() => useVoiceStore.getState().setCamera(!camera)}
+          >
+            <VideoIcon className="size-5" />
+          </PanelButton>
+          {typeof navigator !== "undefined" && Boolean(navigator.mediaDevices?.getDisplayMedia) && (
+            <PanelButton
+              label={screenShare ? "Stop Sharing" : "Share Your Screen"}
+              active={screenShare}
+              onClick={() => useVoiceStore.getState().setScreenShare(!screenShare)}
+            >
+              <MonitorUpIcon className="size-5" />
+            </PanelButton>
+          )}
+        </>
+      )}
       <Tooltip>
         <TooltipTrigger asChild>
           <button
