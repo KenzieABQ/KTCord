@@ -1,7 +1,7 @@
 "use client"
 
 import { format } from "date-fns"
-import { ForwardIcon } from "lucide-react"
+import { ForwardIcon, MegaphoneIcon } from "lucide-react"
 import Link from "next/link"
 
 import type { Attachment } from "@/lib/api/attachments"
@@ -23,9 +23,15 @@ export function ForwardedMessage({ forward, attachments }: { forward: ForwardSna
     <div className="mt-0.5 flex max-w-[90%] gap-3">
       <span aria-hidden className="w-1 shrink-0 rounded-sm bg-interactive/40" />
       <div className="min-w-0 flex-1 py-0.5">
-        <p className="mb-0.5 flex items-center gap-1 text-xs text-muted-foreground italic">
-          <ForwardIcon className="size-3.5" /> Forwarded
-        </p>
+        {forward.published ? (
+          <p className="mb-0.5 flex items-center gap-1 text-xs font-medium text-muted-foreground">
+            <MegaphoneIcon className="size-3.5" /> {forward.server_name} #{forward.channel_name}
+          </p>
+        ) : (
+          <p className="mb-0.5 flex items-center gap-1 text-xs text-muted-foreground italic">
+            <ForwardIcon className="size-3.5" /> Forwarded
+          </p>
+        )}
         {forward.content && <Markdown content={forward.content} />}
         {attachments.length > 0 && <MessageAttachments attachments={attachments} />}
         {forward.content && <LinkEmbeds content={forward.content} />}

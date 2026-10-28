@@ -5,6 +5,7 @@ import { toast } from "sonner"
 
 import { CreateThreadDialog } from "@/components/chat/create-thread-dialog"
 import { ForwardDialog } from "@/components/chat/forward-dialog"
+import { CreateEventDialog, EventsDialog } from "@/components/events/events"
 import { SelectFriendsDialog } from "@/components/dms/dm-dialogs"
 import { QuickSwitcher } from "@/components/layout/quick-switcher"
 import { ShortcutsDialog } from "@/components/layout/shortcuts-dialog"
@@ -24,6 +25,7 @@ import { useUiStore, type AppDialog } from "@/lib/stores/ui-store"
 
 import { CreateCategoryDialog, CreateChannelDialog } from "./channel-dialogs"
 import { InviteDialog } from "./invite-dialog"
+import { RulesDialog, WelcomeDialog } from "./onboarding"
 import { CreateServerDialog, JoinServerDialog } from "./server-dialogs"
 
 function LeaveServerDialog({ serverId }: { serverId: string }) {
@@ -95,6 +97,14 @@ function DialogBody({ dialog }: { dialog: AppDialog }) {
       return <SelectFriendsDialog addToChannelId={dialog.addToChannelId} preselect={dialog.preselect} />
     case "create-thread":
       return <CreateThreadDialog channelId={dialog.channelId} messageId={dialog.messageId} defaultName={dialog.defaultName} />
+    case "server-rules":
+      return <RulesDialog serverId={dialog.serverId} />
+    case "welcome":
+      return <WelcomeDialog serverId={dialog.serverId} />
+    case "events":
+      return <EventsDialog serverId={dialog.serverId} />
+    case "create-event":
+      return <CreateEventDialog serverId={dialog.serverId} />
     case "forward-message":
       return <ForwardDialog messageId={dialog.messageId} />
     case "quick-switcher":

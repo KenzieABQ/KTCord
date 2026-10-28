@@ -4,6 +4,7 @@ import {
   CopyIcon,
   EyeOffIcon,
   ForwardIcon,
+  MegaphoneIcon,
   HashIcon,
   LinkIcon,
   MessagesSquareIcon,
@@ -45,6 +46,7 @@ export type MessageActionHandlers = {
   canPin: boolean
   canThread: boolean
   canForward: boolean
+  canPublish: boolean
   onReply: () => void
   onEdit: () => void
   /** `skipConfirm` is true for the Shift-held toolbar button, as in Discord. */
@@ -54,6 +56,7 @@ export type MessageActionHandlers = {
   onCreateThread: () => void
   onForward: () => void
   onMarkUnread: () => void
+  onPublish: () => void
 }
 
 /** basePath is "/channels/<serverId>" or "/channels/me". */
@@ -138,6 +141,11 @@ export function MessageToolbar({
           <ForwardIcon className="size-[18px]" />
         </ToolbarButton>
       )}
+      {actions.canPublish && (
+        <ToolbarButton label="Publish" onClick={actions.onPublish}>
+          <MegaphoneIcon className="size-4" />
+        </ToolbarButton>
+      )}
       {actions.canEdit && (
         <ToolbarButton label="Edit" onClick={actions.onEdit}>
           <PencilIcon className="size-4" />
@@ -216,6 +224,11 @@ function MessageMenuItems({
       {actions.canForward && (
         <Item onSelect={actions.onForward}>
           Forward <ForwardIcon className="ml-auto" />
+        </Item>
+      )}
+      {actions.canPublish && (
+        <Item onSelect={actions.onPublish}>
+          Publish <MegaphoneIcon className="ml-auto" />
         </Item>
       )}
       {actions.canThread && (

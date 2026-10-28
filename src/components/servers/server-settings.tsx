@@ -62,6 +62,7 @@ export function ServerSettingsShell({ children }: { children: ReactNode }) {
     can(Permission.MANAGE_SERVER) && { href: `${base}/overview`, label: "Overview" },
     can(Permission.MANAGE_ROLES) && { href: `${base}/roles`, label: "Roles" },
     can(Permission.MANAGE_EXPRESSIONS) && { href: `${base}/emoji`, label: "Emoji" },
+    can(Permission.MANAGE_SERVER) && { href: `${base}/community`, label: "Community" },
   ].filter(Boolean) as SettingsNavGroup["items"]
   const managementItems = [
     [Permission.MANAGE_ROLES, Permission.KICK_MEMBERS, Permission.BAN_MEMBERS, Permission.MODERATE_MEMBERS].some(can) && {

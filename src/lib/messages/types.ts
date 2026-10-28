@@ -28,7 +28,7 @@ export type Cursor = { createdAt: string; id: string }
 
 /** Columns the client reads (skips the tsvector). */
 export const MESSAGE_COLUMNS =
-  "id, channel_id, author_id, content, type, reply_to_id, attachments, mentions, mention_roles, mention_everyone, pinned_at, pinned_by, edited_at, created_at, reply_ping, forwarded, poll"
+  "id, channel_id, author_id, content, type, reply_to_id, attachments, mentions, mention_roles, mention_everyone, pinned_at, pinned_by, edited_at, created_at, reply_ping, forwarded, poll, published_at"
 
 /** The original message a forward carries (built by the database from the real message). */
 export type ForwardSnapshot = {
@@ -37,6 +37,10 @@ export type ForwardSnapshot = {
   author_id: string | null
   content: string
   created_at: string
+  /** Set on copies of a published announcement (see publish_message). */
+  published?: boolean
+  channel_name?: string
+  server_name?: string
 }
 
 export type PollAnswer = { id: number; text: string; emoji: string | null }
@@ -97,6 +101,7 @@ export function newLocalMessage(input: {
     reply_ping: input.replyPing ?? true,
     forwarded: input.forwarded ?? null,
     poll: input.poll ?? null,
+    published_at: null,
     status: "sending",
   }
 }

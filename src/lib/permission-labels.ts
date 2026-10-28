@@ -13,6 +13,7 @@ export const PERMISSION_GROUPS: { heading: string; permissions: PermissionInfo[]
       { key: "MANAGE_SERVER", label: "Manage Server", description: "Change the server's name and icon, and see every invite." },
       { key: "MANAGE_EXPRESSIONS", label: "Manage Expressions", description: "Add, rename and remove this server's custom emoji." },
       { key: "VIEW_AUDIT_LOG", label: "View Audit Log", description: "See the record of who changed what in this server." },
+      { key: "MANAGE_EVENTS", label: "Manage Events", description: "Create, edit and cancel server events." },
     ],
   },
   {

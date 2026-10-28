@@ -11,6 +11,7 @@ import {
   updateChannel,
   type Channel,
   type ChannelPlacement,
+  type ServerChannelType,
 } from "@/lib/api/channels"
 import {
   createInvite,
@@ -67,7 +68,7 @@ export function useUpdateServer(serverId: string) {
   const userId = useUserId()
   const queryClient = useQueryClient()
   return useMutation({
-    mutationFn: (patch: { name?: string; icon_url?: string | null }) => updateServer(serverId, patch),
+    mutationFn: (patch: Parameters<typeof updateServer>[1]) => updateServer(serverId, patch),
     onSuccess: (server) =>
       queryClient.setQueryData<JoinedServer[]>(qk.servers(userId), (list) =>
         list?.map((s) => (s.id === server.id ? { ...s, ...server } : s))
@@ -139,7 +140,7 @@ function upsertChannel(list: Channel[] | undefined, channel: Channel) {
 export function useCreateChannel(serverId: string) {
   const queryClient = useQueryClient()
   return useMutation({
-    mutationFn: (input: { type: "text" | "voice" | "category"; name: string; parentId?: string | null }) =>
+    mutationFn: (input: { type: ServerChannelType; name: string; parentId?: string | null }) =>
       createChannel({ serverId, ...input }),
     onSuccess: (channel) =>
       queryClient.setQueryData<Channel[]>(qk.channels(serverId), (list) => upsertChannel(list, channel)),

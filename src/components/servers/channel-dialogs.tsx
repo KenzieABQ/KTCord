@@ -1,6 +1,6 @@
 "use client"
 
-import { HashIcon, LockIcon, Volume2Icon } from "lucide-react"
+import { HashIcon, LockIcon, MegaphoneIcon, MessagesSquareIcon, Volume2Icon } from "lucide-react"
 import { useRouter } from "next/navigation"
 import { useState } from "react"
 
@@ -14,6 +14,7 @@ import { normalizeTextChannelName } from "@/lib/api/channels"
 import { errorMessage } from "@/lib/api/errors"
 import { useChannels, useRoles, useCreateChannel } from "@/lib/queries/servers"
 import { useUiStore } from "@/lib/stores/ui-store"
+import { ChannelIcon, isTextLike } from "./channel-icon"
 import { cn } from "@/lib/utils"
 
 const labelClass = "text-xs font-bold tracking-wide uppercase text-muted-foreground"
@@ -22,7 +23,11 @@ const footerClass = "mt-6 -mx-6 -mb-6 rounded-b-xl bg-sidebar px-4 py-3"
 const TYPES = [
   { value: "text", label: "Text", hint: "Send messages, images, GIFs, emoji, opinions, and puns", icon: HashIcon },
   { value: "voice", label: "Voice", hint: "Hang out together with voice, video, and screen share", icon: Volume2Icon },
+  { value: "announcement", label: "Announcement", hint: "Important updates people can follow into their own servers", icon: MegaphoneIcon },
+  { value: "forum", label: "Forum", hint: "Organized conversations: each post is its own thread", icon: MessagesSquareIcon },
 ] as const
+
+type NewChannelType = (typeof TYPES)[number]["value"]
 
 export function CreateChannelDialog({
   serverId,
@@ -31,7 +36,7 @@ export function CreateChannelDialog({
 }: {
   serverId: string
   parentId: string | null
-  initialType?: "text" | "voice"
+  initialType?: NewChannelType
 }) {
   const router = useRouter()
   const closeDialog = useUiStore((s) => s.closeDialog)
@@ -39,11 +44,11 @@ export function CreateChannelDialog({
   const { data: channels } = useChannels(serverId)
   const category = channels?.find((c) => c.id === parentId)
 
-  const [type, setType] = useState<"text" | "voice">(initialType)
+  const [type, setType] = useState<NewChannelType>(initialType)
   const [name, setName] = useState("")
   const [error, setError] = useState<string | null>(null)
 
-  const finalName = type === "text" ? normalizeTextChannelName(name) : name.trim()
+  const finalName = isTextLike(type) ? normalizeTextChannelName(name) : name.trim()
 
   async function submit(e: React.FormEvent) {
     e.preventDefault()
@@ -54,13 +59,12 @@ export function CreateChannelDialog({
     try {
       const channel = await createChannel.mutateAsync({ type, name: finalName, parentId })
       closeDialog()
-      if (channel.type === "text") router.push(`/channels/${serverId}/${channel.id}`)
+      if (channel.type !== "voice") router.push(`/channels/${serverId}/${channel.id}`)
     } catch (err) {
       setError(errorMessage(err))
     }
   }
 
-  const Icon = type === "text" ? HashIcon : Volume2Icon
 
   return (
     <form onSubmit={submit} noValidate>
@@ -105,12 +109,12 @@ export function CreateChannelDialog({
           Channel name
         </FieldLabel>
         <div className="relative">
-          <Icon className="absolute top-1/2 left-2.5 size-4 -translate-y-1/2 text-muted-foreground" />
+          <ChannelIcon type={type} className="absolute top-1/2 left-2.5 size-4 -translate-y-1/2 text-muted-foreground" />
           <Input
             id="channel-name"
             className="pl-8"
-            placeholder={type === "text" ? "new-channel" : "New Voice Channel"}
-            value={type === "text" ? name.toLowerCase().replace(/\s/g, "-") : name}
+            placeholder={isTextLike(type) ? "new-channel" : "New Voice Channel"}
+            value={isTextLike(type) ? name.toLowerCase().replace(/\s/g, "-") : name}
             maxLength={100}
             autoFocus
             onChange={(e) => {

@@ -28,6 +28,8 @@ function ch(
     topic: null,
     is_private: false,
     slowmode_seconds: 0,
+    available_tags: [],
+    applied_tags: [],
     owner_id: null,
     dm_key: null,
     source_message_id: null,

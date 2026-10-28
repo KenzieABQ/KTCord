@@ -197,6 +197,52 @@ export type Database = {
           },
         ]
       }
+      channel_follows: {
+        Row: {
+          created_at: string
+          created_by: string | null
+          id: string
+          source_channel_id: string
+          target_channel_id: string
+        }
+        Insert: {
+          created_at?: string
+          created_by?: string | null
+          id?: string
+          source_channel_id: string
+          target_channel_id: string
+        }
+        Update: {
+          created_at?: string
+          created_by?: string | null
+          id?: string
+          source_channel_id?: string
+          target_channel_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "channel_follows_created_by_fkey"
+            columns: ["created_by"]
+            isOneToOne: false
+            referencedRelation: "profiles"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "channel_follows_source_channel_id_fkey"
+            columns: ["source_channel_id"]
+            isOneToOne: false
+            referencedRelation: "channels"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "channel_follows_target_channel_id_fkey"
+            columns: ["target_channel_id"]
+            isOneToOne: false
+            referencedRelation: "channels"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       channel_overwrites: {
         Row: {
           allow: number
@@ -320,6 +366,8 @@ export type Database = {
       }
       channels: {
         Row: {
+          applied_tags: string[]
+          available_tags: Json
           created_at: string
           dm_key: string | null
           id: string
@@ -335,6 +383,8 @@ export type Database = {
           type: Database["public"]["Enums"]["channel_type"]
         }
         Insert: {
+          applied_tags?: string[]
+          available_tags?: Json
           created_at?: string
           dm_key?: string | null
           id?: string
@@ -350,6 +400,8 @@ export type Database = {
           type: Database["public"]["Enums"]["channel_type"]
         }
         Update: {
+          applied_tags?: string[]
+          available_tags?: Json
           created_at?: string
           dm_key?: string | null
           id?: string
@@ -391,6 +443,42 @@ export type Database = {
             columns: ["source_message_id"]
             isOneToOne: true
             referencedRelation: "messages"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      event_interests: {
+        Row: {
+          created_at: string
+          event_id: string
+          id: string
+          user_id: string
+        }
+        Insert: {
+          created_at?: string
+          event_id: string
+          id?: string
+          user_id?: string
+        }
+        Update: {
+          created_at?: string
+          event_id?: string
+          id?: string
+          user_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "event_interests_event_id_fkey"
+            columns: ["event_id"]
+            isOneToOne: false
+            referencedRelation: "scheduled_events"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "event_interests_user_id_fkey"
+            columns: ["user_id"]
+            isOneToOne: false
+            referencedRelation: "profiles"
             referencedColumns: ["id"]
           },
         ]
@@ -538,6 +626,7 @@ export type Database = {
           pinned_at: string | null
           pinned_by: string | null
           poll: Json | null
+          published_at: string | null
           reply_ping: boolean
           reply_to_id: string | null
           search: unknown
@@ -562,6 +651,7 @@ export type Database = {
           pinned_at?: string | null
           pinned_by?: string | null
           poll?: Json | null
+          published_at?: string | null
           reply_ping?: boolean
           reply_to_id?: string | null
           search?: unknown
@@ -586,6 +676,7 @@ export type Database = {
           pinned_at?: string | null
           pinned_by?: string | null
           poll?: Json | null
+          published_at?: string | null
           reply_ping?: boolean
           reply_to_id?: string | null
           search?: unknown
@@ -902,6 +993,70 @@ export type Database = {
           },
         ]
       }
+      scheduled_events: {
+        Row: {
+          channel_id: string | null
+          created_at: string
+          created_by: string | null
+          description: string | null
+          ends_at: string | null
+          id: string
+          location: string | null
+          name: string
+          server_id: string
+          starts_at: string
+          status: string
+        }
+        Insert: {
+          channel_id?: string | null
+          created_at?: string
+          created_by?: string | null
+          description?: string | null
+          ends_at?: string | null
+          id?: string
+          location?: string | null
+          name: string
+          server_id: string
+          starts_at: string
+          status?: string
+        }
+        Update: {
+          channel_id?: string | null
+          created_at?: string
+          created_by?: string | null
+          description?: string | null
+          ends_at?: string | null
+          id?: string
+          location?: string | null
+          name?: string
+          server_id?: string
+          starts_at?: string
+          status?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "scheduled_events_channel_id_fkey"
+            columns: ["channel_id"]
+            isOneToOne: false
+            referencedRelation: "channels"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "scheduled_events_created_by_fkey"
+            columns: ["created_by"]
+            isOneToOne: false
+            referencedRelation: "profiles"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "scheduled_events_server_id_fkey"
+            columns: ["server_id"]
+            isOneToOne: false
+            referencedRelation: "servers"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       server_emojis: {
         Row: {
           animated: boolean
@@ -949,6 +1104,7 @@ export type Database = {
           id: string
           joined_at: string
           nickname: string | null
+          pending: boolean
           server_id: string
           timeout_until: string | null
           user_id: string
@@ -957,6 +1113,7 @@ export type Database = {
           id?: string
           joined_at?: string
           nickname?: string | null
+          pending?: boolean
           server_id: string
           timeout_until?: string | null
           user_id: string
@@ -965,6 +1122,7 @@ export type Database = {
           id?: string
           joined_at?: string
           nickname?: string | null
+          pending?: boolean
           server_id?: string
           timeout_until?: string | null
           user_id?: string
@@ -989,27 +1147,45 @@ export type Database = {
       servers: {
         Row: {
           created_at: string
+          description: string | null
           icon_url: string | null
           id: string
           name: string
           owner_id: string
+          rules: string[]
+          rules_enabled: boolean
           updated_at: string
+          vanity_code: string | null
+          welcome_channels: Json
+          welcome_enabled: boolean
         }
         Insert: {
           created_at?: string
+          description?: string | null
           icon_url?: string | null
           id?: string
           name: string
           owner_id: string
+          rules?: string[]
+          rules_enabled?: boolean
           updated_at?: string
+          vanity_code?: string | null
+          welcome_channels?: Json
+          welcome_enabled?: boolean
         }
         Update: {
           created_at?: string
+          description?: string | null
           icon_url?: string | null
           id?: string
           name?: string
           owner_id?: string
+          rules?: string[]
+          rules_enabled?: boolean
           updated_at?: string
+          vanity_code?: string | null
+          welcome_channels?: Json
+          welcome_enabled?: boolean
         }
         Relationships: [
           {
@@ -1104,6 +1280,7 @@ export type Database = {
       [_ in never]: never
     }
     Functions: {
+      accept_rules: { Args: { p_server: string }; Returns: undefined }
       add_group_dm_recipients: {
         Args: { p_channel: string; p_users: string[] }
         Returns: undefined
@@ -1161,6 +1338,16 @@ export type Database = {
         Returns: number
       }
       close_dm: { Args: { p_channel: string }; Returns: undefined }
+      create_forum_post: {
+        Args: {
+          p_content: string
+          p_forum: string
+          p_message: string
+          p_tags?: string[]
+          p_title: string
+        }
+        Returns: string
+      }
       create_group_dm: { Args: { p_users: string[] }; Returns: string }
       create_invite: {
         Args: {
@@ -1226,6 +1413,23 @@ export type Database = {
       }
       delete_role: { Args: { p_role: string }; Returns: undefined }
       end_poll: { Args: { p_message: string }; Returns: undefined }
+      follow_channel: {
+        Args: { p_source: string; p_target: string }
+        Returns: undefined
+      }
+      forum_posts: {
+        Args: { p_forum: string }
+        Returns: {
+          applied_tags: string[]
+          created_at: string
+          first_message: string
+          id: string
+          last_message_at: string
+          message_count: number
+          name: string
+          owner_id: string
+        }[]
+      }
       get_invite: {
         Args: { p_code: string }
         Returns: {
@@ -1282,6 +1486,10 @@ export type Database = {
         Args: { p_channel: string; p_message: string }
         Returns: string
       }
+      member_pending: {
+        Args: { p_server: string; p_user?: string }
+        Returns: boolean
+      }
       member_top_position: {
         Args: { p_server: string; p_user: string }
         Returns: number
@@ -1295,6 +1503,7 @@ export type Database = {
         Args: { p_message: string; p_pinned: boolean }
         Returns: undefined
       }
+      publish_message: { Args: { p_message: string }; Returns: number }
       remove_friend: { Args: { p_user: string }; Returns: undefined }
       rename_group_dm: {
         Args: { p_channel: string; p_name: string }
@@ -1392,6 +1601,7 @@ export type Database = {
           pinned_at: string | null
           pinned_by: string | null
           poll: Json | null
+          published_at: string | null
           reply_ping: boolean
           reply_to_id: string | null
           search: unknown
@@ -1469,6 +1679,10 @@ export type Database = {
         Args: { p_server: string; p_user: string }
         Returns: undefined
       }
+      unfollow_channel: {
+        Args: { p_source: string; p_target: string }
+        Returns: undefined
+      }
       update_role: {
         Args: {
           p_clear_color?: boolean
@@ -1514,7 +1728,15 @@ export type Database = {
       }
     }
     Enums: {
-      channel_type: "text" | "voice" | "category" | "thread" | "dm" | "group_dm"
+      channel_type:
+        | "text"
+        | "voice"
+        | "category"
+        | "thread"
+        | "dm"
+        | "group_dm"
+        | "announcement"
+        | "forum"
       friendship_status: "pending" | "accepted"
       message_type: "default" | "reply" | "system" | "thread_created" | "pin"
       notification_level: "all" | "mentions" | "nothing"
@@ -1646,7 +1868,16 @@ export type CompositeTypes<
 export const Constants = {
   public: {
     Enums: {
-      channel_type: ["text", "voice", "category", "thread", "dm", "group_dm"],
+      channel_type: [
+        "text",
+        "voice",
+        "category",
+        "thread",
+        "dm",
+        "group_dm",
+        "announcement",
+        "forum",
+      ],
       friendship_status: ["pending", "accepted"],
       message_type: ["default", "reply", "system", "thread_created", "pin"],
       notification_level: ["all", "mentions", "nothing"],

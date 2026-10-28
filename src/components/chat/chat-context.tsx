@@ -10,7 +10,7 @@ import { memberDisplayName } from "@/lib/members"
 import { isTimedOut } from "@/lib/moderation"
 import { hasPermission, Permission } from "@/lib/permissions"
 import { useChannelPermissions } from "@/lib/queries/channel-permissions"
-import { useChannels, useMembers, useRoles } from "@/lib/queries/servers"
+import { useChannels, useMembers, useRoles, useServer } from "@/lib/queries/servers"
 import { useUserId } from "@/lib/stores/auth-store"
 
 export type ChatContextValue = {
@@ -26,6 +26,8 @@ export type ChatContextValue = {
   channelsById: Map<string, Channel>
   permissions: number
   canSend: boolean
+  /** The signed-in member still has to accept the server's rules. */
+  pendingRules: boolean
   /** Set while the signed-in member is timed out (they can read but not post). */
   timedOutUntil: string | null
   canManageMessages: boolean
@@ -76,6 +78,8 @@ export function ChatProvider({
   const { data: members } = useMembers(serverId)
   const { data: roles } = useRoles(serverId)
   const { data: channels } = useChannels(serverId)
+  const { data: server } = useServer(serverId)
+  const pendingRules = Boolean(server?.pending && server.rules_enabled)
   // Server permissions with this channel's overrides applied (threads follow their parent).
   const { permissions } = useChannelPermissions(serverId, channel.id)
   const userId = useUserId()
@@ -102,7 +106,8 @@ export function ChatProvider({
       rolesById: new Map((roles ?? []).map((r) => [r.id, r])),
       channelsById: new Map((channels ?? []).map((c) => [c.id, c])),
       permissions,
-      canSend: hasPermission(permissions, Permission.SEND_MESSAGES) && !timedOutUntil,
+      canSend: hasPermission(permissions, Permission.SEND_MESSAGES) && !timedOutUntil && !pendingRules,
+      pendingRules,
       timedOutUntil,
       canManageMessages: hasPermission(permissions, Permission.MANAGE_MESSAGES),
       canMentionEveryone: hasPermission(permissions, Permission.MENTION_EVERYONE),
@@ -123,7 +128,7 @@ export function ChatProvider({
     }
     // `clock` only forces a recompute when a timeout expires.
     // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [serverId, channel, members, roles, channels, permissions, jumpToMessage, userId, clock])
+  }, [serverId, channel, members, roles, channels, permissions, jumpToMessage, userId, clock, pendingRules])
 
   return <ChatContext value={value}>{children}</ChatContext>
 }
@@ -166,6 +171,7 @@ export function DmChatProvider({
       channelsById: new Map(),
       permissions: DM_PERMISSIONS,
       canSend: dm.recipients.some((r) => r.user_id === userId),
+      pendingRules: false,
       timedOutUntil: null,
       canManageMessages: false,
       canMentionEveryone: false,

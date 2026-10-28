@@ -1,9 +1,11 @@
 "use client"
 
-import { HashIcon, MessageSquareTextIcon, SearchIcon, UsersIcon, Volume2Icon } from "lucide-react"
-import { useCallback, useEffect, useRef } from "react"
+import { MegaphoneIcon, MessageSquareTextIcon, SearchIcon, UsersIcon } from "lucide-react"
+import { useCallback, useEffect, useRef, useState } from "react"
 
 import { ViewHeader } from "@/components/layout/view-header"
+import { ForumView } from "@/components/forum/forum-view"
+import { ChannelIcon } from "@/components/servers/channel-icon"
 import { VoiceChannelView } from "@/components/voice/voice-channel-view"
 import { VoiceTextChat } from "@/components/voice/voice-text-chat"
 import { Popover, PopoverContent, PopoverTrigger } from "@/components/ui/popover"
@@ -18,6 +20,7 @@ import { ChannelWelcome } from "./channel-welcome"
 import { ChatProvider, useChat } from "./chat-context"
 import { Composer } from "./composer"
 import { ChatDropZone } from "./drop-zone"
+import { FollowDialog } from "./follow-dialog"
 import { HeaderButton } from "./header-button"
 import { MessageFeed, type MessageFeedHandle } from "./message-feed"
 import { SEARCH_HINT } from "./search-panel"
@@ -36,11 +39,22 @@ function MembersButton() {
   )
 }
 
-function ChannelTitle({ channel }: { channel: Channel }) {
-  const Icon = channel.type === "voice" ? Volume2Icon : HashIcon
+function FollowButton({ channel }: { channel: Channel }) {
+  const [open, setOpen] = useState(false)
   return (
     <>
-      <Icon className="size-6 shrink-0 text-muted-foreground" />
+      <HeaderButton label="Follow" onClick={() => setOpen(true)}>
+        <MegaphoneIcon className="size-5" />
+      </HeaderButton>
+      <FollowDialog channel={channel} open={open} onOpenChange={setOpen} />
+    </>
+  )
+}
+
+function ChannelTitle({ channel }: { channel: Channel }) {
+  return (
+    <>
+      <ChannelIcon type={channel.type} className="size-6 shrink-0 text-muted-foreground" />
       <h1 className="truncate font-semibold text-header">{channel.name}</h1>
       {channel.topic && (
         <>
@@ -103,6 +117,7 @@ function TextChannel({
           <ViewHeader
             actions={
               <>
+                {channel.type === "announcement" && <FollowButton channel={channel} />}
                 <ChannelPopoverActions />
                 <MembersButton />
                 <HeaderSearch className="ml-1 hidden lg:block" />
@@ -147,12 +162,26 @@ export function ChannelView({
   channel: Channel
   initialJumpId?: string
 }) {
+  if (channel.type === "forum") return <ForumChannel serverId={serverId} channel={channel} />
   if (channel.type !== "voice") {
     // Keyed so each channel gets a fresh feed (scroll position, unread divider).
     return <TextChannel key={channel.id} serverId={serverId} channel={channel} initialJumpId={initialJumpId} />
   }
 
   return <VoiceChannel serverId={serverId} channel={channel} />
+}
+
+function ForumChannel({ serverId, channel }: { serverId: string; channel: Channel }) {
+  return (
+    <div className="flex min-w-0 flex-1">
+      <section className="flex min-w-0 flex-1 flex-col">
+        <ViewHeader actions={<MembersButton />}>
+          <ChannelTitle channel={channel} />
+        </ViewHeader>
+        <ForumView key={channel.id} serverId={serverId} channel={channel} />
+      </section>
+    </div>
+  )
 }
 
 function VoiceChannel({ serverId, channel }: { serverId: string; channel: Channel }) {

@@ -1,6 +1,7 @@
 "use client"
 
 import {
+  CalendarPlusIcon,
   ChevronDownIcon,
   FolderPlusIcon,
   LogOutIcon,
@@ -12,6 +13,7 @@ import {
 import Link from "next/link"
 import { useState } from "react"
 
+import { EventsRow } from "@/components/events/events"
 import { ChannelListSkeleton } from "@/components/layout/skeletons"
 import {
   DropdownMenu,
@@ -28,6 +30,7 @@ import { cn } from "@/lib/utils"
 
 import { ChannelList } from "./channel-list"
 import { ServerNotificationItems } from "./notification-menu-items"
+import { ServerOnboarding } from "./onboarding"
 
 /** Channel-sidebar content for a server: the name header with its menu, then the channel tree. */
 export function ServerSidebar({ serverId }: { serverId: string }) {
@@ -92,6 +95,11 @@ export function ServerSidebar({ serverId }: { serverId: string }) {
               </DropdownMenuItem>
             </>
           )}
+          {can(Permission.MANAGE_EVENTS) && (
+            <DropdownMenuItem onSelect={() => openDialog({ kind: "create-event", serverId })}>
+              Create Event <CalendarPlusIcon className="ml-auto" />
+            </DropdownMenuItem>
+          )}
           <DropdownMenuSeparator />
           <ServerNotificationItems kind="dropdown" serverId={serverId} />
           {!isOwner && (
@@ -109,6 +117,8 @@ export function ServerSidebar({ serverId }: { serverId: string }) {
       </DropdownMenu>
 
       <div className="scrollbar-thin min-h-0 flex-1 overflow-y-auto">
+        {server && <EventsRow serverId={serverId} />}
+        {server && <ServerOnboarding serverId={serverId} />}
         {channelsPending || !tree ? (
           <ChannelListSkeleton />
         ) : (

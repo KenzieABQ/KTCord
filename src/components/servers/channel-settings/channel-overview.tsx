@@ -1,9 +1,13 @@
 "use client"
 
+import { PlusIcon, SmilePlusIcon, XIcon } from "lucide-react"
 import { useRouter } from "next/navigation"
 import { useState } from "react"
 import { toast } from "sonner"
 
+import { Emoji } from "@/components/chat/emoji"
+import { EmojiPickerPopover } from "@/components/chat/emoji-picker"
+import { isTextLike } from "@/components/servers/channel-icon"
 import { SettingsSection, UnsavedChangesBar } from "@/components/settings/settings-layout"
 import {
   AlertDialog,
@@ -22,6 +26,7 @@ import { Slider } from "@/components/ui/slider"
 import { Textarea } from "@/components/ui/textarea"
 import { normalizeTextChannelName, type Channel } from "@/lib/api/channels"
 import { errorMessage } from "@/lib/api/errors"
+import { forumTags, type ForumTag } from "@/lib/api/forums"
 import { hasPermission, Permission } from "@/lib/permissions"
 import { useChannel, useDeleteChannel, useServerPermissions, useUpdateChannel } from "@/lib/queries/servers"
 import { formatSlowmode, SLOWMODE_STEPS } from "@/lib/slowmode"
@@ -30,6 +35,56 @@ import { useChannelSettingsParams } from "./channel-settings-shell"
 
 const labelClass = "text-xs font-bold tracking-wide uppercase text-muted-foreground"
 
+/** A forum's tags: name and optional emoji, up to 20. */
+function TagsEditor({ tags, onChange }: { tags: ForumTag[]; onChange: (tags: ForumTag[]) => void }) {
+  return (
+    <div>
+      <p className={labelClass}>Tags</p>
+      <p className="mt-1 mb-3 text-sm text-muted-foreground">Posters can pick up to five to make their post easier to find.</p>
+      <ul className="flex flex-col gap-2">
+        {tags.map((tag, i) => (
+          <li key={tag.id} className="flex items-center gap-2">
+            <EmojiPickerPopover side="right" align="start" onPick={(emoji) => onChange(tags.map((t, j) => (j === i ? { ...t, emoji } : t)))}>
+              <button
+                type="button"
+                aria-label={tag.emoji ? "Change tag emoji" : "Add a tag emoji"}
+                className="flex size-9 shrink-0 items-center justify-center rounded-md bg-input text-interactive hover:text-interactive-hover"
+              >
+                {tag.emoji ? <Emoji value={tag.emoji} /> : <SmilePlusIcon className="size-4" />}
+              </button>
+            </EmojiPickerPopover>
+            <Input
+              value={tag.name}
+              maxLength={20}
+              aria-label={`Tag ${i + 1} name`}
+              onChange={(e) => onChange(tags.map((t, j) => (j === i ? { ...t, name: e.target.value } : t)))}
+            />
+            <button
+              type="button"
+              aria-label={`Remove tag ${tag.name || i + 1}`}
+              onClick={() => onChange(tags.filter((_, j) => j !== i))}
+              className="shrink-0 rounded text-interactive hover:text-interactive-hover"
+            >
+              <XIcon className="size-4" />
+            </button>
+          </li>
+        ))}
+      </ul>
+      {tags.length < 20 && (
+        <Button
+          type="button"
+          variant="secondary"
+          size="sm"
+          className="mt-3"
+          onClick={() => onChange([...tags, { id: crypto.randomUUID().slice(0, 8), name: "", emoji: null }])}
+        >
+          <PlusIcon /> Add Tag
+        </Button>
+      )}
+    </div>
+  )
+}
+
 function Overview({ serverId, channel }: { serverId: string; channel: Channel }) {
   const router = useRouter()
   const update = useUpdateChannel(serverId)
@@ -37,18 +92,26 @@ function Overview({ serverId, channel }: { serverId: string; channel: Channel })
   const [name, setName] = useState(channel.name ?? "")
   const [topic, setTopic] = useState(channel.topic ?? "")
   const [slowmode, setSlowmode] = useState(channel.slowmode_seconds ?? 0)
+  const [tags, setTags] = useState<ForumTag[]>(forumTags(channel))
   const [confirmDelete, setConfirmDelete] = useState(false)
 
-  const isText = channel.type === "text"
+  const isText = isTextLike(channel.type)
+  const isForum = channel.type === "forum"
+  const hasSlowmode = channel.type === "text" || channel.type === "announcement"
   const noun = channel.type === "category" ? "Category" : "Channel"
   const finalName = isText ? normalizeTextChannelName(name) : name.trim()
+  const cleanTags = tags.map((t) => ({ ...t, name: t.name.trim() })).filter((t) => t.name)
   const dirty =
-    finalName !== channel.name || (isText && (topic.trim() !== (channel.topic ?? "") || slowmode !== channel.slowmode_seconds))
+    finalName !== channel.name ||
+    (isText && topic.trim() !== (channel.topic ?? "")) ||
+    (hasSlowmode && slowmode !== channel.slowmode_seconds) ||
+    (isForum && JSON.stringify(cleanTags) !== JSON.stringify(forumTags(channel)))
 
   function reset() {
     setName(channel.name ?? "")
     setTopic(channel.topic ?? "")
     setSlowmode(channel.slowmode_seconds ?? 0)
+    setTags(forumTags(channel))
   }
 
   async function save() {
@@ -60,7 +123,9 @@ function Overview({ serverId, channel }: { serverId: string; channel: Channel })
       await update.mutateAsync({
         id: channel.id,
         name: finalName,
-        ...(isText && { topic: topic.trim() || null, slowmode_seconds: slowmode }),
+        ...(isText && { topic: topic.trim() || null }),
+        ...(hasSlowmode && { slowmode_seconds: slowmode }),
+        ...(isForum && { available_tags: cleanTags }),
       })
       toast.success(`${noun} saved.`)
     } catch (error) {
@@ -112,7 +177,9 @@ function Overview({ serverId, channel }: { serverId: string; channel: Channel })
             </Field>
           )}
 
-          {isText && (
+          {isForum && <TagsEditor tags={tags} onChange={setTags} />}
+
+          {hasSlowmode && (
             <div>
               <p id="slowmode-label" className={labelClass}>
                 Slowmode
@@ -198,5 +265,5 @@ export function ChannelOverviewSettings() {
     )
   }
   // Keyed so the form resets when the channel changes elsewhere (e.g. renamed live).
-  return <Overview key={`${channel.id}:${channel.name}:${channel.topic}:${channel.slowmode_seconds}`} serverId={serverId} channel={channel} />
+  return <Overview key={`${channel.id}:${channel.name}:${channel.topic}:${channel.slowmode_seconds}:${JSON.stringify(channel.available_tags)}`} serverId={serverId} channel={channel} />
 }

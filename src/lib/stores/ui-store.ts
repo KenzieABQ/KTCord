@@ -5,7 +5,7 @@ import { persist } from "zustand/middleware"
 export type AppDialog =
   | { kind: "create-server" }
   | { kind: "join-server"; code?: string }
-  | { kind: "create-channel"; serverId: string; parentId: string | null; type?: "text" | "voice" }
+  | { kind: "create-channel"; serverId: string; parentId: string | null; type?: "text" | "voice" | "announcement" | "forum" }
   | { kind: "create-category"; serverId: string }
   | { kind: "invite"; serverId: string }
   | { kind: "leave-server"; serverId: string }
@@ -14,6 +14,10 @@ export type AppDialog =
   | { kind: "create-dm"; addToChannelId?: string; preselect?: string[] }
   | { kind: "create-thread"; serverId: string; channelId: string; messageId: string; defaultName: string }
   | { kind: "forward-message"; messageId: string }
+  | { kind: "events"; serverId: string }
+  | { kind: "create-event"; serverId: string }
+  | { kind: "server-rules"; serverId: string }
+  | { kind: "welcome"; serverId: string }
   | { kind: "quick-switcher" }
   | { kind: "shortcuts" }
 
@@ -39,6 +43,8 @@ type UiState = {
   recentChannelIds: string[]
   /** A voice channel's text chat is open beside the call. */
   voiceChatOpen: boolean
+  /** Servers whose welcome screen this device has shown (remembered). */
+  welcomedServers: Record<string, true>
 
   setNavDrawerOpen: (open: boolean) => void
   toggleMemberList: () => void
@@ -51,6 +57,7 @@ type UiState = {
   rememberChannel: (serverId: string, channelId: string) => void
   visitChannel: (channelId: string) => void
   setVoiceChatOpen: (open: boolean) => void
+  markWelcomed: (serverId: string) => void
 }
 
 export const useUiStore = create<UiState>()(
@@ -63,6 +70,8 @@ export const useUiStore = create<UiState>()(
       sidePanel: null,
       voiceChatOpen: false,
       setVoiceChatOpen: (voiceChatOpen) => set({ voiceChatOpen }),
+      welcomedServers: {},
+      markWelcomed: (serverId) => set((s) => ({ welcomedServers: { ...s.welcomedServers, [serverId]: true } })),
       collapsedCategories: {},
       lastChannelByServer: {},
       recentChannelIds: [],
@@ -98,6 +107,7 @@ export const useUiStore = create<UiState>()(
       name: "ktcord-ui",
       partialize: (s) => ({
         memberListVisible: s.memberListVisible,
+        welcomedServers: s.welcomedServers,
         collapsedCategories: s.collapsedCategories,
         lastChannelByServer: s.lastChannelByServer,
         recentChannelIds: s.recentChannelIds,

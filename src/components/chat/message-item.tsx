@@ -10,6 +10,7 @@ import { UserPopover } from "@/components/profile/user-popover"
 import { ContextMenu, ContextMenuTrigger } from "@/components/ui/context-menu"
 import { Tooltip, TooltipContent, TooltipTrigger } from "@/components/ui/tooltip"
 import { useShiftHeld } from "@/hooks/use-shift-held"
+import { publishMessage } from "@/lib/api/announcements"
 import { errorMessage } from "@/lib/api/errors"
 import { parseMarkdown, toPlainText } from "@/lib/markdown/parse"
 import { memberDisplayName } from "@/lib/members"
@@ -186,11 +187,17 @@ export const MessageItem = memo(function MessageItem({
     canPin: canPin && sent,
     canThread: sent && (Boolean(message.thread) || canStartThreads),
     canForward: sent && !message.poll,
+    canPublish:
+      channel.type === "announcement" && sent && !message.published_at && !message.poll && (mine || canManageMessages),
     onReply: () => {
       setReplyTo(channel.id, message.id)
       focusComposer(channel.id)
     },
     onEdit: () => setEditing(message.id),
+    onPublish: () =>
+      void publishMessage(message.id)
+        .then((n) => toast.success(n === 1 ? "Published to 1 following channel." : `Published to ${n} following channels.`))
+        .catch(onError),
     onForward: () => openDialog({ kind: "forward-message", messageId: message.id }),
     onMarkUnread: () => markUnread.mutate({ channelId: channel.id, messageId: message.id }, { onError }),
     onDelete: (skipConfirm) => onDeleteRequest(message, skipConfirm),

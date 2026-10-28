@@ -21,13 +21,11 @@ import {
 import { CSS } from "@dnd-kit/utilities"
 import {
   ChevronDownIcon,
-  HashIcon,
   LinkIcon,
   LockIcon,
   PlusIcon,
   SettingsIcon,
   UserPlusIcon,
-  Volume2Icon,
 } from "lucide-react"
 import Link from "next/link"
 import { useParams, useRouter } from "next/navigation"
@@ -41,6 +39,7 @@ import {
   ContextMenuSeparator,
   ContextMenuTrigger,
 } from "@/components/ui/context-menu"
+import { ChannelIcon } from "@/components/servers/channel-icon"
 import { Tooltip, TooltipContent, TooltipTrigger } from "@/components/ui/tooltip"
 import { useJoinVoice } from "@/components/voice/use-join-voice"
 import { VoiceOccupants } from "@/components/voice/voice-occupants"
@@ -151,7 +150,6 @@ function ChannelRow({
   const prefs = useNotificationPrefs()
   const muted = isChannelMuted(prefs, channel.id)
   const unread = rawUnread && !active && !muted
-  const Icon = channel.type === "voice" ? Volume2Icon : HashIcon
   const href = `/channels/${serverId}/${channel.id}`
   const { join } = useJoinVoice(serverId)
   const connectedHere = useVoiceStore((s) => s.connection?.channelId === channel.id)
@@ -180,7 +178,7 @@ function ChannelRow({
             <span aria-hidden className="absolute top-1/2 -left-2 h-2 w-1 -translate-y-1/2 rounded-r-full bg-header" />
           )}
           <span className="relative shrink-0">
-            <Icon className="size-5 opacity-70" />
+            <ChannelIcon type={channel.type} className="size-5 opacity-70" />
             {channel.is_private && (
               <LockIcon
                 aria-label="Private channel"

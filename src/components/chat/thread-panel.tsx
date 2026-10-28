@@ -28,7 +28,16 @@ function ThreadStart({ sourceId }: { sourceId: string | null }) {
   )
 }
 
-/** A thread's own feed and composer, shown beside the channel. */
+/** The top of a forum post: its title (the first message follows as the feed's first item). */
+function PostStart({ name }: { name: string }) {
+  return (
+    <div className="px-4 pt-6 pb-2">
+      <h3 className="text-2xl font-bold break-words text-header">{name}</h3>
+    </div>
+  )
+}
+
+/** A thread's (or forum post's) own feed and composer, shown beside the channel. */
 export function ThreadPanel({
   serverId,
   threadId,
@@ -64,7 +73,11 @@ export function ThreadPanel({
         </div>
       ) : (
         <ChatProvider key={thread.id} serverId={serverId} channel={thread} jumpToMessage={jumpToMessage}>
-          <MessageFeed ref={feed} channel={thread} welcome={<ThreadStart sourceId={thread.source_message_id} />} />
+          <MessageFeed
+            ref={feed}
+            channel={thread}
+            welcome={thread.source_message_id ? <ThreadStart sourceId={thread.source_message_id} /> : <PostStart name={thread.name ?? "Post"} />}
+          />
           <Composer onSent={() => feed.current?.scrollToBottom()} />
         </ChatProvider>
       )}

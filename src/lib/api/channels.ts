@@ -4,7 +4,7 @@ import type { Tables, TablesUpdate } from "@/lib/supabase/database.types"
 import { toApiError, unwrap } from "./errors"
 
 export type Channel = Tables<"channels">
-export type ServerChannelType = "text" | "voice" | "category"
+export type ServerChannelType = "text" | "voice" | "category" | "announcement" | "forum"
 
 export async function listChannels(serverId: string): Promise<Channel[]> {
   return unwrap(
@@ -12,7 +12,7 @@ export async function listChannels(serverId: string): Promise<Channel[]> {
       .from("channels")
       .select("*")
       .eq("server_id", serverId)
-      .in("type", ["text", "voice", "category"])
+      .in("type", ["text", "voice", "category", "announcement", "forum"])
       .order("position", { ascending: true })
   )
 }
@@ -39,7 +39,7 @@ export async function createChannel(input: {
 
 export async function updateChannel(
   channelId: string,
-  patch: Pick<TablesUpdate<"channels">, "name" | "topic" | "parent_id" | "is_private" | "slowmode_seconds">
+  patch: Pick<TablesUpdate<"channels">, "name" | "topic" | "parent_id" | "is_private" | "slowmode_seconds" | "available_tags">
 ): Promise<Channel> {
   return unwrap(
     await getSupabase().from("channels").update(patch).eq("id", channelId).select("*").single()

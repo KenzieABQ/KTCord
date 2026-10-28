@@ -145,7 +145,11 @@ export function onChannelChange(ctx: DbContext, change: Change<Channel>) {
         }))
       )
     }
-    if (channel.parent_id) void ctx.queryClient.invalidateQueries({ queryKey: qk.threads(channel.parent_id) })
+    if (channel.parent_id) {
+      void ctx.queryClient.invalidateQueries({ queryKey: qk.threads(channel.parent_id) })
+      // Forum posts are threads too.
+      void ctx.queryClient.invalidateQueries({ queryKey: qk.forumPosts(channel.parent_id) })
+    }
     ctx.queryClient.setQueryData(qk.thread(channel.id), channel)
     return
   }
@@ -154,7 +158,7 @@ export function onChannelChange(ctx: DbContext, change: Change<Channel>) {
     void ctx.queryClient.invalidateQueries({ queryKey: qk.dms(ctx.userId) })
     return
   }
-  if (!["text", "voice", "category"].includes(channel.type)) return
+  if (!["text", "voice", "category", "announcement", "forum"].includes(channel.type)) return
   ctx.queryClient.setQueryData<Channel[]>(qk.channels(channel.server_id), (list) => {
     if (!list) return list
     return list.some((c) => c.id === channel.id)
@@ -409,4 +413,8 @@ export function onPollVoteChange(ctx: DbContext, change: Change<Tables<"poll_vot
   // Deletes carry only the row id, so refresh every poll on screen.
   const messageId = change.eventType === "DELETE" ? undefined : change.new.message_id
   void ctx.queryClient.invalidateQueries({ queryKey: messageId ? qk.pollVotes(messageId) : ["poll-votes"] })
+}
+
+export function onEventChange(ctx: DbContext) {
+  void ctx.queryClient.invalidateQueries({ queryKey: ["events"] })
 }

@@ -2,7 +2,7 @@
 
 import { useQueryClient, type InfiniteData } from "@tanstack/react-query"
 import { format } from "date-fns"
-import { AtSignIcon, BarChart3Icon, ClockIcon, HourglassIcon, PlusCircleIcon, SmileIcon, UploadIcon, XIcon } from "lucide-react"
+import { AtSignIcon, BarChart3Icon, ClockIcon, ScrollTextIcon, HourglassIcon, PlusCircleIcon, SmileIcon, UploadIcon, XIcon } from "lucide-react"
 import { useRef, useState } from "react"
 import { toast } from "sonner"
 
@@ -32,6 +32,7 @@ import { useTypingChannel } from "@/lib/realtime/use-typing-channel"
 import { formatSlowmode } from "@/lib/slowmode"
 import { useUserId } from "@/lib/stores/auth-store"
 import { useComposerStore } from "@/lib/stores/composer-store"
+import { useUiStore } from "@/lib/stores/ui-store"
 import { useUploadStore, type PendingFile } from "@/lib/stores/upload-store"
 import type { Json } from "@/lib/supabase/database.types"
 import { cn } from "@/lib/utils"
@@ -123,7 +124,7 @@ export function pickComposerFiles(channelId: string) {
 export function Composer({ onSent }: { onSent: () => void }) {
   const userId = useUserId()
   const queryClient = useQueryClient()
-  const { channel, channelLabel, canSend, canAttach, timedOutUntil } = useChat()
+  const { channel, channelLabel, canSend, canAttach, timedOutUntil, pendingRules } = useChat()
   const { encode, decode } = useMessageCodec()
   const slowmode = useSlowmode()
   const staged = useUploadStore((s) => s.staged[channel.id] ?? EMPTY)
@@ -246,6 +247,18 @@ export function Composer({ onSent }: { onSent: () => void }) {
               <ClockIcon className="size-4 shrink-0 text-mention" />
               You&apos;re timed out until {format(new Date(timedOutUntil), "MMM d, h:mm a")}. You can
               read messages, but you can&apos;t send any.
+            </>
+          ) : pendingRules ? (
+            <>
+              <ScrollTextIcon className="size-4 shrink-0" />
+              <span className="flex-1">Accept this server&apos;s rules to start talking.</span>
+              <button
+                type="button"
+                onClick={() => useUiStore.getState().openDialog({ kind: "server-rules", serverId: channel.server_id ?? "" })}
+                className="font-medium text-link hover:underline"
+              >
+                Read the rules
+              </button>
             </>
           ) : (
             "You do not have permission to send messages in this channel."

@@ -79,7 +79,7 @@ function useSwitcherItems() {
       let serverUnread = false
       let serverMentions = 0
       for (const channel of channels) {
-        if (channel.type !== "text" && channel.type !== "voice") continue
+        if (channel.type === "category") continue
         const s = status(channel.id)
         serverUnread ||= s.unread
         serverMentions += s.mentions

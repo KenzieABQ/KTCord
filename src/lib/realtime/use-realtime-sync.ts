@@ -30,6 +30,7 @@ import {
   onUserSettingsChange,
   onVoiceModerationChange,
   onPollVoteChange,
+  onEventChange,
   onProfileChange,
   onRoleChange,
   onServerChange,
@@ -58,6 +59,8 @@ const TABLES: Record<string, Handler> = {
   reactions: onReactionChange,
   voice_moderation: onVoiceModerationChange,
   poll_votes: onPollVoteChange,
+  scheduled_events: onEventChange,
+  event_interests: onEventChange,
 }
 
 /**
