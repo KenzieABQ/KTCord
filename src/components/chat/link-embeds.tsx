@@ -39,9 +39,35 @@ function EmbedImage({ image, href, className }: { image: NonNullable<Embed["imag
   )
 }
 
-/** YouTube: the thumbnail with a play button; the player loads only when clicked. */
+/**
+ * YouTube: the thumbnail with a play button; the player loads only when clicked. Videos
+ * whose owner turned off embedding open on YouTube instead.
+ */
 function YouTubePlayer({ embed }: { embed: Embed }) {
   const [playing, setPlaying] = useState(false)
+  const thumbnail = embed.image && (
+    // eslint-disable-next-line @next/next/no-img-element -- proxied third-party images
+    <img src={proxiedImage(embed.image.url)} alt="" loading="lazy" className="size-full object-cover" />
+  )
+  const playIcon = (
+    <span className="absolute inset-0 m-auto flex size-12 items-center justify-center rounded-full bg-black/70 text-white transition-transform group-hover/play:scale-110">
+      <PlayIcon className="size-6 fill-current" />
+    </span>
+  )
+  if (!embed.playsInline) {
+    return (
+      <a
+        href={embed.url}
+        target="_blank"
+        rel="noopener noreferrer nofollow"
+        aria-label={`Watch ${embed.title ?? "video"} on YouTube`}
+        className="group/play relative block aspect-video w-full overflow-hidden rounded bg-black"
+      >
+        {thumbnail}
+        {playIcon}
+      </a>
+    )
+  }
   if (playing) {
     return (
       <iframe
@@ -60,13 +86,8 @@ function YouTubePlayer({ embed }: { embed: Embed }) {
       aria-label={`Play ${embed.title ?? "video"}`}
       className="group/play relative block aspect-video w-full overflow-hidden rounded bg-black"
     >
-      {embed.image && (
-        // eslint-disable-next-line @next/next/no-img-element -- proxied third-party images
-        <img src={proxiedImage(embed.image.url)} alt="" loading="lazy" className="size-full object-cover" />
-      )}
-      <span className="absolute inset-0 m-auto flex size-12 items-center justify-center rounded-full bg-black/70 text-white transition-transform group-hover/play:scale-110">
-        <PlayIcon className="size-6 fill-current" />
-      </span>
+      {thumbnail}
+      {playIcon}
     </button>
   )
 }

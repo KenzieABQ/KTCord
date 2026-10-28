@@ -84,9 +84,14 @@ export type Fetched = { url: string; contentType: string; body: Buffer }
 
 /**
  * GETs a public URL, following a few redirects (each one re-checked), and reads at most
- * `maxBytes` after decompression. With `stopAt`, stops early once the text so far matches.
+ * `maxBytes` after decompression: bigger bodies fail, unless `partial` (keep the start).
+ * With `stopAt`, stops early once a chunk matches (and is partial).
  */
-export async function safeGet(raw: string, opts: { accept: string; maxBytes: number; stopAt?: RegExp }): Promise<Fetched> {
+export async function safeGet(
+  raw: string,
+  opts: { accept: string; maxBytes: number; stopAt?: RegExp; partial?: boolean }
+): Promise<Fetched> {
+  const partial = opts.partial || Boolean(opts.stopAt)
   let url = checkUrl(raw)
   const deadline = AbortSignal.timeout(TIMEOUT_MS * 2)
   for (let hop = 0; ; hop++) {
@@ -103,7 +108,7 @@ export async function safeGet(raw: string, opts: { accept: string; maxBytes: num
       throw new UnfurlError(`HTTP ${status}`)
     }
     const declared = Number(res.headers["content-length"])
-    if (!opts.stopAt && declared > opts.maxBytes) {
+    if (!partial && declared > opts.maxBytes) {
       res.destroy()
       throw new UnfurlError("Too large")
     }
@@ -117,7 +122,7 @@ export async function safeGet(raw: string, opts: { accept: string; maxBytes: num
         chunks.push(chunk)
         size += chunk.length
         if (size > opts.maxBytes) {
-          if (!opts.stopAt) throw new UnfurlError("Too large")
+          if (!partial) throw new UnfurlError("Too large")
           break
         }
         if (opts.stopAt && opts.stopAt.test(chunk.toString("latin1"))) break

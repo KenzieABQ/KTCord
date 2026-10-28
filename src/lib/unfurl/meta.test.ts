@@ -94,3 +94,13 @@ describe("youtubeEmbed", () => {
     })
   })
 })
+
+describe("YouTube pages", () => {
+  it("can read tags from the body (channel pages) and marks videos that can't play inline", () => {
+    const html = `<html><head><title>x</title></head><body><meta property="og:title" content="A channel"></body></html>`
+    expect(parseMeta(html, "https://www.youtube.com/@someone", undefined, { anywhere: true })?.title).toBe("A channel")
+    const video = parseMeta(`<head><meta property="og:title" content="Blocked embed"></head>`, "https://youtu.be/dQw4w9WgXcQ")
+    expect(video).toMatchObject({ kind: "video", youtubeId: "dQw4w9WgXcQ" })
+    expect(video?.playsInline).toBeFalsy()
+  })
+})

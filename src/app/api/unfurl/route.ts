@@ -23,24 +23,42 @@ function decodeHtml(body: Buffer, contentType: string) {
   }
 }
 
+const isYouTube = (url: string) => /(^|\.)youtube\.com$/.test(new URL(url).hostname)
+
+/** Reads a page up to its </head>; YouTube pages are huge and keep some tags in the body. */
+async function readPage(url: string) {
+  const youTube = isYouTube(url)
+  return safeGet(url, {
+    accept: "text/html,application/xhtml+xml;q=0.9,image/*;q=0.8",
+    maxBytes: (youTube ? 1536 : 1024) * 1024,
+    stopAt: youTube ? undefined : /<\/head>/i,
+    partial: true,
+  })
+}
+
+/** YouTube's oEmbed; it refuses (401) videos whose owner turned off embedding elsewhere. */
+async function youtube(url: string, id: string): Promise<Embed | null> {
+  try {
+    const oembed = await safeGet(
+      `https://www.youtube.com/oembed?format=json&url=${encodeURIComponent(`https://www.youtube.com/watch?v=${id}`)}`,
+      { accept: "application/json", maxBytes: 64 * 1024 }
+    )
+    return youtubeEmbed(url, id, JSON.parse(oembed.body.toString("utf8")))
+  } catch {
+    // Not embeddable: show it from the page's tags (they sit ~800 KB in), playing on YouTube.
+    const page = await readPage(`https://www.youtube.com/watch?v=${id}`)
+    return parseMeta(decodeHtml(page.body, page.contentType), url, page.url, { anywhere: true })
+  }
+}
+
 async function unfurl(url: string): Promise<Embed | null> {
   try {
     const video = youtubeId(url)
-    if (video) {
-      const oembed = await safeGet(
-        `https://www.youtube.com/oembed?format=json&url=${encodeURIComponent(`https://www.youtube.com/watch?v=${video}`)}`,
-        { accept: "application/json", maxBytes: 64 * 1024 }
-      )
-      return youtubeEmbed(url, video, JSON.parse(oembed.body.toString("utf8")))
-    }
-    const page = await safeGet(url, {
-      accept: "text/html,application/xhtml+xml;q=0.9,image/*;q=0.8",
-      maxBytes: 512 * 1024,
-      stopAt: /<\/head>/i,
-    })
+    if (video) return await youtube(url, video)
+    const page = await readPage(url)
     if (/^image\/(png|jpe?g|gif|webp|avif)/.test(page.contentType)) return imageEmbed(url)
     if (!page.contentType.includes("html")) return null
-    return parseMeta(decodeHtml(page.body, page.contentType), url, page.url)
+    return parseMeta(decodeHtml(page.body, page.contentType), url, page.url, { anywhere: isYouTube(page.url) })
   } catch {
     return null
   }

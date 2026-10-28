@@ -51,8 +51,9 @@ function dimension(value: string | undefined): number | null {
  * relative image paths resolve against `baseUrl` (where redirects ended). Returns null when
  * there's nothing worth showing.
  */
-export function parseMeta(html: string, pageUrl: string, baseUrl = pageUrl): Embed | null {
-  const headEnd = html.search(/<\/head>/i)
+export function parseMeta(html: string, pageUrl: string, baseUrl = pageUrl, opts: { anywhere?: boolean } = {}): Embed | null {
+  // Tags belong in <head>; YouTube's channel pages put theirs in the body (`anywhere`).
+  const headEnd = opts.anywhere ? -1 : html.search(/<\/head>/i)
   const head = headEnd > 0 ? html.slice(0, headEnd) : html
   const meta: Record<string, string> = {}
   for (const m of head.matchAll(/<meta\b([^>]*)>/gi)) {
@@ -118,5 +119,6 @@ export function youtubeEmbed(url: string, id: string, oembed: { title?: unknown;
     largeImage: true,
     color: "#ff0000",
     youtubeId: id,
+    playsInline: true,
   }
 }

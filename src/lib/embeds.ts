@@ -14,6 +14,8 @@ export type Embed = {
   largeImage: boolean
   color: string | null
   youtubeId: string | null
+  /** The video can play inside the chat (its owner allows embedding). */
+  playsInline?: boolean
 }
 
 export const MAX_EMBEDS = 5
