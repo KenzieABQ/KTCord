@@ -1,6 +1,11 @@
+import { useId } from "react"
+
 import { cn } from "@/lib/utils"
 
-/** The KTCord mark: a speech bubble carrying a "KT" monogram. */
+/**
+ * The KTCord mark: a speech bubble with a "KT" monogram cut out of it, so the letters
+ * show whatever is behind the bubble (they match any theme or background).
+ */
 export function KtcordMark({
   className,
   title = "KTCord",
@@ -8,29 +13,23 @@ export function KtcordMark({
   className?: string
   title?: string
 }) {
+  const mask = `ktcord-mark-${useId().replace(/:/g, "")}`
   return (
-    <svg
-      viewBox="0 0 48 48"
-      role="img"
-      aria-label={title}
-      className={cn("size-8", className)}
-    >
+    <svg viewBox="0 0 48 48" role="img" aria-label={title} className={cn("size-8", className)}>
+      <mask id={mask}>
+        <rect width="48" height="48" fill="#fff" />
+        <g fill="none" stroke="#000" strokeWidth={4} strokeLinecap="round" strokeLinejoin="round">
+          <path d="M14 14v16" />
+          <path d="M22.5 14 15.5 22l7 8" />
+          <path d="M26.5 14h9" />
+          <path d="M31 14v16" />
+        </g>
+      </mask>
       <path
         fill="currentColor"
+        mask={`url(#${mask})`}
         d="M16 6h16c6.6 0 12 5.4 12 12v8c0 6.6-5.4 12-12 12H21l-9.2 6.6c-.7.5-1.6 0-1.6-.8v-6.9C6.5 35.5 4 31.1 4 26v-8C4 11.4 9.4 6 16 6Z"
       />
-      <g
-        fill="none"
-        stroke="var(--logo-glyph, #fff)"
-        strokeWidth={4}
-        strokeLinecap="round"
-        strokeLinejoin="round"
-      >
-        <path d="M14 14v16" />
-        <path d="M22.5 14 15.5 22l7 8" />
-        <path d="M26.5 14h9" />
-        <path d="M31 14v16" />
-      </g>
     </svg>
   )
 }

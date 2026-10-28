@@ -37,9 +37,12 @@ export function UserAvatar({
   const animated = isAnimated(src)
   return (
     <div className={cn("@container relative size-8 shrink-0", className)}>
-      <Avatar className="size-full after:hidden">
+      <Avatar className={cn("size-full after:hidden", src && "bg-item-selected/40")}>
         {src && !animated && <AvatarImage src={src} alt="" />}
+        {/* With a photo, initials only appear if it's slow or broken: they'd otherwise
+            flash for a frame on every mount, even when the photo is cached. */}
         <AvatarFallback
+          delayMs={src ? 1000 : undefined}
           className="font-semibold text-white"
           style={{ backgroundColor: fallbackColor(userId) }}
         >

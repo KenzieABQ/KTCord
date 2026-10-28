@@ -308,17 +308,7 @@
   font-weight: bold;
 }
 
-/* Settings: the unsaved-changes bar shakes when you try to leave. */
-@keyframes unsaved-shake {
-  0%, 100% { transform: translateX(0); }
-  15%, 45%, 75% { transform: translateX(-10px); }
-  30%, 60%, 90% { transform: translateX(10px); }
-}
-
 @layer utilities {
-  .animate-unsaved-shake {
-    animation: unsaved-shake 0.5s ease-in-out;
-  }
   /* Message text; line heights inside are in em so they follow the chosen size. */
   .chat-text {
     font-size: var(--chat-font-size);

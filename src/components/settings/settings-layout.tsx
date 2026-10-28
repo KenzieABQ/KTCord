@@ -3,7 +3,7 @@
 import { LogOutIcon, XIcon } from "lucide-react"
 import Link from "next/link"
 import { usePathname, useRouter } from "next/navigation"
-import { createContext, useCallback, useContext, useEffect, useState, type ReactNode } from "react"
+import { createContext, useCallback, useContext, useEffect, useRef, useState, type ReactNode } from "react"
 import { createPortal } from "react-dom"
 
 import { Button } from "@/components/ui/button"
@@ -11,6 +11,14 @@ import { Switch } from "@/components/ui/switch"
 import { signOut } from "@/lib/api/auth"
 import { leaveBlocked, useUnsavedStore } from "@/lib/stores/unsaved-store"
 import { cn } from "@/lib/utils"
+
+/** Whether to skip decorative motion (the OS setting or Appearance → Reduce Motion). */
+function prefersLessMotion() {
+  return (
+    window.matchMedia("(prefers-reduced-motion: reduce)").matches ||
+    document.documentElement.hasAttribute("data-reduced-motion")
+  )
+}
 
 /** Where the unsaved-changes bar renders: the bottom center of the settings content. */
 const UnsavedSlot = createContext<HTMLElement | null>(null)
@@ -38,8 +46,26 @@ export function SettingsLayout({
   const pathname = usePathname()
   const router = useRouter()
 
+  const rootRef = useRef<HTMLDivElement>(null)
+  const closing = useRef(false)
+  // Leaving settings plays the opening animation in reverse (fade and zoom out), as in Discord.
   const close = useCallback(() => {
-    if (!leaveBlocked()) router.push(closeHref)
+    if (leaveBlocked() || closing.current) return
+    closing.current = true
+    const root = rootRef.current
+    if (!root || prefersLessMotion()) {
+      router.push(closeHref)
+      return
+    }
+    root
+      .animate(
+        [
+          { opacity: 1, transform: "scale(1)" },
+          { opacity: 0, transform: "scale(0.97)" },
+        ],
+        { duration: 160, easing: "ease-in", fill: "forwards" }
+      )
+      .finished.finally(() => router.push(closeHref))
   }, [router, closeHref])
   const [slot, setSlot] = useState<HTMLElement | null>(null)
   // Switching settings pages with unsaved changes shakes the bar instead.
@@ -62,7 +88,10 @@ export function SettingsLayout({
 
   return (
     <UnsavedSlot.Provider value={slot}>
-      <div className="flex h-dvh flex-col bg-chat duration-200 animate-in fade-in-0 zoom-in-[0.97] md:flex-row">
+      <div
+      ref={rootRef}
+      className="flex h-dvh flex-col bg-chat duration-200 animate-in fade-in-0 zoom-in-[0.97] md:flex-row"
+    >
         {/* Phone: a top bar with horizontally scrolling tabs. */}
         <div className="shrink-0 border-b border-border bg-sidebar md:hidden">
           <div className="flex h-12 items-center justify-between px-3">
@@ -229,6 +258,7 @@ export function UnsavedChangesBar({
   saving: boolean
 }) {
   const slot = useContext(UnsavedSlot)
+  const barRef = useRef<HTMLDivElement>(null)
   const attempts = useUnsavedStore((s) => s.attempts)
   const [warned, setWarned] = useState<number | null>(null)
 
@@ -241,18 +271,24 @@ export function UnsavedChangesBar({
   }
   useEffect(() => {
     if (warned === null) return
-    const timer = setTimeout(() => setWarned(null), 1200)
+    if (!prefersLessMotion()) {
+      barRef.current?.animate(
+        [0, -14, 14, -12, 12, -8, 8, -4, 4, 0].map((x) => ({ transform: `translateX(${x}px)` })),
+        { duration: 550, easing: "ease-in-out" }
+      )
+    }
+    const timer = setTimeout(() => setWarned(null), 1500)
     return () => clearTimeout(timer)
   }, [warned])
 
   const bar = (
     <div
-      key={warned ?? "calm"}
+      ref={barRef}
       role="status"
       className={cn(
         "pointer-events-auto flex w-full max-w-[700px] items-center justify-between gap-3 rounded-lg p-3 pl-4 shadow-2xl ring-1 transition-colors duration-200",
         warned !== null
-          ? "animate-unsaved-shake bg-destructive text-white ring-destructive"
+          ? "bg-destructive text-white ring-destructive"
           : "bg-floating ring-border animate-in fade-in-0 slide-in-from-bottom-4"
       )}
     >
