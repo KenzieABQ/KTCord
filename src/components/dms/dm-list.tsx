@@ -1,6 +1,6 @@
 "use client"
 
-import { XIcon } from "lucide-react"
+import { XIcon } from "@/components/icons"
 import Link from "next/link"
 import { useParams } from "next/navigation"
 

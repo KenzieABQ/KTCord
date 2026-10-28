@@ -1,6 +1,6 @@
 "use client"
 
-import { PaperclipIcon } from "lucide-react"
+import { PaperclipIcon } from "@/components/icons"
 
 import { UserAvatar } from "@/components/profile/user-avatar"
 import { formatMessageTime } from "@/lib/messages/feed"

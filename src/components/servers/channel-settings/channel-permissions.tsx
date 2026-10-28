@@ -1,7 +1,7 @@
 "use client"
 
 import { Command as CommandPrimitive } from "cmdk"
-import { CheckIcon, PlusIcon, SlashIcon, UserIcon, XIcon } from "lucide-react"
+import { CheckIcon, PlusIcon, SlashIcon, UserIcon, XIcon } from "@/components/icons"
 import { useMemo, useState } from "react"
 import { toast } from "@/lib/toast"
 

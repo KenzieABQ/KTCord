@@ -1,7 +1,7 @@
 "use client"
 
 import { format, formatDistanceToNowStrict } from "date-fns"
-import { TrashIcon } from "lucide-react"
+import { TrashIcon } from "@/components/icons"
 import { useParams, useRouter } from "next/navigation"
 import { useEffect, useState, type ReactNode } from "react"
 import { toast } from "@/lib/toast"

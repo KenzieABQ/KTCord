@@ -1,7 +1,7 @@
 "use client"
 
 import { format } from "date-fns"
-import { ArrowDownIcon } from "lucide-react"
+import { ArrowDownIcon } from "@/components/icons"
 import {
   useCallback,
   useEffect,
@@ -51,10 +51,12 @@ export type MessageFeedHandle = {
   scrollToBottom: () => void
 }
 
-type FeedContext = { welcome: ReactNode; hasMore: boolean }
+type FeedContext = { welcome: ReactNode; hasMore: boolean; ready: boolean }
 
 function FeedHeader({ context }: { context?: FeedContext }) {
-  if (!context) return null
+  // Nothing until the first messages are on screen: on a fresh mount (switching servers)
+  // the top of the list would otherwise flash a skeleton before it settles at the bottom.
+  if (!context?.ready) return null
   return context.hasMore ? <MessageFeedSkeleton rows={3} /> : context.welcome
 }
 
@@ -148,6 +150,7 @@ export function MessageFeed({
   }, [channel.id])
 
   const [atBottom, setAtBottom] = useState(true)
+  const [listReady, setListReady] = useState(false)
   const [highlightId, setHighlightId] = useState<string | null>(null)
   const [pendingDelete, setPendingDelete] = useState<ChatMessage | null>(null)
 
@@ -344,7 +347,10 @@ export function MessageFeed({
         aria-label={`Messages in ${channelLabel}`}
         data-message-feed=""
         data={messages}
-        context={{ welcome, hasMore: Boolean(hasNextPage) }}
+        context={{ welcome, hasMore: Boolean(hasNextPage), ready: listReady || messages.length === 0 }}
+        itemsRendered={(items) => {
+          if (items.length > 0 && !listReady) setListReady(true)
+        }}
         firstItemIndex={firstItemIndex}
         // Open at the newest message, aligned to the bottom edge even in short windows.
         initialTopMostItemIndex={{ index: Math.max(0, messages.length - 1), align: "end" }}

@@ -1,7 +1,7 @@
 "use client"
 
 import { format } from "date-fns"
-import { RotateCwIcon } from "lucide-react"
+import { RotateCwIcon } from "@/components/icons"
 import { memo, useMemo, useState } from "react"
 import { toast } from "@/lib/toast"
 

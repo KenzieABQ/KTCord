@@ -1,7 +1,7 @@
 "use client"
 
 import { format, formatDistanceToNowStrict } from "date-fns"
-import { ChevronDownIcon, ScrollTextIcon } from "lucide-react"
+import { ChevronDownIcon, ScrollTextIcon } from "@/components/icons"
 import { useParams } from "next/navigation"
 import { useState } from "react"
 

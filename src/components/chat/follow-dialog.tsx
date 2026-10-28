@@ -1,7 +1,7 @@
 "use client"
 
 import { useQuery } from "@tanstack/react-query"
-import { MegaphoneIcon } from "lucide-react"
+import { MegaphoneIcon } from "@/components/icons"
 import { useState } from "react"
 import { toast } from "@/lib/toast"
 

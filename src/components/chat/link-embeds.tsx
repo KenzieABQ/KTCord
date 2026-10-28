@@ -1,7 +1,7 @@
 "use client"
 
 import { useQuery } from "@tanstack/react-query"
-import { PlayIcon } from "lucide-react"
+import { PlayIcon } from "@/components/icons"
 import { useMemo, useState } from "react"
 
 import { fetchEmbed } from "@/lib/api/unfurl"

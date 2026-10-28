@@ -17,7 +17,7 @@ import {
   verticalListSortingStrategy,
 } from "@dnd-kit/sortable"
 import { CSS } from "@dnd-kit/utilities"
-import { GripVerticalIcon, LockIcon, PlusIcon, ShieldIcon, TrashIcon, UsersIcon } from "lucide-react"
+import { GripVerticalIcon, LockIcon, PlusIcon, ShieldIcon, TrashIcon, UsersIcon } from "@/components/icons"
 import { useParams } from "next/navigation"
 import { useMemo, useState } from "react"
 import { toast } from "@/lib/toast"

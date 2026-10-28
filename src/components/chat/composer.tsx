@@ -2,7 +2,7 @@
 
 import { useQueryClient, type InfiniteData } from "@tanstack/react-query"
 import { format } from "date-fns"
-import { AtSignIcon, BarChart3Icon, ClockIcon, ScrollTextIcon, HourglassIcon, PlusCircleIcon, SmileIcon, UploadIcon, XIcon } from "lucide-react"
+import { AtSignIcon, BarChart3Icon, ClockIcon, ScrollTextIcon, HourglassIcon, PlusCircleIcon, SmileIcon, UploadIcon, XIcon } from "@/components/icons"
 import { useRef, useState } from "react"
 import { toast } from "@/lib/toast"
 

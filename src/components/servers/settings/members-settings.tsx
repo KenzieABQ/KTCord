@@ -1,7 +1,7 @@
 "use client"
 
 import { format } from "date-fns"
-import { ClockIcon, MoreVerticalIcon, PlusIcon, SearchIcon, XIcon } from "lucide-react"
+import { ClockIcon, MoreVerticalIcon, PlusIcon, SearchIcon, XIcon } from "@/components/icons"
 import { useParams } from "next/navigation"
 import { useMemo, useState } from "react"
 import { toast } from "@/lib/toast"
@@ -67,7 +67,7 @@ function MemberRoles({ serverId, member, rolesById }: { serverId: string; member
           >
             <PlusIcon className="size-3" />
           </DropdownMenuTrigger>
-          <DropdownMenuContent className="max-h-72 w-52 overflow-y-auto bg-floating">
+          <DropdownMenuContent className="max-h-72 w-52 overflow-y-auto">
             <DropdownMenuLabel className="text-xs text-muted-foreground">Roles</DropdownMenuLabel>
             {assignableRoles.map((role) => (
               <DropdownMenuCheckboxItem
@@ -168,7 +168,7 @@ export function MembersSettings() {
                 >
                   <MoreVerticalIcon className="size-4" />
                 </DropdownMenuTrigger>
-                <DropdownMenuContent align="end" className="w-56 bg-floating">
+                <DropdownMenuContent align="end" className="w-56">
                   <MemberActionItems kind="dropdown" serverId={serverId} userId={member.user_id} />
                 </DropdownMenuContent>
               </DropdownMenu>

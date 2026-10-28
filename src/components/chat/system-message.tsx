@@ -1,7 +1,7 @@
 "use client"
 
 import { formatDistanceToNowStrict } from "date-fns"
-import { ChevronRightIcon, MessagesSquareIcon, PinIcon } from "lucide-react"
+import { ChevronRightIcon, MessagesSquareIcon, PinIcon } from "@/components/icons"
 
 import { visibleElementById } from "@/lib/dom"
 import type { ChatMessage, ThreadSummary } from "@/lib/messages/types"

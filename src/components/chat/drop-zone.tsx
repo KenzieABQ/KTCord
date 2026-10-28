@@ -1,6 +1,6 @@
 "use client"
 
-import { UploadIcon } from "lucide-react"
+import { UploadIcon } from "@/components/icons"
 import { useRef, useState, type ReactNode } from "react"
 
 import { cn } from "@/lib/utils"

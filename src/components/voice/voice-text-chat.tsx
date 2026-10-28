@@ -1,6 +1,6 @@
 "use client"
 
-import { MessageSquareTextIcon, XIcon } from "lucide-react"
+import { MessageSquareTextIcon, XIcon } from "@/components/icons"
 import { useCallback, useRef } from "react"
 
 import { ChannelWelcome } from "@/components/chat/channel-welcome"

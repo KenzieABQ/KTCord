@@ -1,6 +1,6 @@
 "use client"
 
-import { CircleAlertIcon, InfoIcon, XIcon } from "lucide-react"
+import { CircleAlertIcon, InfoIcon, XIcon } from "@/components/icons"
 import { toast as sonner, Toaster } from "sonner"
 
 import { UserAvatar } from "@/components/profile/user-avatar"

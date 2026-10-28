@@ -1,6 +1,6 @@
 "use client"
 
-import { SearchIcon } from "lucide-react"
+import { SearchIcon } from "@/components/icons"
 import { useState } from "react"
 import { toast } from "@/lib/toast"
 

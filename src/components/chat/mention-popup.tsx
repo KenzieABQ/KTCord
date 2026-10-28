@@ -1,6 +1,6 @@
 "use client"
 
-import { AtSignIcon, HashIcon } from "lucide-react"
+import { AtSignIcon, HashIcon } from "@/components/icons"
 import { useEffect, useRef } from "react"
 
 import { UserAvatar } from "@/components/profile/user-avatar"

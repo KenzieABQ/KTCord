@@ -1,6 +1,6 @@
 "use client"
 
-import { MonitorUpIcon, PhoneOffIcon, SignalIcon, VideoIcon } from "lucide-react"
+import { MonitorUpIcon, PhoneOffIcon, SignalIcon, VideoIcon } from "@/components/icons"
 import type { ReactNode } from "react"
 import Link from "next/link"
 

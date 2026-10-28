@@ -1,6 +1,6 @@
 "use client"
 
-import { SmilePlusIcon } from "lucide-react"
+import { SmilePlusIcon } from "@/components/icons"
 import { toast } from "@/lib/toast"
 
 import { Tooltip, TooltipContent, TooltipTrigger } from "@/components/ui/tooltip"

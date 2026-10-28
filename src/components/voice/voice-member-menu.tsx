@@ -1,6 +1,6 @@
 "use client"
 
-import { HeadphoneOffIcon, MicOffIcon, PhoneOffIcon, VolumeXIcon } from "lucide-react"
+import { HeadphoneOffIcon, MicOffIcon, PhoneOffIcon, VolumeXIcon } from "@/components/icons"
 import type { ReactNode } from "react"
 import { toast } from "@/lib/toast"
 
@@ -110,7 +110,7 @@ export function VoiceMemberMenu({
   return (
     <ContextMenu>
       <ContextMenuTrigger asChild>{children}</ContextMenuTrigger>
-      <ContextMenuContent className="w-56 bg-floating">
+      <ContextMenuContent className="w-56">
         <PlaybackControls userId={person.userId} />
         {canModerate && (
           <ModerationItems

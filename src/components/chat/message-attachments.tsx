@@ -1,7 +1,7 @@
 "use client"
 
 import { useQuery } from "@tanstack/react-query"
-import { ChevronLeftIcon, ChevronRightIcon, DownloadIcon, ExternalLinkIcon, FileIcon, XIcon } from "lucide-react"
+import { ChevronLeftIcon, ChevronRightIcon, DownloadIcon, ExternalLinkIcon, FileIcon, XIcon } from "@/components/icons"
 import { useEffect, useState } from "react"
 
 import { Dialog, DialogContent, DialogTitle } from "@/components/ui/dialog"

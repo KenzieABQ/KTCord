@@ -1,6 +1,6 @@
 "use client"
 
-import { PlusIcon, UsersIcon } from "lucide-react"
+import { PlusIcon, UsersIcon } from "@/components/icons"
 import Link from "next/link"
 import { usePathname } from "next/navigation"
 

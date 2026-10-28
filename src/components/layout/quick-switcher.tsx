@@ -2,7 +2,7 @@
 
 import { useQueries } from "@tanstack/react-query"
 import { Command as CommandPrimitive } from "cmdk"
-import { HashIcon, SearchIcon, Volume2Icon } from "lucide-react"
+import { HashIcon, SearchIcon, Volume2Icon } from "@/components/icons"
 import { useRouter } from "next/navigation"
 import { useMemo, useState } from "react"
 import { toast } from "@/lib/toast"

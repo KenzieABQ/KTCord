@@ -1,6 +1,6 @@
 "use client"
 
-import { CameraIcon, CheckCircle2Icon } from "lucide-react"
+import { CameraIcon, CheckCircle2Icon } from "@/components/icons"
 import { useRouter } from "next/navigation"
 import { useEffect, useRef, useState } from "react"
 import { toast } from "@/lib/toast"

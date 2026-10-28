@@ -16,7 +16,7 @@ import {
   VideoIcon,
   VideoOffIcon,
   Volume2Icon,
-} from "lucide-react"
+} from "@/components/icons"
 import { useRef, useState } from "react"
 import { useShallow } from "zustand/react/shallow"
 
@@ -91,11 +91,18 @@ function Tile({
           type="button"
           aria-label={`${name}${person.speaking ? ", speaking" : ""}${person.serverMute ? ", server muted" : person.selfMute ? ", muted" : ""}${person.serverDeaf ? ", server deafened" : person.selfDeaf ? ", deafened" : ""}`}
           className={cn(
-            "relative flex size-full min-w-0 items-center justify-center overflow-hidden rounded-lg bg-sidebar ring-2 ring-transparent transition-shadow hover:bg-item-hover",
-            person.speaking && "ring-status-online",
+            "relative flex size-full min-w-0 items-center justify-center overflow-hidden rounded-lg bg-sidebar hover:bg-item-hover",
             className
           )}
         >
+          {/* The speaking outline sits inside, above the video, so nothing covers or clips it. */}
+          <span
+            aria-hidden
+            className={cn(
+              "pointer-events-none absolute inset-0 z-10 rounded-lg ring-[3px] ring-inset transition-colors",
+              person.speaking ? "ring-status-online" : "ring-transparent"
+            )}
+          />
           {camera ? (
             <VideoTrack track={camera} mirror={person.userId === userId} className="object-cover" />
           ) : (

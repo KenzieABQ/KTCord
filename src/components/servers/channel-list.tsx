@@ -26,7 +26,7 @@ import {
   PlusIcon,
   SettingsIcon,
   UserPlusIcon,
-} from "lucide-react"
+} from "@/components/icons"
 import Link from "next/link"
 import { useParams, useRouter } from "next/navigation"
 import { useState, type ReactNode } from "react"
@@ -220,7 +220,7 @@ function ChannelRow({
           </span>
         </Link>
       </ContextMenuTrigger>
-      <ContextMenuContent className="w-52 bg-floating">
+      <ContextMenuContent className="w-52">
         {channel.type === "text" && (
           <>
             <ChannelNotificationItems kind="context" channelId={channel.id} />
@@ -290,7 +290,7 @@ function CategoryRow({
           )}
         </div>
       </ContextMenuTrigger>
-      <ContextMenuContent className="w-52 bg-floating">
+      <ContextMenuContent className="w-52">
         <ContextMenuItem onSelect={() => toggleCategory(category.id)}>
           {collapsed ? "Expand Category" : "Collapse Category"}
         </ContextMenuItem>

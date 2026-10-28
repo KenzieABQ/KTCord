@@ -1,7 +1,7 @@
 "use client"
 
 import { formatDistanceToNowStrict } from "date-fns"
-import { CheckIcon, CircleCheckIcon } from "lucide-react"
+import { CheckIcon, CircleCheckIcon } from "@/components/icons"
 import { useEffect, useMemo, useState } from "react"
 import { toast } from "@/lib/toast"
 

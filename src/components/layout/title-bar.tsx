@@ -1,6 +1,6 @@
 "use client"
 
-import { CircleHelpIcon } from "lucide-react"
+import { CircleHelpIcon } from "@/components/icons"
 import { useParams, usePathname } from "next/navigation"
 
 import { KtcordMark } from "@/components/brand/logo"

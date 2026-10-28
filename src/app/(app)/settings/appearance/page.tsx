@@ -14,6 +14,7 @@ import {
   type DarkPalette,
   type MessageDisplay,
 } from "@/lib/stores/prefs-store"
+import { RefreshCwIcon } from "@/components/icons"
 import { cn } from "@/lib/utils"
 
 /** Discord's themes: Light, three dark palettes, or follow the computer. */
@@ -22,7 +23,8 @@ const THEMES: { id: string; label: string; theme: string; palette?: DarkPalette;
   { id: "ash", label: "Ash", theme: "dark", palette: "ash", swatch: "#313338" },
   { id: "dark", label: "Dark", theme: "dark", palette: "dark", swatch: "#1e1f22" },
   { id: "onyx", label: "Onyx", theme: "dark", palette: "onyx", swatch: "#000000" },
-  { id: "system", label: "Sync", theme: "system", swatch: "linear-gradient(135deg,#fff 50%,#1e1f22 50%)" },
+  // Half light, half dark, with a soft edge so the diagonal doesn't look jagged.
+  { id: "system", label: "Sync", theme: "system", swatch: "linear-gradient(135deg,#ffffff 49%,#1e1f22 51%)" },
 ]
 
 const DISPLAYS: { value: MessageDisplay; label: string; description: string }[] = [
@@ -108,11 +110,17 @@ export default function AppearanceSettingsPage() {
               >
                 <span
                   className={cn(
-                    "size-14 rounded-full border border-border",
-                    selected && "ring-2 ring-primary ring-offset-2 ring-offset-background"
+                    "relative flex size-14 items-center justify-center overflow-hidden rounded-full border border-border",
+                    selected && "ring-2 ring-primary ring-offset-2 ring-offset-chat"
                   )}
                   style={{ background: t.swatch }}
-                />
+                >
+                  {t.id === "system" && (
+                    <span className="flex size-7 items-center justify-center rounded-full bg-black/55 text-white shadow">
+                      <RefreshCwIcon className="size-4" />
+                    </span>
+                  )}
+                </span>
                 {t.label}
               </button>
             )

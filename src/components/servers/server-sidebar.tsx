@@ -9,7 +9,7 @@ import {
   SettingsIcon,
   UserPlusIcon,
   XIcon,
-} from "lucide-react"
+} from "@/components/icons"
 import Link from "next/link"
 import { useState } from "react"
 
@@ -80,7 +80,7 @@ export function ServerSidebar({ serverId }: { serverId: string }) {
             )}
             {menuOpen ? <XIcon className="size-4 shrink-0" /> : <ChevronDownIcon className="size-4 shrink-0" />}
           </DropdownMenuTrigger>
-          <DropdownMenuContent align="center" className="w-56 bg-floating p-1.5">
+          <DropdownMenuContent align="center" className="w-56 p-1.5">
             {can(Permission.CREATE_INVITE) && (
               <DropdownMenuItem
                 className="text-[#949cf7] focus:bg-primary focus:text-white [&_svg]:text-current"

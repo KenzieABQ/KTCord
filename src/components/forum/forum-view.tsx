@@ -1,7 +1,7 @@
 "use client"
 
 import { formatDistanceToNowStrict } from "date-fns"
-import { MessageSquareIcon, MessagesSquareIcon, PlusIcon } from "lucide-react"
+import { MessageSquareIcon, MessagesSquareIcon, PlusIcon } from "@/components/icons"
 import { useMemo, useState } from "react"
 import { toast } from "@/lib/toast"
 

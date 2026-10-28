@@ -14,30 +14,45 @@ export function fallbackColor(seed: string) {
   return FALLBACK_COLORS[Math.abs(hash) % FALLBACK_COLORS.length]
 }
 
+/** Status dot sizes: its diameter, the see-through gap around it, and how far it sits past the edge. */
+const DOT = {
+  md: { size: 14, gap: 3, offset: -2 },
+  lg: { size: 20, gap: 5, offset: 2 },
+} as const
+
 export function UserAvatar({
   userId,
   name,
   src,
   status,
-  surface,
   className,
-  statusClassName,
+  statusSize = "md",
   animate = "hover",
 }: {
   userId: string
   name: string
   src?: string | null
   status?: PresenceStatus
+  /** Ignored: the status cutout is transparent, whatever is behind it. */
   surface?: Surface
   className?: string
-  statusClassName?: string
+  statusSize?: keyof typeof DOT
   /** GIF avatars: play on hover (default, as in lists) or always (profile cards). */
   animate?: "hover" | "always"
 }) {
   const animated = isAnimated(src)
+  const dot = DOT[statusSize]
+  // With a status, the avatar gets a transparent hole where the dot sits, as in Discord.
+  const center = `calc(100% - ${dot.offset + dot.size / 2}px)`
+  const hole = dot.size / 2 + dot.gap
+  const cutout = status
+    ? `radial-gradient(circle at ${center} ${center}, transparent ${hole}px, #000 ${hole + 0.5}px)`
+    : undefined
+  const masked = cutout ? { maskImage: cutout, WebkitMaskImage: cutout } : undefined
+
   return (
     <div className={cn("@container relative size-8 shrink-0", className)}>
-      <Avatar className={cn("size-full after:hidden", src && "bg-item-selected/40")}>
+      <Avatar className={cn("size-full after:hidden", src && "bg-item-selected/40")} style={masked}>
         {src && !animated && <AvatarImage src={src} alt="" />}
         {/* With a photo, initials only appear if it's slow or broken: they'd otherwise
             flash for a frame on every mount, even when the photo is cached. */}
@@ -50,15 +65,15 @@ export function UserAvatar({
         </AvatarFallback>
       </Avatar>
       {src && animated && (
-        <span className="absolute inset-0 overflow-hidden rounded-full">
+        <span className="absolute inset-0 overflow-hidden rounded-full" style={masked}>
           <AnimatedImage src={src} animate={animate} />
         </span>
       )}
       {status && (
         <StatusDot
           status={status}
-          surface={surface}
-          className={cn("absolute -right-0.5 -bottom-0.5", statusClassName)}
+          className="absolute"
+          style={{ width: dot.size, height: dot.size, right: dot.offset, bottom: dot.offset }}
         />
       )}
     </div>

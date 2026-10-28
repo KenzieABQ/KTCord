@@ -1,6 +1,6 @@
 "use client"
 
-import { EyeIcon, EyeOffIcon, FileIcon, TrashIcon } from "lucide-react"
+import { EyeIcon, EyeOffIcon, FileIcon, TrashIcon } from "@/components/icons"
 import { toast } from "@/lib/toast"
 
 import { Tooltip, TooltipContent, TooltipTrigger } from "@/components/ui/tooltip"

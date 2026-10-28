@@ -1,7 +1,7 @@
 "use client"
 
 import { useQueryClient } from "@tanstack/react-query"
-import { ScrollTextIcon } from "lucide-react"
+import { ScrollTextIcon } from "@/components/icons"
 import { useRouter } from "next/navigation"
 import { useEffect, useState } from "react"
 import { toast } from "@/lib/toast"

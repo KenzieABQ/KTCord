@@ -1,6 +1,6 @@
 "use client"
 
-import { MessagesSquareIcon, XIcon } from "lucide-react"
+import { MessagesSquareIcon, XIcon } from "@/components/icons"
 import { useCallback, useRef } from "react"
 
 import { MessageFeedSkeleton } from "@/components/layout/skeletons"

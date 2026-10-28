@@ -1,6 +1,6 @@
 "use client"
 
-import { UploadIcon, XIcon } from "lucide-react"
+import { UploadIcon, XIcon } from "@/components/icons"
 import { useParams } from "next/navigation"
 import { useRef, useState } from "react"
 import { toast } from "@/lib/toast"

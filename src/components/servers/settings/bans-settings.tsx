@@ -1,7 +1,7 @@
 "use client"
 
 import { format } from "date-fns"
-import { SearchIcon } from "lucide-react"
+import { SearchIcon } from "@/components/icons"
 import { useParams } from "next/navigation"
 import { useMemo, useState } from "react"
 import { toast } from "@/lib/toast"

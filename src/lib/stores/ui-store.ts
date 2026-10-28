@@ -43,6 +43,8 @@ type UiState = {
   recentChannelIds: string[]
   /** A voice channel's text chat is open beside the call. */
   voiceChatOpen: boolean
+  /** The last page outside settings, so closing settings returns there. */
+  lastAppPath: string | null
   /** Servers whose welcome screen this device has shown (remembered). */
   welcomedServers: Record<string, true>
 
@@ -58,6 +60,7 @@ type UiState = {
   visitChannel: (channelId: string) => void
   setVoiceChatOpen: (open: boolean) => void
   markWelcomed: (serverId: string) => void
+  setLastAppPath: (path: string) => void
 }
 
 export const useUiStore = create<UiState>()(
@@ -71,6 +74,8 @@ export const useUiStore = create<UiState>()(
       voiceChatOpen: false,
       setVoiceChatOpen: (voiceChatOpen) => set({ voiceChatOpen }),
       welcomedServers: {},
+      lastAppPath: null,
+      setLastAppPath: (lastAppPath) => set((s) => (s.lastAppPath === lastAppPath ? s : { lastAppPath })),
       markWelcomed: (serverId) => set((s) => ({ welcomedServers: { ...s.welcomedServers, [serverId]: true } })),
       collapsedCategories: {},
       lastChannelByServer: {},

@@ -1,6 +1,6 @@
 "use client"
 
-import { CheckIcon, CompassIcon, MessageCircleIcon, MoreVerticalIcon, PlusIcon, SearchIcon, UsersIcon, XIcon } from "lucide-react"
+import { CheckIcon, CompassIcon, MessageCircleIcon, MoreVerticalIcon, PlusIcon, SearchIcon, UsersIcon, XIcon } from "@/components/icons"
 import { useMemo, useState, type ReactNode } from "react"
 import { toast } from "@/lib/toast"
 
@@ -147,7 +147,7 @@ function FriendRow({
                 </TooltipTrigger>
                 <TooltipContent side="top">More</TooltipContent>
               </Tooltip>
-              <DropdownMenuContent align="end" className="bg-floating">
+              <DropdownMenuContent align="end" className="">
                 <DropdownMenuItem variant="destructive" onSelect={() => onRemove(relationship)}>
                   Remove Friend
                 </DropdownMenuItem>

@@ -1,4 +1,4 @@
-import { HashIcon, MegaphoneIcon, MessagesSquareIcon, Volume2Icon } from "lucide-react"
+import { HashIcon, MegaphoneIcon, MessagesSquareIcon, Volume2Icon } from "@/components/icons"
 
 import type { Channel } from "@/lib/api/channels"
 

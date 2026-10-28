@@ -1,7 +1,7 @@
 "use client"
 
 import { useQueries, useQueryClient } from "@tanstack/react-query"
-import { ForwardIcon, HashIcon, SearchIcon } from "lucide-react"
+import { ForwardIcon, HashIcon, SearchIcon } from "@/components/icons"
 import { useMemo, useState } from "react"
 import { toast } from "@/lib/toast"
 

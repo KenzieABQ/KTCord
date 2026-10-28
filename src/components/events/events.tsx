@@ -1,7 +1,7 @@
 "use client"
 
 import { format, formatDistanceToNowStrict } from "date-fns"
-import { CalendarIcon, MapPinIcon, PlusIcon, StarIcon, Volume2Icon } from "lucide-react"
+import { CalendarIcon, MapPinIcon, PlusIcon, StarIcon, Volume2Icon } from "@/components/icons"
 import { useEffect, useState } from "react"
 import { toast } from "@/lib/toast"
 

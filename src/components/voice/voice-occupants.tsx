@@ -1,6 +1,6 @@
 "use client"
 
-import { HeadphoneOffIcon, MicOffIcon, VideoIcon } from "lucide-react"
+import { HeadphoneOffIcon, MicOffIcon, VideoIcon } from "@/components/icons"
 
 import { UserAvatar } from "@/components/profile/user-avatar"
 import { UserPopover } from "@/components/profile/user-popover"

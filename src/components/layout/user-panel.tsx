@@ -11,7 +11,7 @@ import {
   PencilIcon,
   SettingsIcon,
   SmileIcon,
-} from "lucide-react"
+} from "@/components/icons"
 import Link from "next/link"
 import { useState } from "react"
 import { toast } from "@/lib/toast"
@@ -163,7 +163,7 @@ export function UserPanel() {
                   <span className="flex-1">{CHOSEN_LABEL[chosen]}</span>
                   <ChevronRightIcon className="size-4 text-muted-foreground" />
                 </DropdownMenuTrigger>
-                <DropdownMenuContent side="right" align="start" sideOffset={14} className="w-64 bg-floating">
+                <DropdownMenuContent side="right" align="start" sideOffset={14} className="w-64">
                   <DropdownMenuLabel className="text-xs font-bold tracking-wide text-muted-foreground uppercase">
                     Set status
                   </DropdownMenuLabel>

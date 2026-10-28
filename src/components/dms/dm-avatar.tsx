@@ -1,6 +1,6 @@
 "use client"
 
-import { UsersIcon } from "lucide-react"
+import { UsersIcon } from "@/components/icons"
 
 import type { Surface } from "@/components/profile/status-dot"
 import { fallbackColor, UserAvatar } from "@/components/profile/user-avatar"

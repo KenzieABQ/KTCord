@@ -1,7 +1,7 @@
 "use client"
 
 import { format } from "date-fns"
-import { ForwardIcon, MegaphoneIcon } from "lucide-react"
+import { ForwardIcon, MegaphoneIcon } from "@/components/icons"
 import Link from "next/link"
 
 import type { Attachment } from "@/lib/api/attachments"

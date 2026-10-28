@@ -1,6 +1,6 @@
 "use client"
 
-import { MegaphoneIcon, MessageSquareTextIcon, SearchIcon, UsersIcon } from "lucide-react"
+import { MegaphoneIcon, MessageSquareTextIcon, SearchIcon, UsersIcon } from "@/components/icons"
 import { useCallback, useEffect, useRef, useState } from "react"
 
 import { ViewHeader } from "@/components/layout/view-header"

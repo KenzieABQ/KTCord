@@ -1,6 +1,6 @@
 "use client"
 
-import { AtSignIcon, MessageSquareXIcon, PlusIcon } from "lucide-react"
+import { AtSignIcon, MessageSquareXIcon, PlusIcon } from "@/components/icons"
 import { useParams } from "next/navigation"
 import { useState, type ReactNode } from "react"
 import { toast } from "@/lib/toast"

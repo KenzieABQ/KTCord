@@ -1,6 +1,6 @@
 "use client"
 
-import { ServerCrashIcon } from "lucide-react"
+import { ServerCrashIcon } from "@/components/icons"
 import Link from "next/link"
 import { useParams, useRouter } from "next/navigation"
 import { useEffect } from "react"

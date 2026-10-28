@@ -1,6 +1,6 @@
 "use client"
 
-import { useParams } from "next/navigation"
+import { useParams, usePathname } from "next/navigation"
 import { useEffect, useRef, useState, type ReactNode } from "react"
 
 import { composerInputId, focusComposer } from "@/components/chat/composer"
@@ -72,8 +72,14 @@ export function AppShell({ children }: { children: ReactNode }) {
   const navDrawerOpen = useUiStore((s) => s.navDrawerOpen)
   const setNavDrawerOpen = useUiStore((s) => s.setNavDrawerOpen)
   const params = useParams()
+  const pathname = usePathname()
   const mainRef = useRef<HTMLElement>(null)
   useGlobalShortcuts()
+
+  // Remember where you are, so closing settings comes back here.
+  useEffect(() => {
+    useUiStore.getState().setLastAppPath(pathname)
+  }, [pathname])
 
   // Close the drawer after navigating somewhere from it.
   const routeKey = JSON.stringify(params)

@@ -1,6 +1,6 @@
 "use client"
 
-import { HashIcon, LockIcon, MegaphoneIcon, MessagesSquareIcon, Volume2Icon } from "lucide-react"
+import { HashIcon, LockIcon, MegaphoneIcon, MessagesSquareIcon, Volume2Icon } from "@/components/icons"
 import { useRouter } from "next/navigation"
 import { useState } from "react"
 

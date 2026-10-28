@@ -1,7 +1,7 @@
 "use client"
 
 import { format } from "date-fns"
-import { BellIcon, BellOffIcon, CheckCheckIcon } from "lucide-react"
+import { BellIcon, BellOffIcon, CheckCheckIcon } from "@/components/icons"
 import { toast } from "@/lib/toast"
 
 import {

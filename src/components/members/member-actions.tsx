@@ -8,7 +8,7 @@ import {
   ShieldIcon,
   UserMinusIcon,
   UserPlusIcon,
-} from "lucide-react"
+} from "@/components/icons"
 import { toast } from "@/lib/toast"
 
 import {

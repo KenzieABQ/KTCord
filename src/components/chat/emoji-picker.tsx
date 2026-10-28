@@ -13,7 +13,7 @@ import {
   SmileIcon,
   TrophyIcon,
   XIcon,
-} from "lucide-react"
+} from "@/components/icons"
 import { useCallback, useMemo, useRef, useState, type ReactNode } from "react"
 
 import { ServerIcon } from "@/components/servers/server-icon"

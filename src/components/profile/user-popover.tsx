@@ -1,6 +1,6 @@
 "use client"
 
-import { CheckIcon, MessageCircleIcon, PencilIcon, PlusIcon, XIcon } from "lucide-react"
+import { CheckIcon, MessageCircleIcon, PencilIcon, PlusIcon, XIcon } from "@/components/icons"
 import Link from "next/link"
 import { useState, type ComponentProps, type ReactNode } from "react"
 import { toast } from "@/lib/toast"

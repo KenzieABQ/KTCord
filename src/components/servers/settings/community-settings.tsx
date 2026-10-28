@@ -1,6 +1,6 @@
 "use client"
 
-import { PlusIcon, SmilePlusIcon, XIcon } from "lucide-react"
+import { PlusIcon, SmilePlusIcon, XIcon } from "@/components/icons"
 import { useParams } from "next/navigation"
 import { useState } from "react"
 import { toast } from "@/lib/toast"

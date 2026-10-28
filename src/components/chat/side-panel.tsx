@@ -1,6 +1,6 @@
 "use client"
 
-import { SearchIcon, XIcon } from "lucide-react"
+import { SearchIcon, XIcon } from "@/components/icons"
 import { useRef, useState, type ReactNode } from "react"
 
 import { Sheet, SheetContent, SheetTitle } from "@/components/ui/sheet"

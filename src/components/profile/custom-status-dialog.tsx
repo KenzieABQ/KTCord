@@ -1,6 +1,6 @@
 "use client"
 
-import { XIcon } from "lucide-react"
+import { XIcon } from "@/components/icons"
 import { useState } from "react"
 import { toast } from "@/lib/toast"
 

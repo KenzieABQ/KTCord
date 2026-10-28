@@ -15,7 +15,7 @@ import {
   ReplyIcon,
   SmilePlusIcon,
   TrashIcon,
-} from "lucide-react"
+} from "@/components/icons"
 import type { ReactNode } from "react"
 import { toast } from "@/lib/toast"
 
@@ -168,7 +168,7 @@ export function MessageToolbar({
           </TooltipTrigger>
           <TooltipContent side="top">More</TooltipContent>
         </Tooltip>
-        <DropdownMenuContent align="end" className="w-56 bg-floating">
+        <DropdownMenuContent align="end" className="w-56">
           <MessageMenuItems kind="dropdown" basePath={basePath} message={message} actions={actions} />
         </DropdownMenuContent>
       </DropdownMenu>
@@ -281,7 +281,7 @@ export function MessageContextMenuContent(props: {
   actions: MessageActionHandlers
 }) {
   return (
-    <ContextMenuContent className="w-56 bg-floating">
+    <ContextMenuContent className="w-56">
       <MessageMenuItems kind="context" {...props} />
     </ContextMenuContent>
   )

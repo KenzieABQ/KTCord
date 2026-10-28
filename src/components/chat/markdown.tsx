@@ -1,7 +1,7 @@
 "use client"
 
 import type { ElementContent, Root } from "hast"
-import { HashIcon } from "lucide-react"
+import { HashIcon } from "@/components/icons"
 import Link from "next/link"
 import { Fragment, memo, useEffect, useMemo, useState, type ReactNode } from "react"
 

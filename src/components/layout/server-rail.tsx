@@ -1,6 +1,6 @@
 "use client"
 
-import { CompassIcon, LogOutIcon, PlusIcon, UserPlusIcon } from "lucide-react"
+import { CompassIcon, LogOutIcon, PlusIcon, UserPlusIcon } from "@/components/icons"
 import { useParams, usePathname } from "next/navigation"
 
 import { KtcordMark } from "@/components/brand/logo"
@@ -115,7 +115,7 @@ function ServerRailItem({
           </RailItem>
         </div>
       </ContextMenuTrigger>
-      <ContextMenuContent className="w-56 bg-floating">
+      <ContextMenuContent className="w-56">
         <ServerNotificationItems kind="context" serverId={server.id} />
         <ContextMenuSeparator />
         <ContextMenuItem onSelect={() => openDialog({ kind: "invite", serverId: server.id })}>

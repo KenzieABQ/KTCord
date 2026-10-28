@@ -1,6 +1,6 @@
 "use client"
 
-import { LogOutIcon, XIcon } from "lucide-react"
+import { LogOutIcon, XIcon } from "@/components/icons"
 import Link from "next/link"
 import { usePathname, useRouter } from "next/navigation"
 import { createContext, useCallback, useContext, useEffect, useRef, useState, type ReactNode } from "react"
@@ -9,6 +9,7 @@ import { createPortal } from "react-dom"
 import { Button } from "@/components/ui/button"
 import { Switch } from "@/components/ui/switch"
 import { signOut } from "@/lib/api/auth"
+import { useUiStore } from "@/lib/stores/ui-store"
 import { leaveBlocked, useUnsavedStore } from "@/lib/stores/unsaved-store"
 import { cn } from "@/lib/utils"
 
@@ -49,12 +50,31 @@ export function SettingsLayout({
   const rootRef = useRef<HTMLDivElement>(null)
   const closing = useRef(false)
   // Leaving settings plays the opening animation in reverse (fade and zoom out), as in Discord.
+  // Opening (and coming back to a settings page Next kept alive): zoom and fade in. Runs on
+  // every show, which also clears a finished closing animation that would leave it invisible.
+  useEffect(() => {
+    closing.current = false
+    const root = rootRef.current
+    if (!root) return
+    for (const animation of root.getAnimations()) animation.cancel()
+    if (prefersLessMotion()) return
+    root.animate(
+      [
+        { opacity: 0, transform: "scale(0.97)" },
+        { opacity: 1, transform: "scale(1)" },
+      ],
+      { duration: 200, easing: "ease-out" }
+    )
+  }, [])
+
   const close = useCallback(() => {
     if (leaveBlocked() || closing.current) return
     closing.current = true
+    // Back to wherever you were, like Discord; the layout's own target if we don't know.
+    const target = useUiStore.getState().lastAppPath ?? closeHref
     const root = rootRef.current
     if (!root || prefersLessMotion()) {
-      router.push(closeHref)
+      router.push(target)
       return
     }
     root
@@ -65,7 +85,7 @@ export function SettingsLayout({
         ],
         { duration: 160, easing: "ease-in", fill: "forwards" }
       )
-      .finished.finally(() => router.push(closeHref))
+      .finished.finally(() => router.push(target))
   }, [router, closeHref])
   const [slot, setSlot] = useState<HTMLElement | null>(null)
   // Switching settings pages with unsaved changes shakes the bar instead.
@@ -90,7 +110,7 @@ export function SettingsLayout({
     <UnsavedSlot.Provider value={slot}>
       <div
       ref={rootRef}
-      className="flex h-dvh flex-col bg-chat duration-200 animate-in fade-in-0 zoom-in-[0.97] md:flex-row"
+      className="flex h-dvh flex-col bg-chat md:flex-row"
     >
         {/* Phone: a top bar with horizontally scrolling tabs. */}
         <div className="shrink-0 border-b border-border bg-sidebar md:hidden">

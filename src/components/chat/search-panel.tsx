@@ -1,6 +1,6 @@
 "use client"
 
-import { SearchIcon, XIcon } from "lucide-react"
+import { SearchIcon, XIcon } from "@/components/icons"
 import { useRouter } from "next/navigation"
 import { useMemo } from "react"
 

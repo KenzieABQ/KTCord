@@ -1,4 +1,4 @@
-import { CheckIcon, LoaderIcon, XIcon } from "lucide-react"
+import { CheckIcon, LoaderIcon, XIcon } from "@/components/icons"
 
 import type { UsernameAvailability } from "@/hooks/use-username-availability"
 

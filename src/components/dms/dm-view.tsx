@@ -1,6 +1,6 @@
 "use client"
 
-import { CrownIcon, LogOutIcon, UserPlusIcon, UsersIcon, UserSquareIcon } from "lucide-react"
+import { CrownIcon, LogOutIcon, UserPlusIcon, UsersIcon, UserSquareIcon } from "@/components/icons"
 import { useParams, useRouter } from "next/navigation"
 import { useCallback, useEffect, useRef, useState } from "react"
 import { toast } from "@/lib/toast"

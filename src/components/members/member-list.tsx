@@ -1,6 +1,6 @@
 "use client"
 
-import { ClockIcon, CrownIcon } from "lucide-react"
+import { ClockIcon, CrownIcon } from "@/components/icons"
 import { useMemo } from "react"
 
 import { MemberListSkeleton } from "@/components/layout/skeletons"
@@ -90,7 +90,7 @@ function MemberRow({
           </button>
         </UserPopover>
       </ContextMenuTrigger>
-      <ContextMenuContent className="w-56 bg-floating">
+      <ContextMenuContent className="w-56">
         <MemberActionItems kind="context" serverId={serverId} userId={member.user_id} />
       </ContextMenuContent>
     </ContextMenu>
