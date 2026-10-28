@@ -3,9 +3,10 @@
 import { zodResolver } from "@hookform/resolvers/zod"
 import { useEffect, useRef, useState, type ReactNode } from "react"
 import { useForm, useWatch } from "react-hook-form"
-import { toast } from "sonner"
+import { toast } from "@/lib/toast"
 
 import { UsernameStatus } from "@/components/auth/username-status"
+import { UnsavedChangesBar } from "@/components/settings/settings-layout"
 import { Button } from "@/components/ui/button"
 import { Field, FieldDescription, FieldError, FieldGroup, FieldLabel } from "@/components/ui/field"
 import { Input } from "@/components/ui/input"
@@ -27,6 +28,8 @@ import { Tooltip, TooltipContent, TooltipTrigger } from "@/components/ui/tooltip
 type ImageChange = { kind: "unchanged" } | { kind: "new"; blob: Blob; previewUrl: string } | { kind: "removed" }
 
 const MAX_SOURCE_BYTES = 10 * 1024 * 1024
+/** The avatars bucket's limit; GIFs are uploaded as they are. */
+const MAX_GIF_BYTES = 5 * 1024 * 1024
 const labelClass = "text-xs font-bold tracking-wide uppercase"
 const BANNER_SIZE = { width: 960, height: 340 }
 
@@ -113,6 +116,17 @@ export function ProfileEditor({
     }
     if (file.size > MAX_SOURCE_BYTES) {
       toast.error("That image is too large (max 10 MB).")
+      return
+    }
+    // GIFs keep their animation, so they skip the cropper (re-encoding would freeze them).
+    if (file.type === "image/gif") {
+      if (file.size > MAX_GIF_BYTES) {
+        toast.error("Animated images can be up to 5 MB.")
+        return
+      }
+      const change = { kind: "new" as const, blob: file, previewUrl: URL.createObjectURL(file) }
+      if (target === "banner") setBanner(change)
+      else setAvatar(change)
       return
     }
     setCrop({ src: await readFileAsDataUrl(file), target })
@@ -373,28 +387,28 @@ export function ProfileEditor({
         </Field>
 
         <div className="flex flex-wrap items-center gap-2">
-          <Button
-            type="submit"
-            size="lg"
-            disabled={isSubmitting || availability === "taken" || (!markOnboarded && !dirty)}
-          >
-            {isSubmitting ? "Saving…" : submitLabel}
-          </Button>
-          {!markOnboarded && dirty && (
-            <Button
-              type="button"
-              variant="ghost"
-              onClick={() => {
-                form.reset()
-                setAvatar({ kind: "unchanged" })
-                setBanner({ kind: "unchanged" })
-              }}
-            >
-              Reset
+          {/* In settings, saving happens from the unsaved-changes bar, as in Discord. */}
+          {markOnboarded && (
+            <Button type="submit" size="lg" disabled={isSubmitting || availability === "taken"}>
+              {isSubmitting ? "Saving…" : submitLabel}
             </Button>
           )}
           {secondaryAction}
         </div>
+        {!markOnboarded && dirty && (
+          <UnsavedChangesBar
+            onReset={() => {
+              form.reset()
+              setAvatar({ kind: "unchanged" })
+              setBanner({ kind: "unchanged" })
+            }}
+            onSave={() => {
+              if (availability === "taken") form.setError("username", { message: "That username is taken" })
+              else void form.handleSubmit(onSubmit)()
+            }}
+            saving={isSubmitting}
+          />
+        )}
       </FieldGroup>
 
       <div className="md:sticky md:top-0 md:self-start">

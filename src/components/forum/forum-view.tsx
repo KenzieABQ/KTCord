@@ -3,7 +3,7 @@
 import { formatDistanceToNowStrict } from "date-fns"
 import { MessageSquareIcon, MessagesSquareIcon, PlusIcon } from "lucide-react"
 import { useMemo, useState } from "react"
-import { toast } from "sonner"
+import { toast } from "@/lib/toast"
 
 import { Emoji } from "@/components/chat/emoji"
 import { ThreadPanel } from "@/components/chat/thread-panel"

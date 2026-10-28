@@ -45,7 +45,7 @@ function Navigation() {
       <ServerRail bottomInset={inset} />
       <aside
         aria-label={params.serverId ? "Channels" : "Direct messages"}
-        className="flex w-60 min-w-0 flex-col overflow-hidden border-t border-l border-border bg-sidebar md:rounded-tl-xl"
+        className="flex w-[272px] min-w-0 flex-col overflow-hidden border-t border-l border-border bg-sidebar md:rounded-tl-xl"
         style={{ paddingBottom: inset }}
       >
         {params.serverId ? <ServerSidebar serverId={params.serverId} /> : <HomeSidebar />}
@@ -116,7 +116,7 @@ export function AppShell({ children }: { children: ReactNode }) {
               ref={drawerRef}
               side="left"
               showCloseButton={false}
-              className="w-[312px] max-w-[88vw] gap-0 border-0 bg-rail p-0 sm:max-w-[312px]"
+              className="w-[344px] max-w-[90vw] gap-0 border-0 bg-rail p-0 sm:max-w-[344px]"
             >
               <SheetTitle className="sr-only">Navigation</SheetTitle>
               <Navigation />

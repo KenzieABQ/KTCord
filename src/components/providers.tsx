@@ -5,7 +5,7 @@ import { ThemeProvider } from "next-themes"
 import { useEffect, useState, type ReactNode } from "react"
 
 import { PrefsEffects } from "@/components/prefs-effects"
-import { Toaster } from "@/components/ui/sonner"
+import { FeedbackHost } from "@/components/feedback/notices"
 import { TooltipProvider } from "@/components/ui/tooltip"
 import { ApiError } from "@/lib/api/errors"
 import { useAuthStore } from "@/lib/stores/auth-store"
@@ -65,7 +65,7 @@ export function Providers({ children }: { children: ReactNode }) {
           <AuthListener queryClient={queryClient} />
           <PrefsEffects />
           {children}
-          <Toaster position="bottom-right" />
+          <FeedbackHost />
         </TooltipProvider>
       </QueryClientProvider>
     </ThemeProvider>

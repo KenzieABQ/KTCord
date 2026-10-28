@@ -3,7 +3,7 @@
 import { CameraIcon, CheckCircle2Icon } from "lucide-react"
 import { useRouter } from "next/navigation"
 import { useEffect, useRef, useState } from "react"
-import { toast } from "sonner"
+import { toast } from "@/lib/toast"
 
 import { AvatarCropDialog } from "@/components/profile/avatar-crop-dialog"
 import { Button } from "@/components/ui/button"
@@ -71,6 +71,12 @@ export function IconPicker({
             toast.error("That image is too large (max 10 MB).")
             return
           }
+          // Animated icons keep their animation, so they skip the cropper.
+          if (file.type === "image/gif") {
+            if (file.size > 5 * 1024 * 1024) toast.error("Animated icons can be up to 5 MB.")
+            else onPicked(file)
+            return
+          }
           setCropSrc(await readFileAsDataUrl(file))
         }}
       />
@@ -84,6 +90,78 @@ export function IconPicker({
         }}
       />
     </>
+  )
+}
+
+/** A wide banner picker with crop (16:9); GIFs are kept as they are so they still play. */
+export function BannerPicker({
+  previewUrl,
+  onPicked,
+  onRemove,
+}: {
+  previewUrl: string | null
+  onPicked: (blob: Blob) => void
+  onRemove?: () => void
+}) {
+  const input = useRef<HTMLInputElement>(null)
+  const [cropSrc, setCropSrc] = useState<string | null>(null)
+
+  return (
+    <div className="flex flex-col gap-2">
+      <button
+        type="button"
+        onClick={() => input.current?.click()}
+        aria-label="Upload server banner"
+        className="relative flex aspect-video w-full max-w-sm items-center justify-center overflow-hidden rounded-lg border-2 border-dashed border-interactive text-interactive transition-colors hover:border-interactive-hover hover:text-interactive-hover"
+      >
+        {previewUrl ? (
+          // eslint-disable-next-line @next/next/no-img-element -- preview of a local or uploaded banner
+          <img src={previewUrl} alt="" className="size-full object-cover" />
+        ) : (
+          <span className="flex flex-col items-center gap-1 text-xs font-bold uppercase">
+            <CameraIcon className="size-6" />
+            Upload Banner
+          </span>
+        )}
+      </button>
+      {onRemove && (
+        <button type="button" onClick={onRemove} className="self-start text-xs text-muted-foreground hover:underline">
+          Remove banner
+        </button>
+      )}
+      <input
+        ref={input}
+        type="file"
+        accept="image/png,image/jpeg,image/webp,image/gif"
+        className="hidden"
+        onChange={async (e) => {
+          const file = e.target.files?.[0]
+          e.target.value = ""
+          if (!file) return
+          if (file.size > 10 * 1024 * 1024) {
+            toast.error("That image is too large (max 10 MB).")
+            return
+          }
+          if (file.type === "image/gif") {
+            if (file.size > 5 * 1024 * 1024) toast.error("Animated banners can be up to 5 MB.")
+            else onPicked(file)
+            return
+          }
+          setCropSrc(await readFileAsDataUrl(file))
+        }}
+      />
+      <AvatarCropDialog
+        src={cropSrc}
+        title="Edit banner"
+        output={{ width: 960, height: 540 }}
+        round={false}
+        onCancel={() => setCropSrc(null)}
+        onApply={(blob) => {
+          onPicked(blob)
+          setCropSrc(null)
+        }}
+      />
+    </div>
   )
 }
 

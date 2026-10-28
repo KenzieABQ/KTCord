@@ -3,7 +3,7 @@
 import { Command as CommandPrimitive } from "cmdk"
 import { CheckIcon, PlusIcon, SlashIcon, UserIcon, XIcon } from "lucide-react"
 import { useMemo, useState } from "react"
-import { toast } from "sonner"
+import { toast } from "@/lib/toast"
 
 import { UserAvatar } from "@/components/profile/user-avatar"
 import { PrivateChannelFields, type AccessValue } from "@/components/servers/channel-dialogs"

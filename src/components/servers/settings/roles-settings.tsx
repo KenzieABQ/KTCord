@@ -20,9 +20,9 @@ import { CSS } from "@dnd-kit/utilities"
 import { GripVerticalIcon, LockIcon, PlusIcon, ShieldIcon, TrashIcon, UsersIcon } from "lucide-react"
 import { useParams } from "next/navigation"
 import { useMemo, useState } from "react"
-import { toast } from "sonner"
+import { toast } from "@/lib/toast"
 
-import { SettingsSection } from "@/components/settings/settings-layout"
+import { SettingsSection, UnsavedChangesBar } from "@/components/settings/settings-layout"
 import { ConfirmDialog } from "@/components/ui/confirm-dialog"
 import { Button } from "@/components/ui/button"
 import { Field, FieldDescription, FieldLabel } from "@/components/ui/field"
@@ -314,17 +314,7 @@ function RoleEditor({
       </Tabs>
 
       {dirty && editable && (
-        <div className="sticky bottom-4 mt-8 flex items-center justify-between gap-3 rounded-lg bg-floating p-3 shadow-xl">
-          <span className="text-sm text-header">Careful — you have unsaved changes!</span>
-          <div className="flex gap-2">
-            <Button variant="ghost" onClick={() => setDraft(original)}>
-              Reset
-            </Button>
-            <Button className="bg-success hover:bg-success/80" onClick={save} disabled={updateRole.isPending}>
-              Save Changes
-            </Button>
-          </div>
-        </div>
+        <UnsavedChangesBar onReset={() => setDraft(original)} onSave={() => void save()} saving={updateRole.isPending} />
       )}
     </div>
   )

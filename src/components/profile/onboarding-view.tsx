@@ -2,7 +2,7 @@
 
 import { useRouter } from "next/navigation"
 import { useState } from "react"
-import { toast } from "sonner"
+import { toast } from "@/lib/toast"
 
 import { KtcordLogo } from "@/components/brand/logo"
 import { Button } from "@/components/ui/button"

@@ -1,5 +1,5 @@
 import type { QueryClient } from "@tanstack/react-query"
-import { toast } from "sonner"
+import { toast } from "@/lib/toast"
 
 import type { Channel } from "@/lib/api/channels"
 import type { DmChannel } from "@/lib/api/dms"
@@ -18,8 +18,8 @@ type Router = { push: (href: string) => void }
 
 /**
  * Notifies about an incoming message the way this device's settings ask: a desktop
- * notification while the tab is in the background (if allowed), otherwise an in-app toast,
- * plus an optional chime.
+ * notification while the tab is in the background (if allowed), otherwise (for DMs only)
+ * an in-app message card, plus an optional chime.
  */
 export function notifyMessage(
   queryClient: QueryClient,
@@ -76,9 +76,17 @@ export function notifyMessage(
     return
   }
 
-  if (!prefs.inAppToasts) return
-  toast(`${author} · ${place}`, {
-    description: preview,
-    action: { label: "View", onClick: () => router.push(href) },
+  if (!prefs.inAppToasts || !where.isDm) return
+  const avatarUrl =
+    dm?.recipients.find((r) => r.user_id === message.author_id)?.profile.avatar_url ??
+    queryClient.getQueryData<Profile>(qk.profile(message.author_id ?? ""))?.avatar_url ??
+    null
+  toast.dm({
+    authorId: message.author_id ?? message.id,
+    author,
+    avatarUrl,
+    place,
+    preview,
+    onOpen: () => router.push(href),
   })
 }

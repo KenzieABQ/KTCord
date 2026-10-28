@@ -1,3 +1,4 @@
+import { AnimatedImage, isAnimated } from "@/components/ui/animated-image"
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar"
 import { initialsOf } from "@/lib/profile-display"
 import { cn } from "@/lib/utils"
@@ -21,6 +22,7 @@ export function UserAvatar({
   surface,
   className,
   statusClassName,
+  animate = "hover",
 }: {
   userId: string
   name: string
@@ -29,11 +31,14 @@ export function UserAvatar({
   surface?: Surface
   className?: string
   statusClassName?: string
+  /** GIF avatars: play on hover (default, as in lists) or always (profile cards). */
+  animate?: "hover" | "always"
 }) {
+  const animated = isAnimated(src)
   return (
     <div className={cn("@container relative size-8 shrink-0", className)}>
       <Avatar className="size-full after:hidden">
-        {src && <AvatarImage src={src} alt="" />}
+        {src && !animated && <AvatarImage src={src} alt="" />}
         <AvatarFallback
           className="font-semibold text-white"
           style={{ backgroundColor: fallbackColor(userId) }}
@@ -41,6 +46,11 @@ export function UserAvatar({
           <span className="text-[38cqw] leading-none">{initialsOf(name)}</span>
         </AvatarFallback>
       </Avatar>
+      {src && animated && (
+        <span className="absolute inset-0 overflow-hidden rounded-full">
+          <AnimatedImage src={src} animate={animate} />
+        </span>
+      )}
       {status && (
         <StatusDot
           status={status}

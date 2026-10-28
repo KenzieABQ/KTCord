@@ -4,7 +4,7 @@ import type { RealtimePostgresChangesPayload } from "@supabase/supabase-js"
 import { useQueryClient } from "@tanstack/react-query"
 import { useRouter } from "next/navigation"
 import { useEffect } from "react"
-import { toast } from "sonner"
+import { toast } from "@/lib/toast"
 
 import { notifyMessage } from "@/lib/realtime/notify"
 import { useUnreadHydration } from "@/lib/queries/messages"

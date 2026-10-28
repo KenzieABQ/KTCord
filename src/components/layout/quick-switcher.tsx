@@ -5,7 +5,7 @@ import { Command as CommandPrimitive } from "cmdk"
 import { HashIcon, SearchIcon, Volume2Icon } from "lucide-react"
 import { useRouter } from "next/navigation"
 import { useMemo, useState } from "react"
-import { toast } from "sonner"
+import { toast } from "@/lib/toast"
 
 import { DmAvatar } from "@/components/dms/dm-avatar"
 import { UserAvatar } from "@/components/profile/user-avatar"

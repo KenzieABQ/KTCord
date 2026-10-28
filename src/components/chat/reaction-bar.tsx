@@ -1,7 +1,7 @@
 "use client"
 
 import { SmilePlusIcon } from "lucide-react"
-import { toast } from "sonner"
+import { toast } from "@/lib/toast"
 
 import { Tooltip, TooltipContent, TooltipTrigger } from "@/components/ui/tooltip"
 import { errorMessage } from "@/lib/api/errors"

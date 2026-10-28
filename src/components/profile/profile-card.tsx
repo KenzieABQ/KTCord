@@ -85,6 +85,7 @@ export function ProfileCard({
             surface="card"
             className="size-20"
             statusClassName="size-5 right-0.5 bottom-0.5 ring-[5px]"
+            animate="always"
           />
         </div>
         <div className="pt-12">

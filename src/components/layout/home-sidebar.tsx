@@ -30,11 +30,11 @@ export function HomeSidebar() {
         </button>
       </div>
 
-      <div className="scrollbar-thin flex-1 overflow-y-auto px-2 py-2">
+      <div className="scrollbar-thin flex-1 overflow-y-auto px-2.5 py-2.5">
         <Link
           href="/channels/me"
           className={cn(
-            "flex h-10 items-center gap-3 rounded-md px-3 text-[15px] font-medium transition-colors",
+            "flex h-11 items-center gap-3 rounded-md px-3 text-[15px] font-medium transition-colors",
             friendsActive
               ? "bg-item-selected text-interactive-active"
               : "text-interactive hover:bg-item-hover hover:text-interactive-hover"

@@ -4,10 +4,15 @@ import { format, formatDistanceToNowStrict } from "date-fns"
 import { TrashIcon } from "lucide-react"
 import { useParams, useRouter } from "next/navigation"
 import { useEffect, useState, type ReactNode } from "react"
-import { toast } from "sonner"
+import { toast } from "@/lib/toast"
 
 import { SplashScreen } from "@/components/brand/splash-screen"
-import { SettingsLayout, SettingsSection, type SettingsNavGroup } from "@/components/settings/settings-layout"
+import {
+  SettingsLayout,
+  SettingsSection,
+  UnsavedChangesBar,
+  type SettingsNavGroup,
+} from "@/components/settings/settings-layout"
 import { Button } from "@/components/ui/button"
 import {
   Dialog,
@@ -35,7 +40,7 @@ import {
   useUpdateServer,
 } from "@/lib/queries/servers"
 
-import { IconPicker } from "./server-dialogs"
+import { BannerPicker, IconPicker } from "./server-dialogs"
 
 const labelClass = "text-xs font-bold tracking-wide uppercase text-muted-foreground"
 
@@ -198,6 +203,7 @@ function ServerOverviewForm() {
 
   const [name, setName] = useState(server?.name ?? "")
   const [icon, setIcon] = useState<{ blob: Blob; url: string } | "remove" | null>(null)
+  const [banner, setBanner] = useState<{ blob: Blob; url: string } | "remove" | null>(null)
   const [saving, setSaving] = useState(false)
   const [deleteOpen, setDeleteOpen] = useState(false)
 
@@ -205,10 +211,15 @@ function ServerOverviewForm() {
     if (!icon || icon === "remove") return
     return () => URL.revokeObjectURL(icon.url)
   }, [icon])
+  useEffect(() => {
+    if (!banner || banner === "remove") return
+    return () => URL.revokeObjectURL(banner.url)
+  }, [banner])
 
   if (!server) return null
-  const dirty = name.trim() !== server.name || icon !== null
+  const dirty = name.trim() !== server.name || icon !== null || banner !== null
   const previewUrl = icon === "remove" ? null : icon ? icon.url : server.icon_url
+  const bannerPreview = banner === "remove" ? null : banner ? banner.url : server.banner_url
 
   async function save() {
     if (name.trim().length < 2) {
@@ -220,8 +231,12 @@ function ServerOverviewForm() {
       let iconUrl = server!.icon_url
       if (icon === "remove") iconUrl = null
       else if (icon) iconUrl = await uploadServerIcon(serverId, icon.blob)
-      await updateServer.mutateAsync({ name: name.trim(), icon_url: iconUrl })
+      let bannerUrl = server!.banner_url
+      if (banner === "remove") bannerUrl = null
+      else if (banner) bannerUrl = await uploadServerIcon(serverId, banner.blob)
+      await updateServer.mutateAsync({ name: name.trim(), icon_url: iconUrl, banner_url: bannerUrl })
       setIcon(null)
+      setBanner(null)
       toast.success("Server updated.")
     } catch (err) {
       toast.error(errorMessage(err))
@@ -265,24 +280,27 @@ function ServerOverviewForm() {
             />
           </Field>
         </div>
+        <div className="mt-8">
+          <p className={labelClass}>Server Banner</p>
+          <p className="mt-1 mb-3 text-sm text-muted-foreground">
+            Shown at the top of the channel list. 960×540 or larger works best; GIFs play.
+          </p>
+          <BannerPicker
+            previewUrl={bannerPreview}
+            onPicked={(blob) => setBanner({ blob, url: URL.createObjectURL(blob) })}
+            onRemove={bannerPreview ? () => setBanner("remove") : undefined}
+          />
+        </div>
         {dirty && (
-          <div className="sticky bottom-4 mt-8 flex items-center justify-between gap-3 rounded-lg bg-floating p-3 shadow-xl">
-            <span className="text-sm text-header">Careful — you have unsaved changes!</span>
-            <div className="flex gap-2">
-              <Button
-                variant="ghost"
-                onClick={() => {
-                  setName(server.name)
-                  setIcon(null)
-                }}
-              >
-                Reset
-              </Button>
-              <Button className="bg-success hover:bg-success/80" onClick={save} disabled={saving}>
-                {saving ? "Saving…" : "Save Changes"}
-              </Button>
-            </div>
-          </div>
+          <UnsavedChangesBar
+            onReset={() => {
+              setName(server.name)
+              setIcon(null)
+              setBanner(null)
+            }}
+            onSave={() => void save()}
+            saving={saving}
+          />
         )}
       </SettingsSection>
 

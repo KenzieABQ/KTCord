@@ -3,7 +3,7 @@
 import { UploadIcon, XIcon } from "lucide-react"
 import { useParams } from "next/navigation"
 import { useRef, useState } from "react"
-import { toast } from "sonner"
+import { toast } from "@/lib/toast"
 
 import { Emoji } from "@/components/chat/emoji"
 import { UserAvatar } from "@/components/profile/user-avatar"

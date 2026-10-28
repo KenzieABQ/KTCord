@@ -4,7 +4,7 @@ import { format } from "date-fns"
 import { ClockIcon, MoreVerticalIcon, PlusIcon, SearchIcon, XIcon } from "lucide-react"
 import { useParams } from "next/navigation"
 import { useMemo, useState } from "react"
-import { toast } from "sonner"
+import { toast } from "@/lib/toast"
 
 import { MemberActionItems } from "@/components/members/member-actions"
 import { UserAvatar } from "@/components/profile/user-avatar"

@@ -2,7 +2,7 @@
 
 import type { RealtimeChannel } from "@supabase/supabase-js"
 import { useCallback, useEffect, useMemo, useRef } from "react"
-import { toast } from "sonner"
+import { toast } from "@/lib/toast"
 
 import { useChannels, useMembers } from "@/lib/queries/servers"
 import { playVoiceSound } from "@/lib/sound"

@@ -3,7 +3,7 @@
 import { formatDistanceToNowStrict } from "date-fns"
 import { CheckIcon, CircleCheckIcon } from "lucide-react"
 import { useEffect, useMemo, useState } from "react"
-import { toast } from "sonner"
+import { toast } from "@/lib/toast"
 
 import { Button } from "@/components/ui/button"
 import { errorMessage } from "@/lib/api/errors"

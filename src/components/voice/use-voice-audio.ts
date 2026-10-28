@@ -1,7 +1,7 @@
 "use client"
 
 import { useEffect, useRef, useState } from "react"
-import { toast } from "sonner"
+import { toast } from "@/lib/toast"
 
 import { errorMessage } from "@/lib/api/errors"
 import { fetchVoiceToken } from "@/lib/api/voice"

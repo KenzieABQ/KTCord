@@ -3,7 +3,7 @@
 import { formatDistanceToNowStrict } from "date-fns"
 import { MessagesSquareIcon, PinIcon, XIcon } from "lucide-react"
 import { useState } from "react"
-import { toast } from "sonner"
+import { toast } from "@/lib/toast"
 
 import { Button } from "@/components/ui/button"
 import { Popover, PopoverContent, PopoverTrigger } from "@/components/ui/popover"

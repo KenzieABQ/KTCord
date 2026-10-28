@@ -2,7 +2,7 @@
 
 import { HeadphoneOffIcon, MicOffIcon, PhoneOffIcon, VolumeXIcon } from "lucide-react"
 import type { ReactNode } from "react"
-import { toast } from "sonner"
+import { toast } from "@/lib/toast"
 
 import {
   ContextMenu,
@@ -117,7 +117,7 @@ export function VoiceMemberMenu({
             person={person}
             set={set}
             onDisconnect={() =>
-              disconnect.mutate(person.userId, { onError, onSuccess: () => toast("Disconnected from voice.") })
+              disconnect.mutate(person.userId, { onError })
             }
           />
         )}

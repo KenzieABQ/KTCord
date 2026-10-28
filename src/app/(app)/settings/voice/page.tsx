@@ -1,7 +1,7 @@
 "use client"
 
 import { useEffect, useRef, useState } from "react"
-import { toast } from "sonner"
+import { toast } from "@/lib/toast"
 
 import { SettingsSection, SettingsToggle } from "@/components/settings/settings-layout"
 import { Button } from "@/components/ui/button"

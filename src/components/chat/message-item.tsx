@@ -3,7 +3,7 @@
 import { format } from "date-fns"
 import { RotateCwIcon } from "lucide-react"
 import { memo, useMemo, useState } from "react"
-import { toast } from "sonner"
+import { toast } from "@/lib/toast"
 
 import { UserAvatar } from "@/components/profile/user-avatar"
 import { UserPopover } from "@/components/profile/user-popover"

@@ -47,7 +47,7 @@ export async function updateServer(
   serverId: string,
   patch: Pick<
     TablesUpdate<"servers">,
-    "name" | "icon_url" | "description" | "welcome_enabled" | "welcome_channels" | "rules" | "rules_enabled" | "vanity_code"
+    "name" | "icon_url" | "banner_url" | "description" | "welcome_enabled" | "welcome_channels" | "rules" | "rules_enabled" | "vanity_code"
   >
 ): Promise<Server> {
   return unwrap(

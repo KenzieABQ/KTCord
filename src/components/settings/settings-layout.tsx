@@ -3,12 +3,17 @@
 import { LogOutIcon, XIcon } from "lucide-react"
 import Link from "next/link"
 import { usePathname, useRouter } from "next/navigation"
-import { useCallback, useEffect, type ReactNode } from "react"
+import { createContext, useCallback, useContext, useEffect, useState, type ReactNode } from "react"
+import { createPortal } from "react-dom"
 
 import { Button } from "@/components/ui/button"
 import { Switch } from "@/components/ui/switch"
 import { signOut } from "@/lib/api/auth"
+import { leaveBlocked, useUnsavedStore } from "@/lib/stores/unsaved-store"
 import { cn } from "@/lib/utils"
+
+/** Where the unsaved-changes bar renders: the bottom center of the settings content. */
+const UnsavedSlot = createContext<HTMLElement | null>(null)
 
 export type SettingsNavGroup = {
   heading: string
@@ -33,7 +38,14 @@ export function SettingsLayout({
   const pathname = usePathname()
   const router = useRouter()
 
-  const close = useCallback(() => router.push(closeHref), [router, closeHref])
+  const close = useCallback(() => {
+    if (!leaveBlocked()) router.push(closeHref)
+  }, [router, closeHref])
+  const [slot, setSlot] = useState<HTMLElement | null>(null)
+  // Switching settings pages with unsaved changes shakes the bar instead.
+  const guard = (e: React.MouseEvent) => {
+    if (leaveBlocked()) e.preventDefault()
+  }
 
   useEffect(() => {
     function onKey(e: KeyboardEvent) {
@@ -49,92 +61,102 @@ export function SettingsLayout({
   const items = nav.flatMap((group) => group.items)
 
   return (
-    <div className="flex h-dvh flex-col bg-chat md:flex-row">
-      {/* Phone: a top bar with horizontally scrolling tabs. */}
-      <div className="shrink-0 border-b border-border bg-sidebar md:hidden">
-        <div className="flex h-12 items-center justify-between px-3">
-          <span className="font-semibold text-header">Settings</span>
-          <button
-            type="button"
-            onClick={close}
-            aria-label="Close settings"
-            className="flex size-8 items-center justify-center rounded-full text-interactive hover:text-interactive-hover"
-          >
-            <XIcon className="size-5" />
-          </button>
-        </div>
-        <nav className="scrollbar-none flex gap-1 overflow-x-auto px-2 pb-2">
-          {items.map((item) => (
-            <Link
-              key={item.href}
-              href={item.href}
-              className={cn(
-                "shrink-0 rounded-md px-3 py-1.5 text-sm font-medium",
-                pathname === item.href
-                  ? "bg-item-selected text-interactive-active"
-                  : "text-interactive hover:bg-item-hover"
-              )}
-            >
-              {item.label}
-            </Link>
-          ))}
-        </nav>
-      </div>
-
-      {/* Desktop: Discord-style right-aligned nav column. */}
-      <aside className="scrollbar-thin hidden flex-[1_0_218px] justify-end overflow-y-auto bg-sidebar md:flex">
-        <nav className="w-[218px] px-2 py-[60px] pl-5">
-          {nav.map((group) => (
-            <div key={group.heading} className="mb-2">
-              <h2 className="px-2.5 pb-1.5 text-xs font-bold tracking-wide text-muted-foreground uppercase">
-                {group.heading}
-              </h2>
-              {group.items.map((item) => (
-                <Link
-                  key={item.href}
-                  href={item.href}
-                  className={cn(
-                    "mb-0.5 block rounded-md px-2.5 py-1.5 text-[15px] font-medium",
-                    pathname === item.href
-                      ? "bg-item-selected text-interactive-active"
-                      : "text-interactive hover:bg-item-hover hover:text-interactive-hover"
-                  )}
-                >
-                  {item.label}
-                </Link>
-              ))}
-              <div className="mx-2.5 my-2 h-px bg-border" />
-            </div>
-          ))}
-          {showLogOut && (
+    <UnsavedSlot.Provider value={slot}>
+      <div className="flex h-dvh flex-col bg-chat duration-200 animate-in fade-in-0 zoom-in-[0.97] md:flex-row">
+        {/* Phone: a top bar with horizontally scrolling tabs. */}
+        <div className="shrink-0 border-b border-border bg-sidebar md:hidden">
+          <div className="flex h-12 items-center justify-between px-3">
+            <span className="font-semibold text-header">Settings</span>
             <button
               type="button"
-              onClick={() => signOut()}
-              className="flex w-full items-center justify-between rounded-md px-2.5 py-1.5 text-[15px] font-medium text-interactive hover:bg-item-hover hover:text-interactive-hover"
+              onClick={close}
+              aria-label="Close settings"
+              className="flex size-8 items-center justify-center rounded-full text-interactive hover:text-interactive-hover"
             >
-              Log Out <LogOutIcon className="size-4" />
-            </button>
-          )}
-        </nav>
-      </aside>
-
-      <div className="scrollbar-thin flex min-h-0 flex-[1_1_800px] items-start overflow-y-auto">
-        <main className="w-full max-w-[740px] px-4 py-6 sm:px-10 md:py-[60px]">{children}</main>
-        <div className="sticky top-0 hidden shrink-0 pt-[60px] pr-5 md:block">
-          <button
-            type="button"
-            onClick={close}
-            aria-label="Close settings"
-            className="group flex flex-col items-center gap-1.5 text-interactive"
-          >
-            <span className="flex size-9 items-center justify-center rounded-full border-2 border-interactive transition-colors group-hover:border-interactive-hover group-hover:bg-item-hover group-hover:text-interactive-hover">
               <XIcon className="size-5" />
-            </span>
-            <span className="text-xs font-semibold">ESC</span>
-          </button>
+            </button>
+          </div>
+          <nav className="scrollbar-none flex gap-1 overflow-x-auto px-2 pb-2">
+            {items.map((item) => (
+              <Link
+                key={item.href}
+                href={item.href}
+                onClick={guard}
+                className={cn(
+                  "shrink-0 rounded-md px-3 py-1.5 text-sm font-medium",
+                  pathname === item.href
+                    ? "bg-item-selected text-interactive-active"
+                    : "text-interactive hover:bg-item-hover"
+                )}
+              >
+                {item.label}
+              </Link>
+            ))}
+          </nav>
+        </div>
+
+        {/* Desktop: Discord-style right-aligned nav column. */}
+        <aside className="scrollbar-thin hidden flex-[1_0_218px] justify-end overflow-y-auto bg-sidebar md:flex">
+          <nav className="w-[218px] px-2 py-[60px] pl-5">
+            {nav.map((group) => (
+              <div key={group.heading} className="mb-2">
+                <h2 className="px-2.5 pb-1.5 text-xs font-bold tracking-wide text-muted-foreground uppercase">
+                  {group.heading}
+                </h2>
+                {group.items.map((item) => (
+                  <Link
+                    key={item.href}
+                    href={item.href}
+                    onClick={guard}
+                    className={cn(
+                      "mb-0.5 block rounded-md px-2.5 py-1.5 text-[15px] font-medium",
+                      pathname === item.href
+                        ? "bg-item-selected text-interactive-active"
+                        : "text-interactive hover:bg-item-hover hover:text-interactive-hover"
+                    )}
+                  >
+                    {item.label}
+                  </Link>
+                ))}
+                <div className="mx-2.5 my-2 h-px bg-border" />
+              </div>
+            ))}
+            {showLogOut && (
+              <button
+                type="button"
+                onClick={() => signOut()}
+                className="flex w-full items-center justify-between rounded-md px-2.5 py-1.5 text-[15px] font-medium text-interactive hover:bg-item-hover hover:text-interactive-hover"
+              >
+                Log Out <LogOutIcon className="size-4" />
+              </button>
+            )}
+          </nav>
+        </aside>
+
+        <div className="relative flex min-h-0 flex-[1_1_800px] flex-col">
+          <div className="scrollbar-thin flex min-h-0 flex-1 items-start overflow-y-auto">
+            <main className="w-full max-w-[740px] px-4 pt-6 pb-28 sm:px-10 md:pt-[60px]">{children}</main>
+            <div className="sticky top-0 hidden shrink-0 pt-[60px] pr-5 md:block">
+              <button
+                type="button"
+                onClick={close}
+                aria-label="Close settings"
+                className="group flex flex-col items-center gap-1.5 text-interactive"
+              >
+                <span className="flex size-9 items-center justify-center rounded-full border-2 border-interactive transition-colors group-hover:border-interactive-hover group-hover:bg-item-hover group-hover:text-interactive-hover">
+                  <XIcon className="size-5" />
+                </span>
+                <span className="text-xs font-semibold">ESC</span>
+              </button>
+            </div>
+          </div>
+          <div
+            ref={setSlot}
+            className="pointer-events-none absolute inset-x-0 bottom-5 z-20 flex justify-center px-4 md:justify-start md:px-10 md:pr-[76px]"
+          />
         </div>
       </div>
-    </div>
+    </UnsavedSlot.Provider>
   )
 }
 
@@ -206,14 +228,44 @@ export function UnsavedChangesBar({
   onSave: () => void
   saving: boolean
 }) {
-  return (
+  const slot = useContext(UnsavedSlot)
+  const attempts = useUnsavedStore((s) => s.attempts)
+  const [warned, setWarned] = useState<number | null>(null)
+
+  useEffect(() => useUnsavedStore.getState().register(), [])
+  // Each blocked attempt to leave: shake and flash red for a moment.
+  const [seen, setSeen] = useState(attempts)
+  if (attempts !== seen) {
+    setSeen(attempts)
+    setWarned(attempts)
+  }
+  useEffect(() => {
+    if (warned === null) return
+    const timer = setTimeout(() => setWarned(null), 1200)
+    return () => clearTimeout(timer)
+  }, [warned])
+
+  const bar = (
     <div
+      key={warned ?? "calm"}
       role="status"
-      className="sticky bottom-4 z-10 mt-8 flex items-center justify-between gap-3 rounded-lg bg-floating p-3 shadow-xl ring-1 ring-border"
+      className={cn(
+        "pointer-events-auto flex w-full max-w-[700px] items-center justify-between gap-3 rounded-lg p-3 pl-4 shadow-2xl ring-1 transition-colors duration-200",
+        warned !== null
+          ? "animate-unsaved-shake bg-destructive text-white ring-destructive"
+          : "bg-floating ring-border animate-in fade-in-0 slide-in-from-bottom-4"
+      )}
     >
-      <span className="text-sm text-header">Careful — you have unsaved changes!</span>
-      <div className="flex gap-2">
-        <Button variant="ghost" onClick={onReset} disabled={saving}>
+      <span className={cn("text-sm font-medium", warned !== null ? "text-white" : "text-header")}>
+        Careful — you have unsaved changes!
+      </span>
+      <div className="flex shrink-0 gap-2">
+        <Button
+          variant="ghost"
+          onClick={onReset}
+          disabled={saving}
+          className={warned !== null ? "text-white hover:bg-white/15 hover:text-white" : undefined}
+        >
           Reset
         </Button>
         <Button className="bg-success text-white hover:bg-success/80" onClick={onSave} disabled={saving}>
@@ -222,4 +274,5 @@ export function UnsavedChangesBar({
       </div>
     </div>
   )
+  return slot ? createPortal(bar, slot) : <div className="sticky bottom-4 z-10 mt-8 flex justify-center">{bar}</div>
 }

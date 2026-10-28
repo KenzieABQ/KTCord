@@ -8,12 +8,16 @@ import {
   MicOffIcon,
   MonitorOffIcon,
   MonitorUpIcon,
+  LayoutGridIcon,
   PhoneOffIcon,
+  PinIcon,
+  PinOffIcon,
+  RectangleHorizontalIcon,
   VideoIcon,
   VideoOffIcon,
   Volume2Icon,
 } from "lucide-react"
-import { useRef } from "react"
+import { useRef, useState } from "react"
 import { useShallow } from "zustand/react/shallow"
 
 import { UserAvatar } from "@/components/profile/user-avatar"
@@ -42,13 +46,13 @@ function useMemberName(serverId: string, userId: string) {
 }
 
 /** Someone's shared screen, wide, with a fullscreen button. */
-function ScreenTile({ serverId, userId }: { serverId: string; userId: string }) {
+function ScreenTile({ serverId, userId, className }: { serverId: string; userId: string; className?: string }) {
   const track = useVideo(userId, "screen")
   const { name } = useMemberName(serverId, userId)
   const ref = useRef<HTMLDivElement>(null)
   if (!track) return null
   return (
-    <div ref={ref} className="group/screen relative col-span-full aspect-video overflow-hidden rounded-lg bg-black">
+    <div ref={ref} className={cn("group/screen relative size-full overflow-hidden rounded-lg bg-black", className)}>
       <VideoTrack track={track} className="object-contain" />
       <span className="absolute bottom-2 left-2 flex items-center gap-1.5 rounded-md bg-black/60 px-2 py-0.5 text-sm font-medium text-white">
         <span className="rounded-sm bg-destructive px-1 text-[10px] font-bold">LIVE</span>
@@ -66,7 +70,17 @@ function ScreenTile({ serverId, userId }: { serverId: string; userId: string }) 
   )
 }
 
-function Tile({ serverId, person }: { serverId: string; person: VoiceMember }) {
+function Tile({
+  serverId,
+  person,
+  compact,
+  className,
+}: {
+  serverId: string
+  person: VoiceMember
+  compact?: boolean
+  className?: string
+}) {
   const userId = useUserId()
   const { member, name } = useMemberName(serverId, person.userId)
   const camera = useVideo(person.userId, "camera")
@@ -77,22 +91,211 @@ function Tile({ serverId, person }: { serverId: string; person: VoiceMember }) {
           type="button"
           aria-label={`${name}${person.speaking ? ", speaking" : ""}${person.serverMute ? ", server muted" : person.selfMute ? ", muted" : ""}${person.serverDeaf ? ", server deafened" : person.selfDeaf ? ", deafened" : ""}`}
           className={cn(
-            "relative flex aspect-video min-w-0 items-center justify-center overflow-hidden rounded-lg bg-sidebar ring-2 ring-transparent transition-shadow hover:bg-item-hover",
-            person.speaking && "ring-status-online"
+            "relative flex size-full min-w-0 items-center justify-center overflow-hidden rounded-lg bg-sidebar ring-2 ring-transparent transition-shadow hover:bg-item-hover",
+            person.speaking && "ring-status-online",
+            className
           )}
         >
           {camera ? (
             <VideoTrack track={camera} mirror={person.userId === userId} className="object-cover" />
           ) : (
-            <UserAvatar userId={person.userId} name={name} src={member?.profile.avatar_url} className="size-20 text-2xl" />
+            <UserAvatar
+              userId={person.userId}
+              name={name}
+              src={member?.profile.avatar_url}
+              className={compact ? "size-12 text-base" : "size-20 text-2xl"}
+            />
           )}
-          <span className="absolute bottom-2 left-2 flex max-w-[calc(100%-1rem)] items-center gap-1.5 rounded-md bg-black/55 px-2 py-0.5 text-sm font-medium text-white">
+          <span
+            className={cn(
+              "absolute bottom-2 left-2 flex max-w-[calc(100%-1rem)] items-center gap-1.5 rounded-md bg-black/55 px-2 py-0.5 font-medium text-white",
+              compact ? "text-xs" : "text-sm"
+            )}
+          >
             <span className="truncate">{name}</span>
             <VoiceStateIcons member={person} className="text-white/80" />
           </span>
         </button>
       </UserPopover>
     </VoiceMemberMenu>
+  )
+}
+
+/** One thing on the call stage: a person (camera or avatar) or someone's shared screen. */
+type Feed = { key: string; kind: "user"; person: VoiceMember } | { key: string; kind: "screen"; userId: string }
+
+/** A feed with a hover pin button; double-click pins too. */
+function FeedTile({
+  serverId,
+  feed,
+  pinned,
+  onPin,
+  compact,
+  className,
+}: {
+  serverId: string
+  feed: Feed
+  pinned: boolean
+  onPin: () => void
+  compact?: boolean
+  className?: string
+}) {
+  return (
+    <div className={cn("group/tile relative min-w-0", className)} onDoubleClick={onPin}>
+      {feed.kind === "screen" ? (
+        <ScreenTile serverId={serverId} userId={feed.userId} />
+      ) : (
+        <Tile serverId={serverId} person={feed.person} compact={compact} />
+      )}
+      <Tooltip>
+        <TooltipTrigger asChild>
+          <button
+            type="button"
+            aria-label={pinned ? "Unpin" : "Pin"}
+            aria-pressed={pinned}
+            onClick={onPin}
+            className={cn(
+              "absolute top-2 right-2 z-10 flex size-8 items-center justify-center rounded-md bg-black/60 text-white transition-opacity hover:bg-black/80 focus-visible:opacity-100",
+              pinned ? "opacity-100" : "opacity-0 group-hover/tile:opacity-100"
+            )}
+          >
+            {pinned ? <PinOffIcon className="size-4" /> : <PinIcon className="size-4" />}
+          </button>
+        </TooltipTrigger>
+        <TooltipContent side="top">{pinned ? "Unpin" : "Pin"}</TooltipContent>
+      </Tooltip>
+    </div>
+  )
+}
+
+function LayoutSwitch({
+  layout,
+  onChange,
+}: {
+  layout: "grid" | "speaker"
+  onChange: (layout: "grid" | "speaker") => void
+}) {
+  const options = [
+    { value: "grid" as const, label: "Grid", icon: LayoutGridIcon },
+    { value: "speaker" as const, label: "Speaker", icon: RectangleHorizontalIcon },
+  ]
+  return (
+    <div role="radiogroup" aria-label="Layout" className="flex rounded-lg bg-sidebar p-0.5">
+      {options.map((o) => (
+        <button
+          key={o.value}
+          type="button"
+          role="radio"
+          aria-checked={layout === o.value}
+          onClick={() => onChange(o.value)}
+          className={cn(
+            "flex items-center gap-1.5 rounded-md px-2.5 py-1 text-xs font-semibold",
+            layout === o.value ? "bg-item-selected text-header" : "text-muted-foreground hover:text-interactive-hover"
+          )}
+        >
+          <o.icon className="size-3.5" /> {o.label}
+        </button>
+      ))}
+    </div>
+  )
+}
+
+/**
+ * The call stage. Grid shows everyone equally (screen shares full width); Speaker puts one
+ * feed on the main stage (the pinned one, else a screen share, else whoever spoke last)
+ * with the rest in a strip below.
+ */
+function CallStage({
+  serverId,
+  channelName,
+  roster,
+  sharing,
+}: {
+  serverId: string
+  channelName: string
+  roster: VoiceMember[]
+  sharing: string[]
+}) {
+  const [layout, setLayout] = useState<"grid" | "speaker">("grid")
+  const [pinnedKey, setPinnedKey] = useState<string | null>(null)
+  const [lastSpeaker, setLastSpeaker] = useState<string | null>(null)
+  const speaking = roster.find((p) => p.speaking)?.userId ?? null
+  if (speaking && speaking !== lastSpeaker) setLastSpeaker(speaking)
+
+  const feeds: Feed[] = [
+    ...sharing.map((userId) => ({ key: `screen:${userId}`, kind: "screen" as const, userId })),
+    ...roster.map((person) => ({ key: `user:${person.userId}`, kind: "user" as const, person })),
+  ]
+  const pinned = feeds.find((f) => f.key === pinnedKey) ?? null
+  const togglePin = (key: string) => {
+    if (pinnedKey === key) setPinnedKey(null)
+    else {
+      setPinnedKey(key)
+      setLayout("speaker")
+    }
+  }
+  const main =
+    layout === "speaker"
+      ? (pinned ??
+        feeds.find((f) => f.kind === "screen") ??
+        feeds.find((f) => f.key === `user:${lastSpeaker}`) ??
+        feeds[0])
+      : null
+
+  return (
+    <div className="flex min-h-0 flex-1 flex-col gap-3 p-4">
+      {feeds.length > 1 && (
+        <div className="flex shrink-0 justify-end">
+          <LayoutSwitch layout={layout} onChange={setLayout} />
+        </div>
+      )}
+      {main ? (
+        <>
+          <FeedTile
+            serverId={serverId}
+            feed={main}
+            pinned={main.key === pinnedKey}
+            onPin={() => togglePin(main.key)}
+            className="min-h-0 flex-1"
+          />
+          {feeds.length > 1 && (
+            <ul aria-label="Everyone else" className="scrollbar-thin flex shrink-0 gap-2 overflow-x-auto pb-1">
+              {feeds
+                .filter((f) => f.key !== main.key)
+                .map((feed) => (
+                  <li key={feed.key} className="aspect-video w-44 shrink-0">
+                    <FeedTile
+                      serverId={serverId}
+                      feed={feed}
+                      compact
+                      pinned={feed.key === pinnedKey}
+                      onPin={() => togglePin(feed.key)}
+                      className="size-full"
+                    />
+                  </li>
+                ))}
+            </ul>
+          )}
+        </>
+      ) : (
+        <ul
+          aria-label={`Connected to ${channelName}`}
+          className="scrollbar-thin mx-auto grid w-full max-w-5xl grid-cols-[repeat(auto-fill,minmax(220px,1fr))] content-start gap-3 overflow-y-auto"
+        >
+          {feeds.map((feed) => (
+            <li key={feed.key} className={cn("aspect-video", feed.kind === "screen" && "col-span-full")}>
+              <FeedTile
+                serverId={serverId}
+                feed={feed}
+                pinned={feed.key === pinnedKey}
+                onPin={() => togglePin(feed.key)}
+                className="size-full"
+              />
+            </li>
+          ))}
+        </ul>
+      )}
+    </div>
   )
 }
 
@@ -141,8 +344,18 @@ function ControlButton({
 export function VoiceChannelView({ serverId, channel }: { serverId: string; channel: Channel }) {
   useWatchVoiceChannels([channel.id])
   const roster = useVoicePeople(serverId, channel.id)
-  const { connection, selfMute, selfDeaf, toggleMute, toggleDeaf, leave, camera, screenShare, setCamera, setScreenShare } =
-    useVoiceStore()
+  const {
+    connection,
+    selfMute,
+    selfDeaf,
+    toggleMute,
+    toggleDeaf,
+    leave,
+    camera,
+    screenShare,
+    setCamera,
+    setScreenShare,
+  } = useVoiceStore()
   const { ready, canConnect: canConnectTo, join } = useJoinVoice(serverId)
   const canConnect = canConnectTo(channel.id)
   const here = connection?.channelId === channel.id ? connection : null
@@ -165,30 +378,18 @@ export function VoiceChannelView({ serverId, channel }: { serverId: string; chan
           Audio is off: no voice server is set up for this KTCord yet. You can still see who&apos;s here.
         </p>
       )}
-      <div className="scrollbar-thin min-h-0 flex-1 overflow-y-auto p-4">
+      <div className="flex min-h-0 flex-1 flex-col">
         {roster.length > 0 ? (
-          <ul
-            aria-label={`Connected to ${channel.name}`}
-            className="mx-auto grid max-w-5xl grid-cols-[repeat(auto-fill,minmax(220px,1fr))] gap-3"
-          >
-            {sharing.map((id) => (
-              <li key={`screen-${id}`} className="col-span-full grid">
-                <ScreenTile serverId={serverId} userId={id} />
-              </li>
-            ))}
-            {roster.map((person) => (
-              <li key={person.userId} className="grid">
-                <Tile serverId={serverId} person={person} />
-              </li>
-            ))}
-          </ul>
+          <CallStage serverId={serverId} channelName={channel.name ?? ""} roster={roster} sharing={sharing} />
         ) : (
-          <div className="flex h-full flex-col items-center justify-center gap-3 text-center">
+          <div className="flex flex-1 flex-col items-center justify-center gap-3 p-4 text-center">
             <span className="flex size-20 items-center justify-center rounded-full bg-sidebar">
               <Volume2Icon className="size-10 text-muted-foreground" />
             </span>
             <h2 className="text-2xl font-bold text-header">{channel.name}</h2>
-            <p className="max-w-sm text-muted-foreground">No one is here yet. Hop in and others will see you&apos;re around.</p>
+            <p className="max-w-sm text-muted-foreground">
+              No one is here yet. Hop in and others will see you&apos;re around.
+            </p>
           </div>
         )}
       </div>
@@ -197,22 +398,12 @@ export function VoiceChannelView({ serverId, channel }: { serverId: string; chan
         {here ? (
           <>
             <ControlButton
-              label={
-                here.canSpeak === false
-                  ? "You don't have permission to speak here"
-                  : selfMute
-                    ? "Unmute"
-                    : "Mute"
-              }
+              label={here.canSpeak === false ? "You don't have permission to speak here" : selfMute ? "Unmute" : "Mute"}
               active={selfMute || here.canSpeak === false}
               disabled={here.canSpeak === false}
               onClick={toggleMute}
             >
-              {selfMute || here.canSpeak === false ? (
-                <MicOffIcon className="size-5" />
-              ) : (
-                <MicIcon className="size-5" />
-              )}
+              {selfMute || here.canSpeak === false ? <MicOffIcon className="size-5" /> : <MicIcon className="size-5" />}
             </ControlButton>
             <ControlButton label={selfDeaf ? "Undeafen" : "Deafen"} active={selfDeaf} onClick={toggleDeaf}>
               {selfDeaf ? <HeadphoneOffIcon className="size-5" /> : <HeadphonesIcon className="size-5" />}

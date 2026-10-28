@@ -3,7 +3,7 @@
 import { PlusIcon, SmilePlusIcon, XIcon } from "lucide-react"
 import { useRouter } from "next/navigation"
 import { useState } from "react"
-import { toast } from "sonner"
+import { toast } from "@/lib/toast"
 
 import { Emoji } from "@/components/chat/emoji"
 import { EmojiPickerPopover } from "@/components/chat/emoji-picker"

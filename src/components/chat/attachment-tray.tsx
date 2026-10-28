@@ -1,7 +1,7 @@
 "use client"
 
 import { EyeIcon, EyeOffIcon, FileIcon, TrashIcon } from "lucide-react"
-import { toast } from "sonner"
+import { toast } from "@/lib/toast"
 
 import { Tooltip, TooltipContent, TooltipTrigger } from "@/components/ui/tooltip"
 import { formatBytes, MAX_ATTACHMENTS, MAX_FILE_BYTES } from "@/lib/api/attachments"

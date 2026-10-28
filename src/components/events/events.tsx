@@ -3,7 +3,7 @@
 import { format, formatDistanceToNowStrict } from "date-fns"
 import { CalendarIcon, MapPinIcon, PlusIcon, StarIcon, Volume2Icon } from "lucide-react"
 import { useEffect, useState } from "react"
-import { toast } from "sonner"
+import { toast } from "@/lib/toast"
 
 import { Button } from "@/components/ui/button"
 import { DialogDescription, DialogHeader, DialogTitle } from "@/components/ui/dialog"
@@ -41,11 +41,11 @@ export function EventsRow({ serverId }: { serverId: string }) {
   const events = upcoming(data ?? [], now)
   const live = events.find((e) => isLive(e, now))
   return (
-    <div className="border-b border-border/60 px-2 py-2">
+    <div className="border-b border-border/60 px-2.5 py-2.5">
       <button
         type="button"
         onClick={() => openDialog({ kind: "events", serverId })}
-        className="flex h-8 w-full items-center gap-2 rounded-md px-2 text-left text-muted-foreground hover:bg-item-hover hover:text-interactive-hover"
+        className="flex h-9 w-full items-center gap-2 rounded-md px-2.5 text-left text-muted-foreground hover:bg-item-hover hover:text-interactive-hover"
       >
         <CalendarIcon className="size-5 shrink-0" />
         <span className="min-w-0 flex-1 truncate font-medium">

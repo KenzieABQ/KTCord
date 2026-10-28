@@ -13,7 +13,7 @@ import {
   type Ref,
 } from "react"
 import { Virtuoso, type VirtuosoHandle } from "react-virtuoso"
-import { toast } from "sonner"
+import { toast } from "@/lib/toast"
 
 import { MessageFeedSkeleton } from "@/components/layout/skeletons"
 import {

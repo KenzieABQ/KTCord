@@ -33,7 +33,7 @@ function DmRow({ dm, active }: { dm: DmChannel; active: boolean }) {
       href={`/channels/me/${dm.id}`}
       aria-current={active ? "page" : undefined}
       className={cn(
-        "group relative flex h-11 items-center gap-3 rounded-md px-2 transition-colors",
+        "group relative mb-0.5 flex h-12 items-center gap-3 rounded-md px-2.5 transition-colors",
         active
           ? "bg-item-selected text-interactive-active"
           : unread

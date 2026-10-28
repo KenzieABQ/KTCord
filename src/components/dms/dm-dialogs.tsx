@@ -2,7 +2,7 @@
 
 import { SearchIcon } from "lucide-react"
 import { useState } from "react"
-import { toast } from "sonner"
+import { toast } from "@/lib/toast"
 
 import { UserAvatar } from "@/components/profile/user-avatar"
 import { Button } from "@/components/ui/button"

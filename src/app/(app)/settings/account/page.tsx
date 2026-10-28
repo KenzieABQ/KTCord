@@ -2,7 +2,7 @@
 
 import Link from "next/link"
 import { useState } from "react"
-import { toast } from "sonner"
+import { toast } from "@/lib/toast"
 
 import { UserAvatar } from "@/components/profile/user-avatar"
 import { SettingsSection } from "@/components/settings/settings-layout"

@@ -1,6 +1,6 @@
 "use client"
 
-import { toast } from "sonner"
+import { toast } from "@/lib/toast"
 
 import { SettingsSection, SettingsToggle } from "@/components/settings/settings-layout"
 import { Button } from "@/components/ui/button"
@@ -27,7 +27,14 @@ export default function NotificationSettingsPage() {
     if (permission === "granted") {
       new Notification("KTCord", { body: "This is what notifications look like.", tag: "ktcord-test" })
     } else {
-      toast("KTCord", { description: "This is what notifications look like." })
+      toast.dm({
+        authorId: "ktcord",
+        author: "KTCord",
+        avatarUrl: null,
+        place: "Direct Message",
+        preview: "This is what a new direct message looks like.",
+        onOpen: () => {},
+      })
     }
     if (prefs.notificationSound) playNotificationSound()
   }
@@ -54,8 +61,8 @@ export default function NotificationSettingsPage() {
       />
       <SettingsToggle
         id="in-app-toasts"
-        label="In-App Message Toasts"
-        description="Show a pop-up for new messages in other channels while KTCord is open."
+        label="Direct Message Pop-ups"
+        description="Show a card when someone sends you a direct message while KTCord is open."
         checked={prefs.inAppToasts}
         onCheckedChange={(inAppToasts) => prefs.set({ inAppToasts })}
       />

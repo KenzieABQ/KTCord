@@ -3,7 +3,7 @@
 import { useQueries, useQueryClient } from "@tanstack/react-query"
 import { ForwardIcon, HashIcon, SearchIcon } from "lucide-react"
 import { useMemo, useState } from "react"
-import { toast } from "sonner"
+import { toast } from "@/lib/toast"
 
 import { DmAvatar } from "@/components/dms/dm-avatar"
 import { Button } from "@/components/ui/button"

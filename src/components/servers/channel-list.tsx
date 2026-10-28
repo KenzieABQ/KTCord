@@ -30,7 +30,7 @@ import {
 import Link from "next/link"
 import { useParams, useRouter } from "next/navigation"
 import { useState, type ReactNode } from "react"
-import { toast } from "sonner"
+import { toast } from "@/lib/toast"
 
 import {
   ContextMenu,
@@ -164,7 +164,7 @@ function ChannelRow({
           }}
           aria-current={active ? "page" : undefined}
           className={cn(
-            "group relative mx-2 flex h-8 items-center gap-1.5 rounded-md px-2 transition-colors",
+            "group relative mx-2.5 mb-0.5 flex h-9 items-center gap-2 rounded-md px-2.5 transition-colors",
             nested ? "ml-2" : "",
             muted && !active && "opacity-40",
             active
@@ -175,7 +175,7 @@ function ChannelRow({
           )}
         >
           {unread && (
-            <span aria-hidden className="absolute top-1/2 -left-2 h-2 w-1 -translate-y-1/2 rounded-r-full bg-header" />
+            <span aria-hidden className="absolute top-1/2 -left-2.5 h-2 w-1 -translate-y-1/2 rounded-r-full bg-header" />
           )}
           <span className="relative shrink-0">
             <ChannelIcon type={channel.type} className="size-5 opacity-70" />
@@ -270,7 +270,7 @@ function CategoryRow({
   return (
     <ContextMenu>
       <ContextMenuTrigger asChild>
-        <div className="group flex items-center pt-4 pr-2 pb-1 pl-1">
+        <div className="group flex items-center pt-5 pr-3 pb-1.5 pl-2">
           <button
             type="button"
             onClick={() => toggleCategory(category.id)}
@@ -417,7 +417,7 @@ export function ChannelList({
                   canManage={canManage}
                 />
               ) : (
-                <div className={channel === visible[0] ? "pt-2" : undefined}>
+                <div className={channel === visible[0] ? "pt-3" : undefined}>
                   <ChannelRow
                     serverId={serverId}
                     channel={channel}

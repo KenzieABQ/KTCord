@@ -3,7 +3,7 @@
 import { CrownIcon, LogOutIcon, UserPlusIcon, UsersIcon, UserSquareIcon } from "lucide-react"
 import { useParams, useRouter } from "next/navigation"
 import { useCallback, useEffect, useRef, useState } from "react"
-import { toast } from "sonner"
+import { toast } from "@/lib/toast"
 
 import { PinsPopover } from "@/components/chat/channel-popovers"
 import { MobileSearchButton } from "@/components/chat/channel-view"

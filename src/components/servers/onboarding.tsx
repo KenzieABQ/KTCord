@@ -4,9 +4,10 @@ import { useQueryClient } from "@tanstack/react-query"
 import { ScrollTextIcon } from "lucide-react"
 import { useRouter } from "next/navigation"
 import { useEffect, useState } from "react"
-import { toast } from "sonner"
+import { toast } from "@/lib/toast"
 
 import { Emoji } from "@/components/chat/emoji"
+import { AnimatedImage } from "@/components/ui/animated-image"
 import { Button } from "@/components/ui/button"
 import { Checkbox } from "@/components/ui/checkbox"
 import { DialogDescription, DialogHeader, DialogTitle } from "@/components/ui/dialog"
@@ -103,7 +104,12 @@ export function WelcomeDialog({ serverId }: { serverId: string }) {
 
   return (
     <div className="flex flex-col items-center gap-4 text-center">
-      <span className="flex size-20 items-center justify-center overflow-hidden rounded-3xl bg-primary text-2xl font-semibold text-white">
+      {server.banner_url && (
+        <div className="-mx-6 -mt-6 -mb-14 h-36 w-[calc(100%+3rem)] overflow-hidden rounded-t-xl">
+          <AnimatedImage src={server.banner_url} animate="always" />
+        </div>
+      )}
+      <span className="relative flex size-20 ring-4 ring-chat items-center justify-center overflow-hidden rounded-3xl bg-primary text-2xl font-semibold text-white">
         <ServerIcon name={server.name} iconUrl={server.icon_url} />
       </span>
       <DialogHeader className="items-center">

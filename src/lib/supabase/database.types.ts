@@ -1146,6 +1146,7 @@ export type Database = {
       }
       servers: {
         Row: {
+          banner_url: string | null
           created_at: string
           description: string | null
           icon_url: string | null
@@ -1160,6 +1161,7 @@ export type Database = {
           welcome_enabled: boolean
         }
         Insert: {
+          banner_url?: string | null
           created_at?: string
           description?: string | null
           icon_url?: string | null
@@ -1174,6 +1176,7 @@ export type Database = {
           welcome_enabled?: boolean
         }
         Update: {
+          banner_url?: string | null
           created_at?: string
           description?: string | null
           icon_url?: string | null

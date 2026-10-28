@@ -2,7 +2,7 @@
 
 import { CheckIcon, CompassIcon, MessageCircleIcon, MoreVerticalIcon, PlusIcon, SearchIcon, UsersIcon, XIcon } from "lucide-react"
 import { useMemo, useState, type ReactNode } from "react"
-import { toast } from "sonner"
+import { toast } from "@/lib/toast"
 
 import { KtcordLogo } from "@/components/brand/logo"
 import { ViewHeader } from "@/components/layout/view-header"

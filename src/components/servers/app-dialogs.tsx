@@ -1,7 +1,7 @@
 "use client"
 
 import { useRouter } from "next/navigation"
-import { toast } from "sonner"
+import { toast } from "@/lib/toast"
 
 import { CreateThreadDialog } from "@/components/chat/create-thread-dialog"
 import { ForwardDialog } from "@/components/chat/forward-dialog"

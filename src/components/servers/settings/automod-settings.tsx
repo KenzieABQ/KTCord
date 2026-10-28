@@ -3,7 +3,7 @@
 import { AtSignIcon, MessageSquareXIcon, PlusIcon } from "lucide-react"
 import { useParams } from "next/navigation"
 import { useState, type ReactNode } from "react"
-import { toast } from "sonner"
+import { toast } from "@/lib/toast"
 
 import { SettingsSection } from "@/components/settings/settings-layout"
 import {

@@ -2,7 +2,7 @@
 
 import { formatDistanceToNowStrict } from "date-fns"
 import { useEffect, useRef, useState } from "react"
-import { toast } from "sonner"
+import { toast } from "@/lib/toast"
 
 import { Button } from "@/components/ui/button"
 import { DialogDescription, DialogHeader, DialogTitle } from "@/components/ui/dialog"
