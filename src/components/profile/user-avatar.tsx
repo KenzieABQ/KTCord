@@ -1,9 +1,11 @@
 import { AnimatedImage, isAnimated } from "@/components/ui/animated-image"
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar"
+import type { Decoration } from "@/lib/cosmetics"
 import { initialsOf } from "@/lib/profile-display"
 import { cn } from "@/lib/utils"
 
-import { StatusDot, type PresenceStatus, type Surface } from "./status-dot"
+import { AvatarDecoration } from "./cosmetics"
+import { StatusDot, SURFACE_COLOR, type PresenceStatus, type Surface } from "./status-dot"
 
 const FALLBACK_COLORS = ["#5865f2", "#3ba55c", "#faa61a", "#ed4245", "#eb459e", "#9b59b6"]
 
@@ -14,7 +16,7 @@ export function fallbackColor(seed: string) {
   return FALLBACK_COLORS[Math.abs(hash) % FALLBACK_COLORS.length]
 }
 
-/** Status dot sizes: its diameter, the see-through gap around it, and how far it sits past the edge. */
+/** Status dot sizes: its diameter, the outline around it, and how far it sits past the edge. */
 const DOT = {
   md: { size: 14, gap: 3, offset: -2 },
   lg: { size: 20, gap: 5, offset: 2 },
@@ -28,17 +30,24 @@ export function UserAvatar({
   className,
   statusSize = "md",
   animate = "hover",
+  surface,
+  ringColor,
+  decoration,
 }: {
   userId: string
   name: string
   src?: string | null
   status?: PresenceStatus
-  /** Ignored: the status cutout is transparent, whatever is behind it. */
+  /** What the avatar sits on: the status dot's outline takes that color. */
   surface?: Surface
+  /** An exact outline color instead (a themed profile card). */
+  ringColor?: string
   className?: string
   statusSize?: keyof typeof DOT
-  /** GIF avatars: play on hover (default, as in lists) or always (profile cards). */
+  /** GIF avatars and decorations: play on hover (default, as in lists) or always (profile cards). */
   animate?: "hover" | "always"
+  /** An avatar decoration from the user's cosmetics. */
+  decoration?: Decoration | null
 }) {
   const animated = isAnimated(src)
   const dot = DOT[statusSize]
@@ -68,6 +77,24 @@ export function UserAvatar({
         <span className="absolute inset-0 overflow-hidden rounded-full" style={masked}>
           <AnimatedImage src={src} animate={animate} />
         </span>
+      )}
+      <AvatarDecoration kind={decoration} motion={animate} />
+      {status && (
+        // The outline: a disc in the background color filling the cutout, so the dot reads
+        // as a fully ringed badge (its idle/DND/offline shapes show that color through).
+        <span
+          aria-hidden
+          className="absolute rounded-full"
+          style={{
+            width: dot.size + dot.gap * 2,
+            height: dot.size + dot.gap * 2,
+            right: dot.offset - dot.gap,
+            bottom: dot.offset - dot.gap,
+            backgroundColor: ringColor ?? (surface ? SURFACE_COLOR[surface] : "var(--sidebar)"),
+            // A hovered or selected row's tint, layered on top (see --ring-tint in globals.css).
+            backgroundImage: ringColor ? undefined : "linear-gradient(var(--ring-tint, transparent), var(--ring-tint, transparent))",
+          }}
+        />
       )}
       {status && (
         <StatusDot

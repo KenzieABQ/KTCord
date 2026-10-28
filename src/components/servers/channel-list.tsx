@@ -31,7 +31,7 @@ import { useQueryClient } from "@tanstack/react-query"
 import { prefetchMessages } from "@/lib/queries/messages"
 import Link from "next/link"
 import { useParams, useRouter } from "next/navigation"
-import { useState, type ReactNode } from "react"
+import { useEffect, useRef, useState, type ReactNode } from "react"
 import { toast } from "@/lib/toast"
 
 import {
@@ -115,6 +115,16 @@ function Sortable({
     id,
     disabled,
   })
+  // The click that ends a drag lands on the row's link: swallow it so dropping doesn't open the channel.
+  const justDragged = useRef(false)
+  useEffect(() => {
+    if (isDragging) justDragged.current = true
+    else if (justDragged.current) {
+      const timer = setTimeout(() => (justDragged.current = false), 0)
+      return () => clearTimeout(timer)
+    }
+  }, [isDragging])
+
   return (
     <div
       ref={setNodeRef}
@@ -125,6 +135,15 @@ function Sortable({
       // Keep the row a normal link/button for screen readers; dnd-kit adds role="button".
       role={undefined}
       tabIndex={undefined}
+      // Rows are links, which the browser drags natively after a few pixels (before dnd-kit
+      // kicks in at 8); dropping that drag on the page makes the browser load the link,
+      // reloading the whole app.
+      onDragStart={(e) => e.preventDefault()}
+      onClickCapture={(e) => {
+        if (!justDragged.current) return
+        e.preventDefault()
+        e.stopPropagation()
+      }}
     >
       {children}
     </div>

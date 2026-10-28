@@ -15,6 +15,7 @@ import { useUsernameAvailability } from "@/hooks/use-username-availability"
 import { errorMessage } from "@/lib/api/errors"
 import type { Profile } from "@/lib/api/profiles"
 import { uploadAvatar, uploadBanner } from "@/lib/api/storage"
+import { compactCosmetics, parseCosmetics, sameCosmetics, type Cosmetics } from "@/lib/cosmetics"
 import { readFileAsDataUrl } from "@/lib/image"
 import { BANNER_PRESETS, displayNameOf, THEME_PRESETS } from "@/lib/profile-display"
 import { useUpdateMyProfile } from "@/lib/queries/profiles"
@@ -22,6 +23,7 @@ import { cn } from "@/lib/utils"
 import { profileSchema, type ProfileValues } from "@/lib/validation"
 
 import { AvatarCropDialog } from "./avatar-crop-dialog"
+import { CosmeticsEditor } from "./cosmetics-editor"
 import { ProfileCard } from "./profile-card"
 import { Tooltip, TooltipContent, TooltipTrigger } from "@/components/ui/tooltip"
 
@@ -86,6 +88,7 @@ export function ProfileEditor({
   const [crop, setCrop] = useState<{ src: string; target: "avatar" | "banner" } | null>(null)
   const [avatar, setAvatar] = useState<ImageChange>({ kind: "unchanged" })
   const [banner, setBanner] = useState<ImageChange>({ kind: "unchanged" })
+  const [cosmetics, setCosmetics] = useState<Cosmetics>(() => parseCosmetics(profile.cosmetics))
 
   const form = useForm<ProfileValues>({
     resolver: zodResolver(profileSchema),
@@ -156,10 +159,12 @@ export function ProfileEditor({
         theme_accent: theme ? next.themeAccent : null,
         bio: next.bio,
         avatar_url: avatarUrl,
+        cosmetics: compactCosmetics(cosmetics),
         ...(markOnboarded && { onboarded_at: new Date().toISOString() }),
       })
       setAvatar({ kind: "unchanged" })
       setBanner({ kind: "unchanged" })
+      setCosmetics(parseCosmetics(saved.cosmetics))
       form.reset(valuesOf(saved))
       if (!markOnboarded) toast.success("Profile saved.")
       onSaved?.(saved)
@@ -172,7 +177,8 @@ export function ProfileEditor({
     avatar.kind === "new" ? avatar.previewUrl : avatar.kind === "removed" ? null : profile.avatar_url
   const previewBanner =
     banner.kind === "new" ? banner.previewUrl : banner.kind === "removed" ? null : profile.banner_url
-  const dirty = isDirty || avatar.kind !== "unchanged" || banner.kind !== "unchanged"
+  const cosmeticsChanged = !sameCosmetics(cosmetics, parseCosmetics(profile.cosmetics))
+  const dirty = isDirty || avatar.kind !== "unchanged" || banner.kind !== "unchanged" || cosmeticsChanged
   const validHex = (v: string | undefined) => Boolean(v && /^#[0-9a-f]{6}$/i.test(v))
 
   return (
@@ -369,6 +375,16 @@ export function ProfileEditor({
 
         <div className="h-px bg-border" />
 
+        <CosmeticsEditor
+          value={cosmetics}
+          onChange={setCosmetics}
+          userId={profile.id}
+          name={displayNameOf({ display_name: values.displayName, username: values.username })}
+          avatarUrl={previewAvatar}
+        />
+
+        <div className="h-px bg-border" />
+
         <Field data-invalid={Boolean(errors.bio)}>
           <FieldLabel htmlFor="bio" className={labelClass}>
             About Me
@@ -401,6 +417,7 @@ export function ProfileEditor({
               form.reset()
               setAvatar({ kind: "unchanged" })
               setBanner({ kind: "unchanged" })
+              setCosmetics(parseCosmetics(profile.cosmetics))
             }}
             onSave={() => {
               if (availability === "taken") form.setError("username", { message: "That username is taken" })
@@ -424,6 +441,7 @@ export function ProfileEditor({
             bannerUrl: previewBanner,
             themePrimary: themed && validHex(values.themePrimary) ? values.themePrimary : null,
             themeAccent: themed && validHex(values.themeAccent) ? values.themeAccent : null,
+            cosmetics,
             pronouns: values.pronouns || null,
             bio: values.bio ?? "",
             createdAt: profile.created_at,

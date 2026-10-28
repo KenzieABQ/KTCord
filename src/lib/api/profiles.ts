@@ -13,6 +13,7 @@ export type ProfileUpdate = Pick<
   | "banner_url"
   | "theme_primary"
   | "theme_accent"
+  | "cosmetics"
   | "pronouns"
   | "bio"
   | "custom_status_text"

@@ -4,11 +4,13 @@ import { ClockIcon, CrownIcon } from "@/components/icons"
 import { useMemo } from "react"
 
 import { MemberListSkeleton } from "@/components/layout/skeletons"
+import { NameplateLayer, StyledName } from "@/components/profile/cosmetics"
 import { UserAvatar } from "@/components/profile/user-avatar"
 import { UserPopover } from "@/components/profile/user-popover"
 import { ContextMenu, ContextMenuContent, ContextMenuTrigger } from "@/components/ui/context-menu"
 import { Tooltip, TooltipContent, TooltipTrigger } from "@/components/ui/tooltip"
 import type { Member, Role } from "@/lib/api/members"
+import { parseCosmetics } from "@/lib/cosmetics"
 import { activeCustomStatus } from "@/lib/custom-status"
 import { memberColor, memberDisplayName, memberHoistRole } from "@/lib/members"
 import { isTimedOut } from "@/lib/moderation"
@@ -35,6 +37,7 @@ function MemberRow({
 }) {
   const name = memberDisplayName(member)
   const custom = activeCustomStatus(member.profile)
+  const cosmetics = parseCosmetics(member.profile.cosmetics)
   const offline = !status
 
   return (
@@ -44,16 +47,18 @@ function MemberRow({
           <button
             type="button"
             className={cn(
-              "group mx-2 flex h-11 w-[calc(100%-1rem)] items-center gap-3 rounded-md px-2 text-left hover:bg-item-hover hover:opacity-100 data-[state=open]:bg-item-selected data-[state=open]:opacity-100",
+              "group relative isolate mx-2 flex h-11 w-[calc(100%-1rem)] items-center gap-3 overflow-hidden rounded-md px-2 text-left hover:bg-item-hover hover:opacity-100 data-[state=open]:bg-item-selected data-[state=open]:opacity-100",
               offline && "opacity-40"
             )}
           >
+            <NameplateLayer kind={cosmetics.nameplate} />
             <UserAvatar
               userId={member.user_id}
               name={name}
               src={member.profile.avatar_url}
               status={status}
               surface="sidebar"
+              decoration={cosmetics.decoration}
               className="size-8"
             />
             <span className="min-w-0 flex-1 leading-tight">
@@ -62,7 +67,7 @@ function MemberRow({
                   className="truncate text-[15px] font-medium text-muted-foreground group-hover:text-interactive-hover"
                   style={color ? { color } : undefined}
                 >
-                  {name}
+                  <StyledName cosmetics={cosmetics}>{name}</StyledName>
                 </span>
                 {isOwner && (
                   <Tooltip>

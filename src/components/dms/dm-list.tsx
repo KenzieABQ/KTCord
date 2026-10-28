@@ -4,6 +4,7 @@ import { useQueryClient } from "@tanstack/react-query"
 
 import { CopyIcon, EyeIcon, PhoneIcon, VideoIcon, XIcon } from "@/components/icons"
 import { UserContactItems, UserCopyItems } from "@/components/members/user-actions"
+import { NameplateLayer, StyledName } from "@/components/profile/cosmetics"
 import {
   ContextMenu,
   ContextMenuContent,
@@ -20,6 +21,7 @@ import { useParams } from "next/navigation"
 
 import { Skeleton } from "@/components/ui/skeleton"
 import { dmTitle, type DmChannel } from "@/lib/api/dms"
+import { parseCosmetics } from "@/lib/cosmetics"
 import { activeCustomStatus } from "@/lib/custom-status"
 import { useCloseDm, useVisibleDms } from "@/lib/queries/social"
 import { useUserId } from "@/lib/stores/auth-store"
@@ -38,6 +40,7 @@ function DmRow({ dm, active }: { dm: DmChannel; active: boolean }) {
   const unread = rawUnread && !active
   const other = dm.type === "dm" ? dm.recipients.find((r) => r.user_id !== userId) : undefined
   const custom = other ? activeCustomStatus(other.profile) : null
+  const cosmetics = other ? parseCosmetics(other.profile.cosmetics) : null
   const subtitle =
     dm.type === "group_dm"
       ? `${dm.recipients.length} Members`
@@ -53,7 +56,7 @@ function DmRow({ dm, active }: { dm: DmChannel; active: boolean }) {
           onPointerEnter={() => prefetchMessages(queryClient, dm.id)}
           aria-current={active ? "page" : undefined}
           className={cn(
-            "group relative mb-0.5 flex h-12 items-center gap-3 rounded-md px-2.5 transition-colors",
+            "group relative isolate mb-0.5 flex h-12 items-center gap-3 overflow-hidden rounded-md px-2.5 transition-colors",
             active
               ? "bg-item-selected text-interactive-active"
               : unread
@@ -61,8 +64,9 @@ function DmRow({ dm, active }: { dm: DmChannel; active: boolean }) {
                 : "text-muted-foreground hover:bg-item-hover hover:text-interactive-hover"
           )}
         >
+          <NameplateLayer kind={cosmetics?.nameplate} />
           <span className="relative shrink-0">
-            <DmAvatar dm={dm} />
+            <DmAvatar dm={dm} decorated />
             {inCall && (
               <span
                 aria-label="Call in progress"
@@ -74,7 +78,7 @@ function DmRow({ dm, active }: { dm: DmChannel; active: boolean }) {
           </span>
           <span className="min-w-0 flex-1 leading-tight">
             <span className={cn("block truncate text-[15px]", unread ? "font-semibold" : "font-medium")}>
-              {dmTitle(dm, userId)}
+              <StyledName cosmetics={cosmetics}>{dmTitle(dm, userId)}</StyledName>
             </span>
             {subtitle && <span className="block truncate text-xs text-muted-foreground">{subtitle}</span>}
           </span>

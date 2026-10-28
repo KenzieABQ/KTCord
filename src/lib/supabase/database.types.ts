@@ -807,6 +807,7 @@ export type Database = {
           banner_color: string
           banner_url: string | null
           bio: string
+          cosmetics: Json
           created_at: string
           custom_status_emoji: string | null
           custom_status_expires_at: string | null
@@ -825,6 +826,7 @@ export type Database = {
           banner_color?: string
           banner_url?: string | null
           bio?: string
+          cosmetics?: Json
           created_at?: string
           custom_status_emoji?: string | null
           custom_status_expires_at?: string | null
@@ -843,6 +845,7 @@ export type Database = {
           banner_color?: string
           banner_url?: string | null
           bio?: string
+          cosmetics?: Json
           created_at?: string
           custom_status_emoji?: string | null
           custom_status_expires_at?: string | null
@@ -1717,6 +1720,7 @@ export type Database = {
       }
       username_available: { Args: { p_username: string }; Returns: boolean }
       username_of: { Args: { p_user: string }; Returns: string }
+      valid_cosmetics: { Args: { c: Json }; Returns: boolean }
       voice_disconnect_member: {
         Args: { p_server: string; p_user: string }
         Returns: undefined

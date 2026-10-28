@@ -5,6 +5,7 @@ import { RotateCwIcon } from "@/components/icons"
 import { memo, useMemo, useState } from "react"
 import { toast } from "@/lib/toast"
 
+import { StyledName } from "@/components/profile/cosmetics"
 import { UserAvatar } from "@/components/profile/user-avatar"
 import { UserPopover } from "@/components/profile/user-popover"
 import { ContextMenu, ContextMenuTrigger } from "@/components/ui/context-menu"
@@ -307,6 +308,7 @@ export const MessageItem = memo(function MessageItem({
                       userId={message.author_id ?? "deleted"}
                       name={author.name}
                       src={author.avatarUrl}
+                      decoration={author.cosmetics?.decoration}
                       className="size-10"
                     />
                   </button>
@@ -317,9 +319,10 @@ export const MessageItem = memo(function MessageItem({
                       type="button"
                       id={`message-${message.id}-author`}
                       className="truncate font-medium text-header hover:underline"
-                      style={author.color ? { color: author.color } : undefined}
                     >
-                      {author.name}
+                      <StyledName cosmetics={author.cosmetics} color={author.color}>
+                        {author.name}
+                      </StyledName>
                     </button>
                   </UserPopover>
                   <Timestamp iso={message.created_at} />

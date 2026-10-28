@@ -18,7 +18,7 @@ export type DmChannel = Tables<"channels"> & {
 }
 
 const DM_SELECT =
-  "*, recipients:channel_recipients(user_id, hidden, joined_at, profile:profiles!inner(id, username, display_name, avatar_url, banner_color, banner_url, theme_primary, theme_accent, pronouns, bio, custom_status_text, custom_status_emoji, custom_status_expires_at, created_at)), activity:channel_activity(last_message_at)"
+  "*, recipients:channel_recipients(user_id, hidden, joined_at, profile:profiles!inner(id, username, display_name, avatar_url, banner_color, banner_url, theme_primary, theme_accent, cosmetics, pronouns, bio, custom_status_text, custom_status_emoji, custom_status_expires_at, created_at)), activity:channel_activity(last_message_at)"
 
 type DmRow = Tables<"channels"> & {
   recipients: DmRecipient[]

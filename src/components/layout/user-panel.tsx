@@ -19,6 +19,7 @@ import { toast } from "@/lib/toast"
 import { CustomStatusDialog } from "@/components/profile/custom-status-dialog"
 import { ProfileCard, profileThemeFields } from "@/components/profile/profile-card"
 import { StatusDot, type PresenceStatus } from "@/components/profile/status-dot"
+import { StyledName } from "@/components/profile/cosmetics"
 import { UserAvatar } from "@/components/profile/user-avatar"
 import {
   DropdownMenu,
@@ -33,6 +34,7 @@ import { Tooltip, TooltipContent, TooltipTrigger } from "@/components/ui/tooltip
 import { signOut } from "@/lib/api/auth"
 import { errorMessage } from "@/lib/api/errors"
 import type { ChosenStatus } from "@/lib/api/settings"
+import { parseCosmetics } from "@/lib/cosmetics"
 import { activeCustomStatus } from "@/lib/custom-status"
 import { displayNameOf } from "@/lib/profile-display"
 import { useMyProfile } from "@/lib/queries/profiles"
@@ -105,6 +107,7 @@ export function UserPanel() {
 
   const name = displayNameOf(profile)
   const custom = activeCustomStatus(profile)
+  const cosmetics = parseCosmetics(profile.cosmetics)
   const dot: PresenceStatus = live ?? "offline"
   const statusLine = custom
     ? [custom.emoji, custom.text].filter(Boolean).join(" ")
@@ -116,9 +119,18 @@ export function UserPanel() {
     <div className="flex h-14 shrink-0 items-center gap-1 px-2">
       <Popover open={cardOpen} onOpenChange={setCardOpen}>
         <PopoverTrigger className="group flex min-w-0 flex-1 items-center gap-2 rounded-md py-1 pr-1 pl-0.5 text-left outline-none hover:bg-item-hover focus-visible:ring-2 focus-visible:ring-ring data-[state=open]:bg-item-hover">
-          <UserAvatar userId={profile.id} name={name} src={profile.avatar_url} status={dot} surface="card" />
+          <UserAvatar
+            userId={profile.id}
+            name={name}
+            src={profile.avatar_url}
+            status={dot}
+            surface="card"
+            decoration={cosmetics.decoration}
+          />
           <span className="min-w-0 leading-tight">
-            <span className="block truncate text-sm font-semibold text-header">{name}</span>
+            <span className="block truncate text-sm font-semibold text-header">
+              <StyledName cosmetics={cosmetics}>{name}</StyledName>
+            </span>
             <span className="relative block h-4 overflow-hidden text-xs text-muted-foreground">
               <span className="block truncate transition-transform group-hover:-translate-y-4">{statusLine}</span>
               <span className="absolute inset-x-0 top-4 block truncate transition-transform group-hover:-translate-y-4">

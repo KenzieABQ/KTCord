@@ -5,6 +5,7 @@ import { UsersIcon } from "@/components/icons"
 import type { Surface } from "@/components/profile/status-dot"
 import { fallbackColor, UserAvatar } from "@/components/profile/user-avatar"
 import { dmTitle, type DmChannel } from "@/lib/api/dms"
+import { parseCosmetics } from "@/lib/cosmetics"
 import { useUserId } from "@/lib/stores/auth-store"
 import { usePresenceStatus } from "@/lib/stores/presence-store"
 import { cn } from "@/lib/utils"
@@ -15,11 +16,14 @@ export function DmAvatar({
   className,
   surface = "sidebar",
   showStatus = true,
+  decorated = false,
 }: {
   dm: DmChannel
   className?: string
   surface?: Surface
   showStatus?: boolean
+  /** Show the other person's avatar decoration. */
+  decorated?: boolean
 }) {
   const userId = useUserId()
   const other = dm.type === "dm" ? dm.recipients.find((r) => r.user_id !== userId) : undefined
@@ -33,6 +37,7 @@ export function DmAvatar({
         src={other.profile.avatar_url}
         status={showStatus ? status : undefined}
         surface={surface}
+        decoration={decorated ? parseCosmetics(other.profile.cosmetics).decoration : undefined}
         className={cn("size-8", className)}
       />
     )

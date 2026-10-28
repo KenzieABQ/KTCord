@@ -4,8 +4,17 @@ import { cn } from "@/lib/utils"
 
 export type PresenceStatus = "online" | "idle" | "dnd" | "offline"
 
-/** Kept for callers that still say where the dot sits; the cutout is truly transparent now. */
+/** Where an avatar sits, so its status dot's outline matches the background. */
 export type Surface = "rail" | "sidebar" | "chat" | "card" | "floating" | "composer"
+
+export const SURFACE_COLOR: Record<Surface, string> = {
+  rail: "var(--rail)",
+  sidebar: "var(--sidebar)",
+  chat: "var(--chat)",
+  card: "var(--card)",
+  floating: "var(--floating)",
+  composer: "var(--composer)",
+}
 
 export const STATUS_LABEL: Record<PresenceStatus, string> = {
   online: "Online",
@@ -23,7 +32,7 @@ const STATUS_FILL: Record<PresenceStatus, string> = {
 
 /**
  * Presence dot with Discord-style shapes: a crescent for idle, a bar for DND, a ring for
- * offline. The shapes are cut out (see-through), not painted in a background color.
+ * offline. The shapes are cut out, so whatever is behind (an avatar's outline) shows through.
  */
 export function StatusDot({
   status,

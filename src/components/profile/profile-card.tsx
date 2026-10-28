@@ -1,9 +1,11 @@
 import { format } from "date-fns"
 import type { CSSProperties, ReactNode } from "react"
 
+import { parseCosmetics, type Cosmetics } from "@/lib/cosmetics"
 import { themeIsLight } from "@/lib/profile-display"
 import { cn } from "@/lib/utils"
 
+import { ProfileEffectLayer, StyledName } from "./cosmetics"
 import type { PresenceStatus } from "./status-dot"
 import { UserAvatar } from "./user-avatar"
 
@@ -17,6 +19,8 @@ export type ProfileCardData = {
   /** Profile theme: the card is a gradient from primary (top) to accent (bottom). */
   themePrimary?: string | null
   themeAccent?: string | null
+  /** Name style, avatar decoration and profile effect. */
+  cosmetics?: Cosmetics | null
   pronouns?: string | null
   bio: string
   createdAt?: string
@@ -59,7 +63,7 @@ export function ProfileCard({
   return (
     <div
       className={cn(
-        "w-full overflow-hidden rounded-lg bg-card shadow-lg",
+        "relative w-full overflow-hidden rounded-lg bg-card shadow-lg",
         themed && "p-1",
         fill && "flex min-h-full flex-col",
         className
@@ -73,6 +77,7 @@ export function ProfileCard({
           : undefined
       }
     >
+      <ProfileEffectLayer kind={profile.cosmetics?.effect} />
       <div
         className={cn("bg-cover bg-center", tall ? "h-[106px]" : "h-[60px]", themed && "rounded-t-md")}
         style={{
@@ -98,13 +103,19 @@ export function ProfileCard({
             src={profile.avatarUrl}
             status={status}
             surface="card"
+            ringColor={themed ? profile.themePrimary! : undefined}
+            decoration={profile.cosmetics?.decoration}
             className="size-20"
             statusSize="lg"
             animate="always"
           />
         </div>
         <div className="pt-12">
-          <p className="truncate text-xl leading-tight font-bold text-header">{profile.displayName}</p>
+          <p className="truncate text-xl leading-tight font-bold text-header">
+            <StyledName cosmetics={profile.cosmetics} motion="always">
+              {profile.displayName}
+            </StyledName>
+          </p>
           <p className="truncate text-sm text-foreground">
             {profile.username}
             {profile.pronouns && <span className="text-muted-foreground"> • {profile.pronouns}</span>}
@@ -139,17 +150,19 @@ export function ProfileCard({
   )
 }
 
-/** The theme and banner fields of a profile row, for ProfileCardData. */
+/** The theme, banner and cosmetics fields of a profile row, for ProfileCardData. */
 export function profileThemeFields(profile: {
   banner_url?: string | null
   theme_primary?: string | null
   theme_accent?: string | null
+  cosmetics?: unknown
   pronouns?: string | null
 }) {
   return {
     bannerUrl: profile.banner_url ?? null,
     themePrimary: profile.theme_primary ?? null,
     themeAccent: profile.theme_accent ?? null,
+    cosmetics: parseCosmetics(profile.cosmetics),
     pronouns: profile.pronouns ?? null,
   }
 }
