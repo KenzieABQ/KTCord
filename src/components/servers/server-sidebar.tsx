@@ -56,7 +56,7 @@ export function ServerSidebar({ serverId }: { serverId: string }) {
         <DropdownMenuTrigger
           disabled={!server}
           className={cn(
-            "flex h-12 shrink-0 items-center gap-2 px-4 text-left font-semibold text-header shadow-[0_1px_0_rgb(0_0_0/0.2)] transition-colors outline-none hover:bg-item-hover focus-visible:bg-item-hover",
+            "flex h-12 shrink-0 items-center gap-2 px-4 text-left font-semibold text-header border-b border-border transition-colors outline-none hover:bg-item-hover focus-visible:bg-item-hover",
             menuOpen && "bg-item-hover"
           )}
         >

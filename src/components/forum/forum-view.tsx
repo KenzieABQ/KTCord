@@ -226,7 +226,7 @@ export function ForumView({ serverId, channel }: { serverId: string; channel: Ch
             <div className="min-w-0">
               {channel.topic && <p className="text-sm break-words text-muted-foreground">{channel.topic}</p>}
             </div>
-            <Button disabled={!canPost} onClick={() => setComposing(true)} title={canPost ? undefined : "You can't post here"}>
+            <Button disabled={!canPost} onClick={() => setComposing(true)}>
               <PlusIcon /> New Post
             </Button>
           </div>

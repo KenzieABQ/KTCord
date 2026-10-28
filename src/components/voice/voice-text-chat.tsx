@@ -21,7 +21,7 @@ export function VoiceTextChat({ serverId, channel }: { serverId: string; channel
 
   const content = (
     <div className="flex h-full min-w-0 flex-col bg-chat">
-      <header className="flex h-12 shrink-0 items-center gap-2 px-4 shadow-[0_1px_0_rgb(0_0_0/0.2)]">
+      <header className="flex h-12 shrink-0 items-center gap-2 px-4 border-b border-border">
         <MessageSquareTextIcon className="size-5 shrink-0 text-muted-foreground" />
         <h2 className="min-w-0 flex-1 truncate font-semibold text-header">{channel.name}</h2>
         <button

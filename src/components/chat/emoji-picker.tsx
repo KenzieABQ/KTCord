@@ -26,6 +26,7 @@ import { cn } from "@/lib/utils"
 
 import { useOptionalChat } from "./chat-context"
 import { Emoji } from "./emoji"
+import { Tooltip, TooltipContent, TooltipTrigger } from "@/components/ui/tooltip"
 
 const CATEGORY_ICONS = [SmileIcon, LeafIcon, AppleIcon, TrophyIcon, PlaneIcon, LightbulbIcon, HeartIcon, FlagIcon]
 
@@ -242,18 +243,22 @@ export function EmojiPicker({ onPick, allowCustom = true }: { onPick: (emoji: st
               <div key={section.key} className="contents">
                 {/* A divider between the custom emoji and the standard categories, as in Discord. */}
                 {data && section.key === data.categories[0]?.id && i > 0 && <span className="my-1 h-px w-6 bg-border" />}
-                <button
-                  type="button"
-                  aria-label={section.label}
-                  title={section.label}
-                  onClick={() => jumpTo(section.key)}
-                  className={cn(
-                    "flex size-8 shrink-0 items-center justify-center rounded-md text-interactive hover:bg-item-hover hover:text-interactive-hover",
-                    active === section.key && "bg-item-selected text-interactive-active"
-                  )}
-                >
-                  {section.icon}
-                </button>
+                <Tooltip>
+                  <TooltipTrigger asChild>
+                    <button
+                      type="button"
+                      aria-label={section.label}
+                      onClick={() => jumpTo(section.key)}
+                      className={cn(
+                        "flex size-8 shrink-0 items-center justify-center rounded-md text-interactive hover:bg-item-hover hover:text-interactive-hover",
+                        active === section.key && "bg-item-selected text-interactive-active"
+                      )}
+                    >
+                      {section.icon}
+                    </button>
+                  </TooltipTrigger>
+                  <TooltipContent side="right">{section.label}</TooltipContent>
+                </Tooltip>
               </div>
             ))}
           </nav>

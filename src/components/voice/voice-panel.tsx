@@ -69,7 +69,7 @@ export function VoicePanel() {
   const status = STATUS[connection.status]
 
   return (
-    <div className="flex shrink-0 items-center gap-2 border-b border-border/60 bg-card/80 px-2 py-1.5 dark:bg-[#232428]">
+    <div className="flex shrink-0 items-center gap-2 border-b border-border px-2 py-1.5">
       <div className="min-w-0 flex-1 pl-1">
         <p role="status" className={cn("flex items-center gap-1.5 text-sm font-semibold", status.className)}>
           <SignalIcon className="size-4" />

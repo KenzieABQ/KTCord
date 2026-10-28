@@ -4,6 +4,7 @@ import { SearchIcon, XIcon } from "lucide-react"
 import { useRef, useState, type ReactNode } from "react"
 
 import { Sheet, SheetContent, SheetTitle } from "@/components/ui/sheet"
+import { Tooltip, TooltipContent, TooltipTrigger } from "@/components/ui/tooltip"
 import { useBreakpoint } from "@/hooks/use-breakpoint"
 import { useSwipe } from "@/hooks/use-swipe"
 import { useUiStore } from "@/lib/stores/ui-store"
@@ -72,20 +73,26 @@ export function HeaderSearch({ className }: { className?: string }) {
         if (value.trim()) openSidePanel({ kind: "search", scopeKey, query: value.trim() })
       }}
     >
-      <input
-        value={value}
-        onChange={(e) => setValue(e.target.value)}
-        onKeyDown={(e) => {
-          if (e.key === "Escape") {
-            setValue("")
-            if (panel?.kind === "search") close()
-          }
-        }}
-        placeholder={serverId ? "Search" : "Search DM"}
-        aria-label="Search messages"
-        title={SEARCH_HINT}
-        className="h-6 w-36 rounded-sm bg-rail pr-6 pl-1.5 text-sm text-foreground transition-[width] outline-none placeholder:text-muted-foreground focus:w-60"
-      />
+      <Tooltip>
+        <TooltipTrigger asChild>
+          <input
+            value={value}
+            onChange={(e) => setValue(e.target.value)}
+            onKeyDown={(e) => {
+              if (e.key === "Escape") {
+                setValue("")
+                if (panel?.kind === "search") close()
+              }
+            }}
+            placeholder={serverId ? "Search" : "Search DM"}
+            aria-label="Search messages"
+            className="h-6 w-36 rounded-sm bg-rail pr-6 pl-1.5 text-sm text-foreground transition-[width] outline-none placeholder:text-muted-foreground focus:w-60"
+          />
+        </TooltipTrigger>
+        <TooltipContent side="bottom" className="max-w-xs">
+          {SEARCH_HINT}
+        </TooltipContent>
+      </Tooltip>
       {value ? (
         <button
           type="button"

@@ -79,7 +79,7 @@ export function AttachmentTray({ channelId, items, rounded }: { channelId: strin
               </span>
             )}
           </div>
-          <p className="mt-1.5 truncate text-sm text-foreground" title={item.file.name}>
+          <p className="mt-1.5 truncate text-sm text-foreground">
             {item.file.name}
           </p>
           <p className="text-xs text-muted-foreground">{formatBytes(item.file.size)}</p>

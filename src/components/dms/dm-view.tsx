@@ -19,6 +19,7 @@ import { ProfileCard, profileThemeFields } from "@/components/profile/profile-ca
 import { STATUS_LABEL } from "@/components/profile/status-dot"
 import { UserAvatar } from "@/components/profile/user-avatar"
 import { UserPopover } from "@/components/profile/user-popover"
+import { ConfirmDialog } from "@/components/ui/confirm-dialog"
 import { Button } from "@/components/ui/button"
 import { Sheet, SheetContent, SheetTitle } from "@/components/ui/sheet"
 import { useBreakpoint } from "@/hooks/use-breakpoint"
@@ -105,6 +106,7 @@ function DmSidePanel({ dm }: { dm: DmChannel }) {
   const userId = useUserId()
   const presence = usePresenceStore((s) => s.byUser)
   const leave = useLeaveGroupDm()
+  const [confirmingLeave, setConfirmingLeave] = useState(false)
   const other = dm.type === "dm" ? dm.recipients.find((r) => r.user_id !== userId) : undefined
   const otherStatus = usePresenceStatus(other?.user_id)
 
@@ -168,14 +170,18 @@ function DmSidePanel({ dm }: { dm: DmChannel }) {
         <Button
           variant="destructive"
           className="w-full"
-          onClick={() => {
-            if (window.confirm(`Leave ${dmTitle(dm, userId)}? You won't be able to rejoin unless re-added.`)) {
-              leave.mutate(dm.id, { onError: (e) => toast.error(errorMessage(e)) })
-            }
-          }}
+          onClick={() => setConfirmingLeave(true)}
         >
           <LogOutIcon /> Leave Group
         </Button>
+        <ConfirmDialog
+          open={confirmingLeave}
+          onOpenChange={setConfirmingLeave}
+          title={`Leave ${dmTitle(dm, userId)}`}
+          description="Are you sure? You won't be able to rejoin unless someone adds you back."
+          confirmLabel="Leave Group"
+          onConfirm={() => leave.mutate(dm.id, { onError: (e) => toast.error(errorMessage(e)) })}
+        />
       </div>
     </div>
   )

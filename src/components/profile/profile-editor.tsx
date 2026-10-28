@@ -22,6 +22,7 @@ import { profileSchema, type ProfileValues } from "@/lib/validation"
 
 import { AvatarCropDialog } from "./avatar-crop-dialog"
 import { ProfileCard } from "./profile-card"
+import { Tooltip, TooltipContent, TooltipTrigger } from "@/components/ui/tooltip"
 
 type ImageChange = { kind: "unchanged" } | { kind: "new"; blob: Blob; previewUrl: string } | { kind: "removed" }
 
@@ -298,22 +299,25 @@ export function ProfileEditor({
               const selected =
                 values.themePrimary?.toLowerCase() === preset.primary && values.themeAccent?.toLowerCase() === preset.accent
               return (
-                <button
-                  key={preset.name}
-                  type="button"
-                  aria-label={`${preset.name} theme`}
-                  aria-pressed={selected}
-                  title={preset.name}
-                  onClick={() => {
-                    set("themePrimary", preset.primary)
-                    set("themeAccent", preset.accent)
-                  }}
-                  className={cn(
-                    "size-10 rounded-full ring-offset-2 ring-offset-background transition-transform hover:scale-105",
-                    selected && "ring-2 ring-foreground"
-                  )}
-                  style={{ background: `linear-gradient(180deg, ${preset.primary}, ${preset.accent})` }}
-                />
+                <Tooltip key={preset.name}>
+                  <TooltipTrigger asChild>
+                    <button
+                      type="button"
+                      aria-label={`${preset.name} theme`}
+                      aria-pressed={selected}
+                      onClick={() => {
+                        set("themePrimary", preset.primary)
+                        set("themeAccent", preset.accent)
+                      }}
+                      className={cn(
+                        "size-10 rounded-full ring-offset-2 ring-offset-background transition-transform hover:scale-105",
+                        selected && "ring-2 ring-foreground"
+                      )}
+                      style={{ background: `linear-gradient(180deg, ${preset.primary}, ${preset.accent})` }}
+                    />
+                  </TooltipTrigger>
+                  <TooltipContent side="top">{preset.name}</TooltipContent>
+                </Tooltip>
               )
             })}
           </div>

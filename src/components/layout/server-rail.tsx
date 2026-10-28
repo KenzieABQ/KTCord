@@ -27,7 +27,8 @@ import { isChannelUnread, useServerUnread, useUnreadStore } from "@/lib/stores/u
 
 import { RailItem } from "./rail-item"
 
-export function ServerRail() {
+/** `bottomInset` leaves room for the floating user panel. */
+export function ServerRail({ bottomInset = 0 }: { bottomInset?: number }) {
   const pathname = usePathname()
   const params = useParams<{ serverId?: string; channelId?: string }>()
   const { data: relationships } = useRelationships()
@@ -40,7 +41,8 @@ export function ServerRail() {
   return (
     <nav
       aria-label="Servers"
-      className="scrollbar-none flex w-[72px] shrink-0 flex-col items-center gap-2 overflow-y-auto bg-rail pt-3 pb-3"
+      className="scrollbar-none flex w-[72px] shrink-0 flex-col items-center gap-2 overflow-y-auto bg-rail pt-1"
+      style={{ paddingBottom: bottomInset }}
     >
       <RailItem
         label="Direct Messages"
@@ -144,6 +146,7 @@ function UnreadDms({ activeChannelId }: { activeChannelId?: string }) {
           label={dmTitle(dm, userId)}
           href={`/channels/me/${dm.id}`}
           unread
+          shape="circle"
           mentions={unread[dm.id]?.mentions ?? 0}
         >
           <DmAvatar dm={dm} className="size-12" showStatus={false} />

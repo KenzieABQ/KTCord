@@ -21,7 +21,7 @@ export function ViewHeader({
   return (
     <header
       className={cn(
-        "relative z-10 flex h-12 shrink-0 items-center gap-2 px-2 shadow-[0_1px_0_rgb(0_0_0/0.2),0_1.5px_0_rgb(0_0_0/0.05),0_2px_0_rgb(0_0_0/0.05)] sm:px-4",
+        "relative z-10 flex h-12 shrink-0 items-center gap-2 px-2 border-b border-border sm:px-4",
         className
       )}
     >

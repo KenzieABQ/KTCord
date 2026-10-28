@@ -1,7 +1,7 @@
 "use client"
 
 import { useParams } from "next/navigation"
-import { useEffect, useRef, type ReactNode } from "react"
+import { useEffect, useRef, useState, type ReactNode } from "react"
 
 import { composerInputId, focusComposer } from "@/components/chat/composer"
 import { ServerSidebar } from "@/components/servers/server-sidebar"
@@ -15,26 +15,48 @@ import { useUiStore } from "@/lib/stores/ui-store"
 
 import { HomeSidebar } from "./home-sidebar"
 import { ServerRail } from "./server-rail"
+import { TitleBar } from "./title-bar"
 import { UserPanel } from "./user-panel"
 
-/** Server rail + the channel sidebar for the current section, with the user panel at the bottom. */
+/** Height of an element, kept current as it resizes. */
+function useHeight<T extends HTMLElement>() {
+  const ref = useRef<T>(null)
+  const [height, setHeight] = useState(0)
+  useEffect(() => {
+    const element = ref.current
+    if (!element) return
+    const observer = new ResizeObserver(() => setHeight(element.offsetHeight))
+    observer.observe(element)
+    return () => observer.disconnect()
+  }, [])
+  return [ref, height] as const
+}
+
+/**
+ * Server rail + the channel sidebar for the current section. The user panel (and voice
+ * panel) float over the bottom of both, as in Discord's newer look.
+ */
 function Navigation() {
   const params = useParams<{ serverId?: string }>()
+  const [panelRef, panelHeight] = useHeight<HTMLDivElement>()
+  const inset = panelHeight + 16
   return (
-    <div className="flex h-full min-h-0">
-      <ServerRail />
+    <div className="relative flex h-full min-h-0">
+      <ServerRail bottomInset={inset} />
       <aside
         aria-label={params.serverId ? "Channels" : "Direct messages"}
-        className="flex w-60 min-w-0 flex-col overflow-hidden bg-sidebar md:rounded-tl-lg"
+        className="flex w-60 min-w-0 flex-col overflow-hidden border-t border-l border-border bg-sidebar md:rounded-tl-xl"
+        style={{ paddingBottom: inset }}
       >
-        {params.serverId ? (
-          <ServerSidebar serverId={params.serverId} />
-        ) : (
-          <HomeSidebar />
-        )}
+        {params.serverId ? <ServerSidebar serverId={params.serverId} /> : <HomeSidebar />}
+      </aside>
+      <div
+        ref={panelRef}
+        className="absolute inset-x-2 bottom-2 z-10 overflow-hidden rounded-lg border border-border bg-card shadow-lg"
+      >
         <VoicePanel />
         <UserPanel />
-      </aside>
+      </div>
     </div>
   )
 }
@@ -59,17 +81,13 @@ export function AppShell({ children }: { children: ReactNode }) {
     setNavDrawerOpen(false)
   }, [routeKey, setNavDrawerOpen])
 
-  useSwipe(
-    mainRef,
-    { onSwipeRight: () => setNavDrawerOpen(true) },
-    breakpoint === "mobile"
-  )
+  useSwipe(mainRef, { onSwipeRight: () => setNavDrawerOpen(true) }, breakpoint === "mobile")
   // Swipe the open drawer back to the left to close it.
   const drawerRef = useRef<HTMLDivElement>(null)
   useSwipe(drawerRef, { onSwipeLeft: () => setNavDrawerOpen(false) }, breakpoint === "mobile" && navDrawerOpen)
 
   return (
-    <div className="flex h-dvh overflow-hidden bg-rail">
+    <div className="flex h-dvh flex-col overflow-hidden bg-rail">
       <a
         href="#app-main"
         onClick={(e) => {
@@ -84,27 +102,37 @@ export function AppShell({ children }: { children: ReactNode }) {
       >
         Skip to content
       </a>
-      <div className="hidden md:flex">
-        <Navigation />
+      <div className="hidden md:block">
+        <TitleBar />
       </div>
+      <div className="flex min-h-0 flex-1">
+        <div className="hidden md:flex">
+          <Navigation />
+        </div>
 
-      {breakpoint === "mobile" && (
-        <Sheet open={navDrawerOpen} onOpenChange={setNavDrawerOpen}>
-          <SheetContent
-            ref={drawerRef}
-            side="left"
-            showCloseButton={false}
-            className="w-[312px] max-w-[88vw] gap-0 border-0 bg-rail p-0 sm:max-w-[312px]"
-          >
-            <SheetTitle className="sr-only">Navigation</SheetTitle>
-            <Navigation />
-          </SheetContent>
-        </Sheet>
-      )}
+        {breakpoint === "mobile" && (
+          <Sheet open={navDrawerOpen} onOpenChange={setNavDrawerOpen}>
+            <SheetContent
+              ref={drawerRef}
+              side="left"
+              showCloseButton={false}
+              className="w-[312px] max-w-[88vw] gap-0 border-0 bg-rail p-0 sm:max-w-[312px]"
+            >
+              <SheetTitle className="sr-only">Navigation</SheetTitle>
+              <Navigation />
+            </SheetContent>
+          </Sheet>
+        )}
 
-      <main id="app-main" ref={mainRef} tabIndex={-1} className="flex min-w-0 flex-1 bg-chat outline-none">
-        {children}
-      </main>
+        <main
+          id="app-main"
+          ref={mainRef}
+          tabIndex={-1}
+          className="flex min-w-0 flex-1 bg-chat outline-none md:border-t md:border-l md:border-border"
+        >
+          {children}
+        </main>
+      </div>
     </div>
   )
 }

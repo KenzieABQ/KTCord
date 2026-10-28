@@ -241,7 +241,7 @@ export function Composer({ onSent }: { onSent: () => void }) {
   if (!canSend) {
     return (
       <div className="shrink-0 px-4 pb-6">
-        <div className="flex min-h-11 items-center gap-2 rounded-lg bg-composer px-4 py-2 text-sm text-muted-foreground">
+        <div className="flex min-h-11 items-center gap-2 rounded-lg border border-border bg-composer px-4 py-2 text-sm text-muted-foreground">
           {timedOutUntil ? (
             <>
               <ClockIcon className="size-4 shrink-0 text-mention" />
@@ -282,7 +282,7 @@ export function Composer({ onSent }: { onSent: () => void }) {
           void send()
         }}
         className={cn(
-          "relative flex items-start gap-1 rounded-lg bg-composer pr-2",
+          "relative flex items-start gap-1 rounded-lg border border-border bg-composer pr-2",
           (replyTo || staged.length > 0) && "rounded-t-none"
         )}
       >

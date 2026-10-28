@@ -18,6 +18,7 @@ export function RailItem({
   unread = false,
   mentions = 0,
   variant = "default",
+  shape = "morph",
   children,
 }: {
   label: string
@@ -28,11 +29,17 @@ export function RailItem({
   mentions?: number
   /** "action" items (Add a Server, Join) turn green on hover. */
   variant?: "default" | "brand" | "action"
+  /** Servers morph into a rounded square on hover; people (DMs) stay circles, as in Discord. */
+  shape?: "morph" | "circle"
   children: ReactNode
 }) {
   const className = cn(
     "relative flex size-12 items-center justify-center overflow-hidden transition-[border-radius,background-color,color] duration-200 outline-none focus-visible:ring-2 focus-visible:ring-ring",
-    active ? "rounded-2xl" : "rounded-3xl hover:rounded-2xl focus-visible:rounded-2xl",
+    shape === "circle"
+      ? "rounded-full"
+      : active
+        ? "rounded-2xl"
+        : "rounded-3xl hover:rounded-2xl focus-visible:rounded-2xl",
     variant === "default" &&
       (active ? "bg-primary text-white" : "bg-rail-item text-foreground hover:bg-primary hover:text-white"),
     variant === "brand" &&

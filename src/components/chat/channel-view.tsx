@@ -25,6 +25,7 @@ import { HeaderButton } from "./header-button"
 import { MessageFeed, type MessageFeedHandle } from "./message-feed"
 import { SEARCH_HINT } from "./search-panel"
 import { ChannelSidePanel, HeaderSearch } from "./side-panel"
+import { Tooltip, TooltipContent, TooltipTrigger } from "@/components/ui/tooltip"
 
 function MembersButton() {
   const members = useToggleMembers()
@@ -59,9 +60,14 @@ function ChannelTitle({ channel }: { channel: Channel }) {
       {channel.topic && (
         <>
           <span className="mx-1 hidden h-6 w-px shrink-0 bg-border md:block" />
-          <p className="hidden truncate text-sm text-muted-foreground md:block" title={channel.topic}>
-            {channel.topic}
-          </p>
+          <Tooltip>
+            <TooltipTrigger asChild>
+              <p className="hidden truncate text-sm text-muted-foreground md:block">{channel.topic}</p>
+            </TooltipTrigger>
+            <TooltipContent side="bottom" className="max-w-sm">
+              {channel.topic}
+            </TooltipContent>
+          </Tooltip>
         </>
       )}
     </>

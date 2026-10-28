@@ -68,7 +68,8 @@ function PanelButton({
 }) {
   const className = cn(
     "flex size-8 items-center justify-center rounded-md text-interactive transition-colors hover:bg-item-hover hover:text-interactive-hover",
-    active && "text-mention hover:text-mention"
+    // Muted/deafened: tinted red, as in Discord.
+    active && "bg-destructive/15 text-destructive hover:bg-destructive/25 hover:text-destructive"
   )
   return (
     <Tooltip>
@@ -97,7 +98,7 @@ export function UserPanel() {
   const { selfMute, selfDeaf, toggleMute, toggleDeaf } = useVoiceStore()
   const [customOpen, setCustomOpen] = useState(false)
 
-  if (!profile) return <div className="h-[52px] shrink-0 bg-card/60" />
+  if (!profile) return <div className="h-14 shrink-0" />
 
   const name = displayNameOf(profile)
   const custom = activeCustomStatus(profile)
@@ -109,7 +110,7 @@ export function UserPanel() {
       : CHOSEN_LABEL[chosen]
 
   return (
-    <div className="flex h-[52px] shrink-0 items-center gap-1 bg-card/80 px-2 dark:bg-[#232428]">
+    <div className="flex h-14 shrink-0 items-center gap-1 px-2">
       <DropdownMenu>
         <DropdownMenuTrigger className="group flex min-w-0 flex-1 items-center gap-2 rounded-md py-1 pr-1 pl-0.5 text-left outline-none hover:bg-item-hover focus-visible:ring-2 focus-visible:ring-ring">
           <UserAvatar userId={profile.id} name={name} src={profile.avatar_url} status={dot} surface="card" />

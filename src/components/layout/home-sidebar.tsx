@@ -20,7 +20,7 @@ export function HomeSidebar() {
 
   return (
     <>
-      <div className="flex h-12 shrink-0 items-center px-2.5 shadow-[0_1px_0_rgb(0_0_0/0.2)]">
+      <div className="flex h-12 shrink-0 items-center px-2.5 border-b border-border">
         <button
           type="button"
           onClick={() => openDialog({ kind: "quick-switcher" })}

@@ -23,6 +23,7 @@ import { useMemo, useState } from "react"
 import { toast } from "sonner"
 
 import { SettingsSection } from "@/components/settings/settings-layout"
+import { ConfirmDialog } from "@/components/ui/confirm-dialog"
 import { Button } from "@/components/ui/button"
 import { Field, FieldDescription, FieldLabel } from "@/components/ui/field"
 import { Input } from "@/components/ui/input"
@@ -139,8 +140,9 @@ function RoleEditor({
     }
   }
 
+  const [confirmingDelete, setConfirmingDelete] = useState(false)
+
   async function remove() {
-    if (!window.confirm(`Delete the role "${role.name}"? Members keep their other roles.`)) return
     try {
       await deleteRole.mutateAsync(role.id)
       onDeleted()
@@ -151,6 +153,14 @@ function RoleEditor({
 
   return (
     <div className="min-w-0 flex-1">
+      <ConfirmDialog
+        open={confirmingDelete}
+        onOpenChange={setConfirmingDelete}
+        title={`Delete "${role.name}"`}
+        description="Are you sure? Members with this role keep their other roles. This can't be undone."
+        confirmLabel="Delete Role"
+        onConfirm={() => void remove()}
+      />
       <h2 className="mb-3 truncate text-base font-semibold text-header">
         Edit role — {role.is_default ? "@everyone" : role.name}
       </h2>
@@ -256,7 +266,7 @@ function RoleEditor({
             </label>
 
             {editable && (
-              <Button variant="destructive" className="self-start" onClick={remove} disabled={deleteRole.isPending}>
+              <Button variant="destructive" className="self-start" onClick={() => setConfirmingDelete(true)} disabled={deleteRole.isPending}>
                 <TrashIcon /> Delete Role
               </Button>
             )}

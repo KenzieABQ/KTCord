@@ -209,7 +209,6 @@ function renderNodes(nodes: MdNode[]): ReactNode[] {
             href={node.url}
             target="_blank"
             rel="noopener noreferrer nofollow"
-            title={node.url}
             className="text-link hover:underline"
           >
             {renderNodes(node.children)}
